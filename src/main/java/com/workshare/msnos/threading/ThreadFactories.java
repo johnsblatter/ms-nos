@@ -9,9 +9,9 @@ import java.util.concurrent.ThreadFactory;
  * 
  * @author bossola
  */
-public class TheadFactories {
+public class ThreadFactories {
 
-	private static final ThreadFactory defaultThreadFactory = Executors.defaultThreadFactory();
+	public static final ThreadFactory DEFAULT = Executors.defaultThreadFactory();
 
 	public static interface Customizer {
 		public void apply(Thread thread);
@@ -21,7 +21,7 @@ public class TheadFactories {
 		return new ThreadFactory () {
 			@Override
 			public Thread newThread(Runnable runnable) {
-				Thread thread = defaultThreadFactory.newThread(runnable);
+				Thread thread = DEFAULT.newThread(runnable);
 				customizer.apply(thread);
 				return thread;
 			}

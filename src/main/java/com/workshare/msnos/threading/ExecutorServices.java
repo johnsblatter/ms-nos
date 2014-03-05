@@ -4,7 +4,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 
-import com.workshare.msnos.threading.TheadFactories.Customizer;
+import com.workshare.msnos.threading.ThreadFactories.Customizer;
 
 /**
  * An enhanced executor service factory
@@ -15,7 +15,7 @@ public class ExecutorServices {
 
 	public static ExecutorService newFixedDaemonThreadPool(final int size) {
 
-		ThreadFactory daemonFactory = TheadFactories.newCustomThreadFactory(new Customizer(){
+		ThreadFactory daemonFactory = ThreadFactories.newCustomThreadFactory(new Customizer(){
 			@Override
 			public void apply(Thread thread) {
 				thread.setDaemon(true);

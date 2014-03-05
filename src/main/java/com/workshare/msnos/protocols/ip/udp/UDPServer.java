@@ -12,6 +12,7 @@ import com.workshare.msnos.core.Gateway.Listener;
 import com.workshare.msnos.core.Message;
 import com.workshare.msnos.json.Json;
 import com.workshare.msnos.threading.Multicaster;
+import com.workshare.msnos.threading.ThreadFactories;
 
 
 public class UDPServer {
@@ -25,17 +26,19 @@ public class UDPServer {
     private ThreadFactory threads;
     private Multicaster<Listener, Message> multicaster;
 
-
-    UDPServer(ThreadFactory threads, MulticastSocket socket, int maxPacketSize) {
-        this.socket = socket;
-        this.threads = threads;
-        this.maxPacketSize = maxPacketSize;
-
-        this.multicaster = new Multicaster<Listener, Message>(){
+    UDPServer(MulticastSocket socket, int maxPacketSize) {
+        this(ThreadFactories.DEFAULT, socket, maxPacketSize, new Multicaster<Listener, Message>(){
             @Override
             protected void dispatch(Listener listener, Message message) {
                 listener.onMessage(message);
-            }};
+            }});
+    }
+
+    UDPServer(ThreadFactory threads, MulticastSocket socket, int maxPacketSize, Multicaster<Listener, Message> caster) {
+        this.socket = socket;
+        this.threads = threads;
+        this.maxPacketSize = maxPacketSize;
+        this.multicaster = caster;
     }
 
     public synchronized void start() {

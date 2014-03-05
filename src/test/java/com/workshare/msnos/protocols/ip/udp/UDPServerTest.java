@@ -1,15 +1,13 @@
 package com.workshare.msnos.protocols.ip.udp;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
-import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.MulticastSocket;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ThreadFactory;
 
@@ -24,30 +22,33 @@ import com.workshare.msnos.core.Gateway.Listener;
 import com.workshare.msnos.core.Iden;
 import com.workshare.msnos.core.Message;
 import com.workshare.msnos.json.Json;
+import com.workshare.msnos.threading.Multicaster;
 
-public class UDPServerTest implements Listener {
+@SuppressWarnings("unchecked")
+public class UDPServerTest {
 
     private UDPServer server;
     private Thread thread;
     private MulticastSocket socket;
     private ArgumentCaptor<Runnable> runnableCaptor;
-    private List<Message> messages;
+    private ArgumentCaptor<Message> messageCaptor;
+	private Multicaster<Listener, Message> caster;
 
-    @Before
+	@Before
     public void init() {
         thread = Mockito.mock(Thread.class);
         when(thread.isInterrupted()).thenReturn(false);
-        
-        socket = Mockito.mock(MulticastSocket.class);
 
         ThreadFactory threads = Mockito.mock(ThreadFactory.class);
-        server = new UDPServer(threads, socket, 512);
-        server.addListener(this);
-        
         runnableCaptor = ArgumentCaptor.forClass(Runnable.class);
         Mockito.when(threads.newThread(runnableCaptor.capture())).thenReturn(thread);
+        
+        caster = Mockito.mock(Multicaster.class);
+        messageCaptor = ArgumentCaptor.forClass(Message.class);
+        Mockito.doNothing().when(caster).dispatch(messageCaptor.capture());
 
-        messages = new ArrayList<Message>();
+        socket = Mockito.mock(MulticastSocket.class);
+        server = new UDPServer(threads, socket, 512, caster);
     }
     
     @Test 
@@ -97,7 +98,7 @@ public class UDPServerTest implements Listener {
         try {runnable().run();}
         catch (IllegalArgumentException ignore) {}
 
-        assertEquals(toJson(message), toJson(messages.get(0)));
+        assertEquals(toJson(message), toJson(getLastMessage()));
     }
 
     private Message newSampleMessage() {
@@ -120,8 +121,7 @@ public class UDPServerTest implements Listener {
         }
     }
 
-    @Override
-    public void onMessage(Message message) {
-        messages.add(message);
+    private Message getLastMessage() {
+    	return messageCaptor.getValue();
     }
 }

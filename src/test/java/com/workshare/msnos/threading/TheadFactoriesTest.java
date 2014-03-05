@@ -6,13 +6,13 @@ import java.util.concurrent.ThreadFactory;
 
 import org.junit.Test;
 
-import com.workshare.msnos.threading.TheadFactories.Customizer;
+import com.workshare.msnos.threading.ThreadFactories.Customizer;
 
 public class TheadFactoriesTest {
 
     @Test
     public void shouldCustomizeThread() {
-        ThreadFactory factory = TheadFactories.newCustomThreadFactory(new Customizer(){
+        ThreadFactory factory = ThreadFactories.newCustomThreadFactory(new Customizer(){
 
             @Override
             public void apply(Thread thread) {
