@@ -48,31 +48,31 @@ public class UDPServerTest {
         Mockito.doNothing().when(caster).dispatch(messageCaptor.capture());
 
         socket = Mockito.mock(MulticastSocket.class);
-        server = new UDPServer(threads, socket, 512, caster);
+        server = new UDPServer(threads, caster);
     }
     
     @Test 
     public void shouldStartTheadOnStart() {
-        server.start();
+        server.start(socket, 512);
         verify(thread).start();
     }
 
     @Test(expected=RuntimeException.class)
     public void shouldNotStartTwice() {
-        server.start();
-        server.start();
+        server.start(socket, 512);
+        server.start(socket, 512);
     }
 
     @Test 
     public void shouldInterruptTheadOnStop() {
-        server.start();
+        server.start(socket, 512);
         server.stop();
         verify(thread).interrupt();
     }
 
     @Test(expected=RuntimeException.class)
     public void shouldNotStopTwice() {
-        server.start();
+        server.start(socket, 512);
         server.stop();
         server.stop();
     }
@@ -94,21 +94,13 @@ public class UDPServerTest {
                 return null;
             }}).doThrow(new IllegalArgumentException()).when(socket).receive(any(DatagramPacket.class));
         
-        server.start();
+        server.start(socket, 512);
         try {runnable().run();}
         catch (IllegalArgumentException ignore) {}
 
         assertEquals(toJson(message), toJson(getLastMessage()));
     }
 
-    private Message newSampleMessage() {
-        final UUID uuid = new UUID(123, 456);
-        final Iden src = new Iden(Iden.Type.AGT, uuid);
-        final Iden dst = new Iden(Iden.Type.CLD, uuid);
-        final Message message = new Message(Message.Type.APP, src, dst, "sigval", null);
-        return message;
-    }
-    
     private String toJson(Message message) {
         return Json.toJsonString(message);
     }
@@ -124,4 +116,13 @@ public class UDPServerTest {
     private Message getLastMessage() {
     	return messageCaptor.getValue();
     }
+
+    private Message newSampleMessage() {
+        final UUID uuid = new UUID(123, 456);
+        final Iden src = new Iden(Iden.Type.AGT, uuid);
+        final Iden dst = new Iden(Iden.Type.CLD, uuid);
+        final Message message = new Message(Message.Type.APP, src, dst, "sigval", 1, false, null);
+        return message;
+    }
+    
 }

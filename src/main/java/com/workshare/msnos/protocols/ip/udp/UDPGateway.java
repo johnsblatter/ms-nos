@@ -1,19 +1,72 @@
 package com.workshare.msnos.protocols.ip.udp;
 
 import java.io.IOException;
+import java.net.DatagramPacket;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.MulticastSocket;
+import java.util.Arrays;
 import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.Future;
+import java.util.concurrent.FutureTask;
+
+import org.apache.log4j.Logger;
 
 import com.workshare.msnos.core.Gateway;
 import com.workshare.msnos.core.Message;
+import com.workshare.msnos.core.Message.Status;
+import com.workshare.msnos.json.Json;
 import com.workshare.msnos.protocols.ip.Endpoint;
+import com.workshare.msnos.protocols.ip.MulticastSocketFactory;
 
 public class UDPGateway implements Gateway {
 
-    private static final String DEFAULT_GROUP = System.getProperty("com.ws.nsnos.udp.group", "230.31.32.33");
-    private static final int UDP_PORT = Integer.getInteger("com.ws.nsnos.udp.port", 2728);
-    private static final int PORT_WIDTH = Integer.getInteger("com.ws.nsnos.udp.port.width", 3);
-    private static final int PACKET_SIZE = Integer.getInteger("com.ws.nsnos.udp.packet.size", 512);
+    private static Logger logger = Logger.getLogger(UDPGateway.class);
 
+    public static final String SYSP_PORT_NUM   = "com.ws.nsnos.udp.port.number";
+    public static final String SYSP_PORT_WIDTH = "com.ws.nsnos.udp.port.width";
+    public static final String SYSP_UDP_GROUP  = "com.ws.nsnos.udp.group";
+
+    static final int PACKET_SIZE = Integer.getInteger("com.ws.nsnos.udp.packet.size", 512);
+
+    private MulticastSocket socket;
+    private InetAddress group;
+    private int ports[];
+
+    public UDPGateway() throws IOException {
+        this(new MulticastSocketFactory(), new UDPServer());
+    }
+
+    public UDPGateway(MulticastSocketFactory sockets, UDPServer server) throws IOException {
+        loadPorts();
+        openSocket(sockets);
+    }
+
+    private void openSocket(MulticastSocketFactory sockets) throws IOException {
+        for (int port : ports) {
+            try {
+                MulticastSocket msock = sockets.create();
+                msock.setReuseAddress(true);
+                msock.bind(new InetSocketAddress(port));
+                socket = msock;
+                logger.info("Socket opened on port "+port);
+                break;
+            }
+            catch (IOException ex) {
+                logger.warn("Unable to open multicast socket on port "+port);
+            }
+        }
+        
+        if (socket == null)
+            throw new IOException("Unable to open socket, I tried to binding on ports "+Arrays.asList(ports));
+
+        String groupAddressName = loadUDPGroup();
+        group = InetAddress.getByName(groupAddressName);
+        socket.joinGroup(group);
+        logger.info("Joined group "+group);
+    }
+    
     @Override
     public void addListener(Listener listener) {
         // TODO Auto-generated method stub
@@ -26,9 +79,52 @@ public class UDPGateway implements Gateway {
     }
 
     @Override
-    public boolean send(Message message) throws IOException {
+    public Future<Status> send(Message message) throws IOException {
+
+        if (logger.isDebugEnabled())
+            logger.debug("Broadcasting message "+Json.toJsonString(message));
+
+        for (int port : ports) {
+            byte[] payload = Json.toBytes(message);
+            DatagramPacket packet = new DatagramPacket(
+                payload, 
+                payload.length,
+                group, 
+                port);
+        
+            socket.send(packet);
+        }
+        
         // TODO Auto-generated method stub
-        return false;
+        return new FutureTask<Status>(new Callable<Status>(){
+            @Override
+            public Status call() throws Exception {
+                return Status.PENDING;
+            }} );
+    }
+    
+    private void loadPorts() {
+        int port = loadBasePort();
+        int width = loadPortWidth();
+
+        ports = new int[width];
+        for (int i=0; i<width; i++) {
+            ports[i] = port+i;
+        }
+        
+        logger.debug("UDP mounted on ports "+Arrays.asList(ports));
+    }
+
+    private Integer loadBasePort() {
+        return Integer.getInteger(SYSP_PORT_NUM, 2728);
+    }
+
+    private Integer loadPortWidth() {
+        return Integer.getInteger(SYSP_PORT_WIDTH, 3);
+    }
+
+    private String loadUDPGroup() {
+        return System.getProperty(SYSP_UDP_GROUP, "230.31.32.33");
     }
 
 }

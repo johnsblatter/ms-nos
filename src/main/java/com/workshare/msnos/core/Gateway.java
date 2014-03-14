@@ -2,6 +2,7 @@ package com.workshare.msnos.core;
 
 import java.io.IOException;
 import java.util.Set;
+import java.util.concurrent.Future;
 
 import com.workshare.msnos.protocols.ip.Endpoint;
 
@@ -18,6 +19,6 @@ public interface Gateway {
     public Set<? extends Endpoint> endpoints()
     ;
 
-    public boolean send(Message message) throws IOException
+    public Future<Message.Status> send(Message message) throws IOException
     ;
 }

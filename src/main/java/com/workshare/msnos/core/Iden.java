@@ -15,6 +15,14 @@ public class Iden {
         this.uuid = uuid;
     }
 
+    public Type getType() {
+        return type;
+    }
+
+    public UUID getUUID() {
+        return uuid;
+    }
+
     public String toString() {
         return Json.toJsonString(this);
     }

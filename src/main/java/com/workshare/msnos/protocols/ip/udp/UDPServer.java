@@ -19,33 +19,35 @@ public class UDPServer {
 
     private static Logger logger = Logger.getLogger(UDPServer.class.getName());
 
-    private MulticastSocket socket;
-    private int maxPacketSize;
+    private final ThreadFactory threads;
+    private final Multicaster<Listener, Message> multicaster;
 
     private Thread thread;
-    private ThreadFactory threads;
-    private Multicaster<Listener, Message> multicaster;
+    private int maxPacketSize;
+    private MulticastSocket socket;
 
-    UDPServer(MulticastSocket socket, int maxPacketSize) {
-        this(ThreadFactories.DEFAULT, socket, maxPacketSize, new Multicaster<Listener, Message>(){
+    
+    UDPServer() {
+        this(ThreadFactories.DEFAULT, new Multicaster<Listener, Message>(){
             @Override
             protected void dispatch(Listener listener, Message message) {
                 listener.onMessage(message);
             }});
     }
 
-    UDPServer(ThreadFactory threads, MulticastSocket socket, int maxPacketSize, Multicaster<Listener, Message> caster) {
-        this.socket = socket;
+    UDPServer(ThreadFactory threads, Multicaster<Listener, Message> caster) {
         this.threads = threads;
-        this.maxPacketSize = maxPacketSize;
         this.multicaster = caster;
     }
 
-    public synchronized void start() {
+    public synchronized void start(MulticastSocket socket, int maxPacketSize) {
 
         if (thread != null) 
             throw new RuntimeException("UDPServer started two times? WTF?");
             
+        this.socket = socket;
+        this.maxPacketSize = maxPacketSize;
+
         thread = threads.newThread(new Runnable() {
             @Override
             public void run() {
