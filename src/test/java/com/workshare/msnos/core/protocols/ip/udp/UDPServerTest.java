@@ -1,4 +1,4 @@
-package com.workshare.msnos.protocols.ip.udp;
+package com.workshare.msnos.core.protocols.ip.udp;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Matchers.any;
@@ -19,10 +19,11 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import com.workshare.msnos.core.Gateway.Listener;
+import com.workshare.msnos.core.protocols.ip.udp.UDPServer;
 import com.workshare.msnos.core.Iden;
 import com.workshare.msnos.core.Message;
-import com.workshare.msnos.json.Json;
-import com.workshare.msnos.threading.Multicaster;
+import com.workshare.msnos.soup.json.Json;
+import com.workshare.msnos.soup.threading.Multicaster;
 
 @SuppressWarnings("unchecked")
 public class UDPServerTest {

@@ -1,4 +1,4 @@
-package com.workshare.msnos.json;
+package com.workshare.msnos.soup.json;
 
 import java.lang.reflect.Type;
 

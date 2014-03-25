@@ -1,4 +1,4 @@
-package com.workshare.msnos.protocols.ip;
+package com.workshare.msnos.core.protocols.ip;
 
 import java.io.IOException;
 import java.net.MulticastSocket;

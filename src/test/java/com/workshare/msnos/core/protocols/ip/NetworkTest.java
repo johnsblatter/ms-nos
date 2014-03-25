@@ -1,4 +1,4 @@
-package com.workshare.msnos.protocols.ip;
+package com.workshare.msnos.core.protocols.ip;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -17,6 +17,8 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
+
+import com.workshare.msnos.core.protocols.ip.Network;
 
 @RunWith(PowerMockRunner.class)
 @PrepareForTest({NetworkInterface.class, InterfaceAddress.class, Network.class})

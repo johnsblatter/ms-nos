@@ -1,10 +1,10 @@
-package com.workshare.msnos.threading;
+package com.workshare.msnos.soup.threading;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 
-import com.workshare.msnos.threading.ThreadFactories.Customizer;
+import com.workshare.msnos.soup.threading.ThreadFactories.Customizer;
 
 /**
  * An enhanced executor service factory

@@ -1,4 +1,4 @@
-package com.workshare.msnos.uuid;
+package com.workshare.msnos.soup.uuid;
 
 import java.util.UUID;
 

@@ -1,7 +1,7 @@
 package com.workshare.msnos.core;
 
 import com.google.gson.JsonObject;
-import com.workshare.msnos.json.Json;
+import com.workshare.msnos.soup.json.Json;
 
 public class Message {
     

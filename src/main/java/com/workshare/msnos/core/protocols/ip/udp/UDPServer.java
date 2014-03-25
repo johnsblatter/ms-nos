@@ -1,4 +1,4 @@
-package com.workshare.msnos.protocols.ip.udp;
+package com.workshare.msnos.core.protocols.ip.udp;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
@@ -10,9 +10,9 @@ import java.util.logging.Logger;
 
 import com.workshare.msnos.core.Gateway.Listener;
 import com.workshare.msnos.core.Message;
-import com.workshare.msnos.json.Json;
-import com.workshare.msnos.threading.Multicaster;
-import com.workshare.msnos.threading.ThreadFactories;
+import com.workshare.msnos.soup.json.Json;
+import com.workshare.msnos.soup.threading.Multicaster;
+import com.workshare.msnos.soup.threading.ThreadFactories;
 
 
 public class UDPServer {

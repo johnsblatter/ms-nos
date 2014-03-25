@@ -1,4 +1,4 @@
-package com.workshare.msnos.threading;
+package com.workshare.msnos.soup.threading;
 
 import static org.junit.Assert.assertEquals;
 
@@ -13,6 +13,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.Before;
 import org.junit.Test;
+
+import com.workshare.msnos.soup.threading.ExecutorServices;
+import com.workshare.msnos.soup.threading.Multicaster;
 
 public class MulticasterTest {
 

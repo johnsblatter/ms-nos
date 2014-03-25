@@ -1,4 +1,4 @@
-package com.workshare.msnos.protocols.ip.udp;
+package com.workshare.msnos.core.protocols.ip.udp;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
@@ -16,9 +16,9 @@ import org.apache.log4j.Logger;
 import com.workshare.msnos.core.Gateway;
 import com.workshare.msnos.core.Message;
 import com.workshare.msnos.core.Message.Status;
-import com.workshare.msnos.json.Json;
-import com.workshare.msnos.protocols.ip.Endpoint;
-import com.workshare.msnos.protocols.ip.MulticastSocketFactory;
+import com.workshare.msnos.core.protocols.ip.Endpoint;
+import com.workshare.msnos.core.protocols.ip.MulticastSocketFactory;
+import com.workshare.msnos.soup.json.Json;
 
 public class UDPGateway implements Gateway {
 

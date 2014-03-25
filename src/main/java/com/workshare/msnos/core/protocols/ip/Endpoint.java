@@ -1,8 +1,8 @@
-package com.workshare.msnos.protocols.ip;
+package com.workshare.msnos.core.protocols.ip;
 
 import java.net.InetAddress;
 
-import com.workshare.msnos.json.Json;
+import com.workshare.msnos.soup.json.Json;
 
 public class Endpoint {
     private final Network network;

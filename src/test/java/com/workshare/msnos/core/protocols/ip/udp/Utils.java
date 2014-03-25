@@ -1,4 +1,4 @@
-package com.workshare.msnos.protocols.ip.udp;
+package com.workshare.msnos.core.protocols.ip.udp;
 
 import java.util.UUID;
 

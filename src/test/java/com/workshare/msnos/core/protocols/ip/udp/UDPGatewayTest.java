@@ -1,4 +1,4 @@
-package com.workshare.msnos.protocols.ip.udp;
+package com.workshare.msnos.core.protocols.ip.udp;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -21,8 +21,9 @@ import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
 import com.workshare.msnos.core.Message;
-import com.workshare.msnos.json.Json;
-import com.workshare.msnos.protocols.ip.MulticastSocketFactory;
+import com.workshare.msnos.core.protocols.ip.MulticastSocketFactory;
+import com.workshare.msnos.core.protocols.ip.udp.UDPGateway;
+import com.workshare.msnos.soup.json.Json;
 
 
 public class UDPGatewayTest {

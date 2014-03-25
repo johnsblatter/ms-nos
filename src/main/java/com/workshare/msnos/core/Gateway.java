@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.util.Set;
 import java.util.concurrent.Future;
 
-import com.workshare.msnos.protocols.ip.Endpoint;
+import com.workshare.msnos.core.protocols.ip.Endpoint;
 
 public interface Gateway {
 

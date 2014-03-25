@@ -2,7 +2,7 @@ package com.workshare.msnos.core;
 
 import java.util.UUID;
 
-import com.workshare.msnos.json.Json;
+import com.workshare.msnos.soup.json.Json;
 
 public class Iden {
     public enum Type {AGT, CLD, MSG}
