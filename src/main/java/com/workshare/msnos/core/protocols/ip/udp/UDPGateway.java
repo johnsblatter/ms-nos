@@ -15,10 +15,12 @@ import org.apache.log4j.Logger;
 
 import com.workshare.msnos.core.Gateway;
 import com.workshare.msnos.core.Message;
+import com.workshare.msnos.core.Gateway.Listener;
 import com.workshare.msnos.core.Message.Status;
 import com.workshare.msnos.core.protocols.ip.Endpoint;
 import com.workshare.msnos.core.protocols.ip.MulticastSocketFactory;
 import com.workshare.msnos.soup.json.Json;
+import com.workshare.msnos.soup.threading.Multicaster;
 
 public class UDPGateway implements Gateway {
 
@@ -34,16 +36,25 @@ public class UDPGateway implements Gateway {
     private InetAddress group;
     private int ports[];
 
-    public UDPGateway() throws IOException {
-        this(new MulticastSocketFactory(), new UDPServer());
-    }
+	private Multicaster<Listener, Message> caster;
 
-    public UDPGateway(MulticastSocketFactory sockets, UDPServer server) throws IOException {
+    public UDPGateway(MulticastSocketFactory sockets, UDPServer server, Multicaster<Listener, Message> caster) throws IOException {
         loadPorts();
         openSocket(sockets);
+        startServer(server);
+        this.caster = caster;
     }
 
-    private void openSocket(MulticastSocketFactory sockets) throws IOException {
+    private void startServer(UDPServer server) {
+    	server.start(socket, PACKET_SIZE);
+    	server.addListener(new Listener() {
+			@Override
+			public void onMessage(Message message) {
+				caster.dispatch(message);
+			}});
+	}
+
+	private void openSocket(MulticastSocketFactory sockets) throws IOException {
         for (int port : ports) {
             try {
                 MulticastSocket msock = sockets.create();
@@ -69,7 +80,7 @@ public class UDPGateway implements Gateway {
     
     @Override
     public void addListener(Listener listener) {
-        // TODO Auto-generated method stub
+    	caster.addListener(listener);
     }
 
     @Override
