@@ -6,6 +6,6 @@ import java.net.MulticastSocket;
 public class MulticastSocketFactory {
 
     public MulticastSocket create() throws IOException {
-        return new MulticastSocket();
+        return new MulticastSocket(null);
     }
 }

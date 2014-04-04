@@ -1,13 +1,10 @@
 package com.workshare.msnos.core;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.UUID;
 
-public class Agent {
+import com.workshare.msnos.soup.json.Json;
 
-    private static final Logger log = LoggerFactory.getLogger(Agent.class);
+public class Agent {
 
     private final Iden iden;
 
@@ -33,5 +30,9 @@ public class Agent {
     public boolean isForMe(Message message) {
 //        BRUNO TOLD ME SO...
         return message.getTo().equals(getIden()) || message.getTo().equals(getCloud().getIden());
+    }
+    
+    public String toString() {
+        return Json.toJsonString(this);
     }
 }
