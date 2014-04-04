@@ -4,7 +4,7 @@ import com.google.gson.JsonObject;
 import com.workshare.msnos.soup.json.Json;
 
 public class Message {
-    
+
     public enum Status {UNKNOWN, PENDING, DELIVERED}
 
     public enum Type {PRS, DSC, APP}
@@ -17,11 +17,11 @@ public class Message {
     private final int hops;
     private final boolean reliable;
     private final JsonObject data;
-    
+
     public Message(Type type, Iden from, Iden to, String sig, int hops, boolean reliable, JsonObject data) {
         if (reliable && to.getType() == Iden.Type.CLD)
             throw new IllegalArgumentException("Cannot create a reliable message to the cloud!");
-        
+
         this.type = type;
         this.from = from;
         this.to = to;
@@ -66,4 +66,13 @@ public class Message {
     public String toString() {
         return Json.toJsonString(this);
     }
+
+    public Message from(Iden from) {
+        return new Message(type, from, to, sig, hops, reliable, data);
+    }
+
+    public Message to(Iden to) {
+        return new Message(type, from, to, sig, hops, reliable, data);
+    }
+
 }

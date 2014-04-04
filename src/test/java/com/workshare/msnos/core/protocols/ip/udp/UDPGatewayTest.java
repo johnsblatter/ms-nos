@@ -1,6 +1,9 @@
 package com.workshare.msnos.core.protocols.ip.udp;
 
+import com.workshare.msnos.core.Agent;
+import com.workshare.msnos.core.Cloud;
 import com.workshare.msnos.core.Gateway.Listener;
+import com.workshare.msnos.core.Iden;
 import com.workshare.msnos.core.Message;
 import com.workshare.msnos.core.protocols.ip.MulticastSocketFactory;
 import com.workshare.msnos.soup.json.Json;
@@ -13,12 +16,21 @@ import java.io.IOException;
 import java.net.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.Executor;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.*;
 
 public class UDPGatewayTest {
+
+    private static final Iden ME = new Iden(Iden.Type.AGT, new UUID(123, 999));
+    private static final Iden YOU = new Iden(Iden.Type.AGT, new UUID(321, 666));
+    private static final Iden SOMEONE = new Iden(Iden.Type.AGT, UUID.randomUUID());
+    private static final Iden MY_CLOUD = new Iden(Iden.Type.CLD, UUID.randomUUID());
+
+    private static final Agent RHYS = new Agent(ME.getUUID()).join(new Cloud(MY_CLOUD.getUUID()));
 
     private UDPGateway gate;
     private UDPServer server;
@@ -112,42 +124,40 @@ public class UDPGatewayTest {
     }
 
     @Test
-    public void shouldInvokeListenerOnMessageReceived() throws Exception {
-        gate().addListener(new Listener() {
-            @Override
-            public void onMessage(Message message) {
-                messages.add(message);
-            }
-        });
+    public void shouldNOTInvokeListenerOnMessagesAddressedToSomeoneElse() throws Exception {
+        addListenerToGateway();
 
-        ArgumentCaptor<Listener> serverListener = ArgumentCaptor.forClass(Listener.class);
-        verify(server).addListener(serverListener.capture());
+        Message message = Utils.newSampleMessage().from(YOU).to(SOMEONE);
+        simulateMessageFromNetwork(message);
 
-        Message message = Utils.newSampleMessage();
-        serverListener.getValue().onMessage(message);
-
-        assertEquals(1, messages.size());
-        assertEquals(message, messages.get(0));
+        assertMessageNotReceived();
     }
 
     @Test
-    public void shouldInvokeListenerOnMessagesAddressedToMe() throws IOException {
-        gate().addListener(new Listener() {
-            @Override
-            public void onMessage(Message message) {
-                messages.add(message);
-            }
-        });
+    public void shouldInvokeListenerOnMessagesAddressedToMe() throws Exception {
+        addListenerToGateway();
 
-        ArgumentCaptor<Listener> serverListener = ArgumentCaptor.forClass(Listener.class);
-        verify(server).addListener(serverListener.capture());
+        Message message = Utils.newSampleMessage().from(SOMEONE).to(ME);
+        simulateMessageFromNetwork(message);
 
-        Message someoneElse = Utils.newSampleMessageToOther();
-        for (Message msg : messages) assertNotSame(someoneElse, msg);
+        assertMessageReceived(message);
     }
 
-    //TODO public void shouldInvokeListenerOnMessagesAddressedToMyCloud()
-    //TODO public void shouldNOTInvokeListenerOnMessagesAddressedToSomeoneElse()
+    @Test
+    public void shouldInvokeListenerOnMessagesAddressedToMyCloud() throws IOException {
+        addListenerToGateway();
+
+        Message message = Utils.newSampleMessage().from(SOMEONE).to(MY_CLOUD);
+        simulateMessageFromNetwork(message);
+
+        assertMessageReceived(message);
+    }
+
+    private void simulateMessageFromNetwork(Message message) {
+        ArgumentCaptor<Listener> serverListener = ArgumentCaptor.forClass(Listener.class);
+        verify(server).addListener(serverListener.capture());
+        serverListener.getValue().onMessage(message);
+    }
 
     private void assertPacketValid(Message message, final DatagramPacket packet) {
         byte[] actuals = packet.getData();
@@ -161,11 +171,29 @@ public class UDPGatewayTest {
         return packetCaptor.getAllValues();
     }
 
+    private void assertMessageReceived(Message message) {
+        assertEquals(1, messages.size());
+        assertEquals(message, messages.get(0));
+    }
+
+    private void assertMessageNotReceived() {
+        assertEquals(0, messages.size());
+    }
+
     private UDPGateway gate() throws IOException {
         if (gate == null)
-            gate = new UDPGateway(sockets, server, synchronousMulticaster());
+            gate = new UDPGateway(sockets, server, synchronousMulticaster(), RHYS);
 
         return gate;
+    }
+
+    private void addListenerToGateway() throws IOException {
+        gate().addListener(new Listener() {
+            @Override
+            public void onMessage(Message message) {
+                messages.add(message);
+            }
+        });
     }
 
     private Multicaster<Listener, Message> synchronousMulticaster() {

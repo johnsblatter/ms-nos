@@ -6,3 +6,5 @@ tmp
 .externalToolBuilders
 /~
 *.iml
+.idea
+
