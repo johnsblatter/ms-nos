@@ -83,17 +83,25 @@ public class UDPServer {
             if (thread.isInterrupted())
                 break;
             
-            ByteBuffer buffer = ByteBuffer.wrap(packet.getData(), 0, packet.getLength());
-            Message message = (Message)Json.fromBytes(buffer.array(), Message.class);
-            logger.log(Level.FINEST, "Received message "+message);
-
-            sendToListeners(message);
+            try {
+                process(packet);
+            } catch (Exception ex) {
+                logger.log(Level.WARNING, "Unable to process packet", ex);
+            }
         }
 
         Thread.interrupted();
         logger.info("Listening loop ended!");
     }
 
+    private void process(DatagramPacket packet) {
+        ByteBuffer buffer = ByteBuffer.wrap(packet.getData(), 0, packet.getLength());
+        Message message = (Message)Json.fromBytes(buffer.array(), Message.class);
+        logger.log(Level.FINEST, "Received message "+message);
+
+        sendToListeners(message);
+    }
+    
     private void sendToListeners(Message message) {
         multicaster.dispatch(message);
     }

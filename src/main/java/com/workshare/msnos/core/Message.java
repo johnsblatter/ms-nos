@@ -75,4 +75,13 @@ public class Message {
         return new Message(type, from, to, sig, hops, reliable, data);
     }
 
+    public boolean equals(Object o) {
+        try {
+            String jsonThis = Json.toJsonString(this);
+            String jsonThat = Json.toJsonString(o);
+            return jsonThis.equals(jsonThat);
+        } catch (Exception any) {
+            return false;
+        }
+    }
 }

@@ -14,7 +14,8 @@ public class ThreadSafeGson {
     };
 
     protected Gson newGson() {
-        return new Gson();
+        final Gson gson = new Gson();
+        return gson;
     }
 
     public final String toJson(Object anyObject) {

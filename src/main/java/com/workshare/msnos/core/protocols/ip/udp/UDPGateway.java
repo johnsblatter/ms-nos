@@ -130,7 +130,7 @@ public class UDPGateway implements Gateway {
     }
 
     private Integer loadBasePort() {
-        return Integer.getInteger(SYSP_PORT_NUM, 2728);
+        return Integer.getInteger(SYSP_PORT_NUM, 3728);
     }
 
     private Integer loadPortWidth() {
