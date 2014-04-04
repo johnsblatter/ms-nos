@@ -3,7 +3,6 @@ package com.workshare.msnos.core.protocols.ip.udp;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.MulticastSocket;
-import java.nio.ByteBuffer;
 import java.util.concurrent.ThreadFactory;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -95,8 +94,7 @@ public class UDPServer {
     }
 
     private void process(DatagramPacket packet) {
-        ByteBuffer buffer = ByteBuffer.wrap(packet.getData(), 0, packet.getLength());
-        Message message = (Message)Json.fromBytes(buffer.array(), Message.class);
+        Message message = (Message)Json.fromBytes(packet.getData(), 0, packet.getLength(), Message.class);
         logger.log(Level.FINEST, "Received message "+message);
 
         sendToListeners(message);
