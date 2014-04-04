@@ -27,7 +27,7 @@ public class UDPServer {
     private MulticastSocket socket;
 
     
-    UDPServer() {
+    public UDPServer() {
         this(ThreadFactories.DEFAULT, new Multicaster<Listener, Message>(){
             @Override
             protected void dispatch(Listener listener, Message message) {
@@ -35,7 +35,7 @@ public class UDPServer {
             }});
     }
 
-    UDPServer(ThreadFactory threads, Multicaster<Listener, Message> caster) {
+    public UDPServer(ThreadFactory threads, Multicaster<Listener, Message> caster) {
         this.threads = threads;
         this.multicaster = caster;
     }
