@@ -109,7 +109,7 @@ public class UDPGateway implements Gateway {
         }
 
         // TODO Auto-generated method stub
-        return new FutureTask<>(new Callable<Status>() {
+        return new FutureTask<Status>(new Callable<Status>() {
             @Override
             public Status call() throws Exception {
                 return Status.PENDING;
