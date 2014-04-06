@@ -15,6 +15,6 @@ public class Utils {
         final UUID uuid = new UUID(123, 456);
         final Iden src = new Iden(Iden.Type.AGT, uuid);
         final Iden dst = new Iden(Iden.Type.CLD, uuid);
-        return new Message(Message.Type.APP, src, dst, "sigval", 1, false, null);
+        return new Message(Message.Type.APP, src, dst, 1, false, null);
     }
 }

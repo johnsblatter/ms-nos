@@ -1,27 +1,36 @@
 package com.workshare.msnos.core.protocols.ip.udp;
 
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.io.IOException;
+import java.net.DatagramPacket;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.MulticastSocket;
+import java.net.SocketException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.Executor;
+
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.ArgumentCaptor;
+
 import com.workshare.msnos.core.Agent;
 import com.workshare.msnos.core.Cloud;
 import com.workshare.msnos.core.Gateway.Listener;
 import com.workshare.msnos.core.Iden;
 import com.workshare.msnos.core.Message;
 import com.workshare.msnos.core.protocols.ip.MulticastSocketFactory;
-import com.workshare.msnos.soup.json.Json;
+import com.workshare.msnos.core.serializers.WireJsonSerializer;
 import com.workshare.msnos.soup.threading.Multicaster;
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.ArgumentCaptor;
-
-import java.io.IOException;
-import java.net.*;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
-import java.util.concurrent.Executor;
-
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.mockito.Mockito.*;
 
 public class UDPGatewayTest {
 
@@ -30,22 +39,26 @@ public class UDPGatewayTest {
     private static final Iden SOMEONE = new Iden(Iden.Type.AGT, UUID.randomUUID());
     private static final Iden MY_CLOUD = new Iden(Iden.Type.CLD, UUID.randomUUID());
 
-    private static final Agent RHYS = new Agent(ME.getUUID()).join(new Cloud(MY_CLOUD.getUUID()));
-
     private UDPGateway gate;
     private UDPServer server;
     private MulticastSocket socket;
     private MulticastSocketFactory sockets;
     private List<Message> messages;
 
+    private Agent rhys;
+
     @Before
     public void setup() throws Exception {
         messages = new ArrayList<Message>();
 
         server = mock(UDPServer.class);
+        when(server.serializer()).thenReturn(new WireJsonSerializer());
+        
         socket = mock(MulticastSocket.class);
         sockets = mock(MulticastSocketFactory.class);
         when(sockets.create()).thenReturn(socket);
+
+        rhys = new Agent(ME.getUUID()).join(new Cloud(MY_CLOUD.getUUID()));
     }
 
     @Test
@@ -134,6 +147,16 @@ public class UDPGatewayTest {
     }
 
     @Test
+    public void shouldNOTInvokeListenerOnMessagesSentByMe() throws Exception {
+        addListenerToGateway();
+
+        Message message = Utils.newSampleMessage().from(ME).to(SOMEONE);
+        simulateMessageFromNetwork(message);
+
+        assertMessageNotReceived();
+    }
+
+    @Test
     public void shouldInvokeListenerOnMessagesAddressedToMe() throws Exception {
         addListenerToGateway();
 
@@ -161,7 +184,7 @@ public class UDPGatewayTest {
 
     private void assertPacketValid(Message message, final DatagramPacket packet) {
         byte[] actuals = packet.getData();
-        byte[] expecteds = Json.toBytes(message);
+        byte[] expecteds = gate.serializer().toBytes(message);
         assertArrayEquals(expecteds, actuals);
     }
 
@@ -182,7 +205,7 @@ public class UDPGatewayTest {
 
     private UDPGateway gate() throws IOException {
         if (gate == null)
-            gate = new UDPGateway(sockets, server, synchronousMulticaster(), RHYS);
+            gate = new UDPGateway(sockets, server, synchronousMulticaster(), rhys);
 
         return gate;
     }

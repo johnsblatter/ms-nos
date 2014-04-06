@@ -9,7 +9,8 @@ import java.util.logging.Logger;
 
 import com.workshare.msnos.core.Gateway.Listener;
 import com.workshare.msnos.core.Message;
-import com.workshare.msnos.soup.json.Json;
+import com.workshare.msnos.core.serializers.WireJsonSerializer;
+import com.workshare.msnos.core.serializers.WireSerializer;
 import com.workshare.msnos.soup.threading.Multicaster;
 import com.workshare.msnos.soup.threading.ThreadFactories;
 
@@ -20,7 +21,8 @@ public class UDPServer {
 
     private final ThreadFactory threads;
     private final Multicaster<Listener, Message> multicaster;
-
+    private final WireSerializer sz;
+    
     private Thread thread;
     private int maxPacketSize;
     private MulticastSocket socket;
@@ -35,7 +37,8 @@ public class UDPServer {
     }
 
     public UDPServer(ThreadFactory threads, Multicaster<Listener, Message> caster) {
-        this.threads = threads;
+    	this.sz = new WireJsonSerializer();		// hard dependency to remove in future?
+    	this.threads = threads;
         this.multicaster = caster;
     }
 
@@ -94,7 +97,7 @@ public class UDPServer {
     }
 
     private void process(DatagramPacket packet) {
-        Message message = (Message)Json.fromBytes(packet.getData(), 0, packet.getLength(), Message.class);
+        Message message = (Message)sz.fromBytes(packet.getData(), 0, packet.getLength(), Message.class);
         logger.log(Level.FINEST, "Received message "+message);
 
         sendToListeners(message);
@@ -107,4 +110,8 @@ public class UDPServer {
     public void addListener(final Listener listener) {
         multicaster.addListener(listener);
     }
+
+	public WireSerializer serializer() {
+		return sz;
+	}
 }

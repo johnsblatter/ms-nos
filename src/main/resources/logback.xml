@@ -9,8 +9,7 @@
     <logger name="org.apache.commons" level="WARN"/>
 
     <root>
-        <level value="INFO"/>
-        <appender-ref ref="FILE"/>
+        <level value="DEBUG"/>
         <appender-ref ref="STDOUT"/>
     </root>
 

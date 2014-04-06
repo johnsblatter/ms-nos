@@ -18,14 +18,14 @@ public class Message {
     private final boolean reliable;
     private final JsonObject data;
 
-    public Message(Type type, Iden from, Iden to, String sig, int hops, boolean reliable, JsonObject data) {
+    public Message(Type type, Iden from, Iden to, int hops, boolean reliable, JsonObject data) {
         if (reliable && to.getType() == Iden.Type.CLD)
             throw new IllegalArgumentException("Cannot create a reliable message to the cloud!");
 
         this.type = type;
         this.from = from;
         this.to = to;
-        this.sig = sig;
+        this.sig = null;		// FIXME TODO let's remember to add security, shall we? what about .signedWith(...)
         this.hops = hops;
         this.reliable = reliable;
         this.data = data;
@@ -68,11 +68,11 @@ public class Message {
     }
 
     public Message from(Iden from) {
-        return new Message(type, from, to, sig, hops, reliable, data);
+        return new Message(type, from, to, hops, reliable, data);
     }
 
     public Message to(Iden to) {
-        return new Message(type, from, to, sig, hops, reliable, data);
+        return new Message(type, from, to, hops, reliable, data);
     }
 
     public boolean equals(Object o) {

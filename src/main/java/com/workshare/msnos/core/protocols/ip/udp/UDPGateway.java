@@ -1,15 +1,5 @@
 package com.workshare.msnos.core.protocols.ip.udp;
 
-import com.workshare.msnos.core.Agent;
-import com.workshare.msnos.core.Gateway;
-import com.workshare.msnos.core.Message;
-import com.workshare.msnos.core.Message.Status;
-import com.workshare.msnos.core.protocols.ip.Endpoint;
-import com.workshare.msnos.core.protocols.ip.MulticastSocketFactory;
-import com.workshare.msnos.soup.json.Json;
-import com.workshare.msnos.soup.threading.Multicaster;
-import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
@@ -20,6 +10,18 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 import java.util.concurrent.FutureTask;
+
+import org.apache.log4j.Logger;
+
+import com.workshare.msnos.core.Agent;
+import com.workshare.msnos.core.Gateway;
+import com.workshare.msnos.core.Message;
+import com.workshare.msnos.core.Message.Status;
+import com.workshare.msnos.core.protocols.ip.Endpoint;
+import com.workshare.msnos.core.protocols.ip.MulticastSocketFactory;
+import com.workshare.msnos.core.serializers.WireSerializer;
+import com.workshare.msnos.soup.json.Json;
+import com.workshare.msnos.soup.threading.Multicaster;
 
 public class UDPGateway implements Gateway {
 
@@ -37,10 +39,15 @@ public class UDPGateway implements Gateway {
 
     private final Multicaster<Listener, Message> caster;
     private final Agent self;
+	private final WireSerializer sz;
 
     public UDPGateway(MulticastSocketFactory sockets, UDPServer server, Multicaster<Listener, Message> caster, Agent self) throws IOException {
+        if (self == null)
+            throw new IllegalArgumentException("Agent cannot be null!");
         this.self = self;
         this.caster = caster;
+    	this.sz = server.serializer();	
+
         loadPorts();
         openSocket(sockets);
         startServer(server);
@@ -98,7 +105,7 @@ public class UDPGateway implements Gateway {
             logger.debug("Broadcasting message " + Json.toJsonString(message));
 
         for (int port : ports) {
-            byte[] payload = Json.toBytes(message);
+            byte[] payload = sz.toBytes(message);
             DatagramPacket packet = new DatagramPacket(
                     payload,
                     payload.length,
@@ -126,7 +133,7 @@ public class UDPGateway implements Gateway {
             ports[i] = port + i;
         }
 
-        logger.debug("UDP mounted on ports " + Arrays.asList(ports));
+        logger.debug("UDP mounted on ports " + Arrays.toString(ports));
     }
 
     private Integer loadBasePort() {
@@ -141,4 +148,7 @@ public class UDPGateway implements Gateway {
         return System.getProperty(SYSP_UDP_GROUP, "230.31.32.33");
     }
 
+	public WireSerializer serializer() {
+		return sz;
+	}
 }

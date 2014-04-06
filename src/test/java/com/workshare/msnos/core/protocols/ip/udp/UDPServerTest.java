@@ -19,7 +19,6 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import com.workshare.msnos.core.Gateway.Listener;
-import com.workshare.msnos.core.protocols.ip.udp.UDPServer;
 import com.workshare.msnos.core.Iden;
 import com.workshare.msnos.core.Message;
 import com.workshare.msnos.soup.json.Json;
@@ -91,7 +90,7 @@ public class UDPServerTest {
             @Override
             public Object answer(InvocationOnMock invocation) throws Throwable {
                 DatagramPacket packet = (DatagramPacket) invocation.getArguments()[0];
-                packet.setData(Json.toBytes(message));
+                packet.setData(server.serializer().toBytes(message));
                 return null;
             }}).doThrow(new IllegalArgumentException()).when(socket).receive(any(DatagramPacket.class));
         
@@ -122,7 +121,7 @@ public class UDPServerTest {
         final UUID uuid = new UUID(123, 456);
         final Iden src = new Iden(Iden.Type.AGT, uuid);
         final Iden dst = new Iden(Iden.Type.CLD, uuid);
-        final Message message = new Message(Message.Type.APP, src, dst, "sigval", 1, false, null);
+        final Message message = new Message(Message.Type.APP, src, dst, 1, false, null);
         return message;
     }
     

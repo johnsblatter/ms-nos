@@ -1,9 +1,20 @@
 package com.workshare.msnos.soup.json;
 
 import java.lang.reflect.Type;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Set;
 
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonSerializationContext;
+import com.google.gson.JsonSerializer;
+import com.workshare.msnos.core.Agent;
+import com.workshare.msnos.core.Cloud;
+import com.workshare.msnos.core.Iden;
 
 public class ThreadSafeGson {
     private final ThreadLocal<Gson> threadSafeGson = new ThreadLocal<Gson>() {
@@ -14,8 +25,24 @@ public class ThreadSafeGson {
     };
 
     protected Gson newGson() {
-        final Gson gson = new Gson();
-        return gson;
+        GsonBuilder builder = new GsonBuilder();
+        JsonSerializer<Cloud> serializer = new JsonSerializer<Cloud>() {
+            @Override
+            public JsonElement serialize(Cloud src, Type typeOfSrc, JsonSerializationContext context) {
+                final JsonObject res = new JsonObject();
+                res.add("iden", context.serialize(src.getIden()));
+                
+                final JsonArray idens = new JsonArray();
+                for (final Agent agent: src.getAgents()) {
+                    idens.add(context.serialize(agent.getIden()));
+                }
+                res.add("agents", idens);                ;
+                
+                return res;
+            }
+        };
+        builder.registerTypeAdapter(Cloud.class, serializer);
+        return builder.create();
     }
 
     public final String toJson(Object anyObject) {
@@ -26,14 +53,14 @@ public class ThreadSafeGson {
         return gson().fromJson(json, clazz);
     }
 
-    public final JsonElement toJsonTree(Object src, Type typeOfSrc)  {
+    public final JsonElement toJsonTree(Object src, Type typeOfSrc) {
         return gson().toJsonTree(src, typeOfSrc);
     }
-    
-    public final <T> T fromJsonTree(JsonElement json, Type typeOfT)  {
+
+    public final <T> T fromJsonTree(JsonElement json, Type typeOfT) {
         return gson().fromJson(json, typeOfT);
     }
-    
+
     public Gson gson() {
         return threadSafeGson.get();
     }

@@ -1,8 +1,8 @@
 package com.workshare.msnos.core;
 
-import com.workshare.msnos.soup.json.Json;
-
 import java.util.UUID;
+
+import com.workshare.msnos.soup.json.Json;
 
 public class Iden {
     public enum Type {AGT, CLD, MSG}
@@ -28,7 +28,7 @@ public class Iden {
     }
 
     public int hashcode() {
-        return toString().hashCode();
+        return this.uuid.hashCode();
     }
 
     public boolean equals(Object o) {
