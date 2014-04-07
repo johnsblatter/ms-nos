@@ -7,11 +7,11 @@ import java.util.concurrent.TimeoutException;
 
 import com.workshare.msnos.core.Message.Status;
 
-public class UnknownFutureStatus implements Future<Status> {
+class UnknownFutureStatus implements CompositeFutureStatus {
 
 	@Override
 	public boolean cancel(boolean arg0) {
-		return true;
+	    return false;
 	}
 
 	@Override
@@ -23,7 +23,7 @@ public class UnknownFutureStatus implements Future<Status> {
 	public Status get(long arg0, TimeUnit arg1)
 			throws InterruptedException, ExecutionException,
 			TimeoutException {
-		return Status.UNKNOWN;
+		return get();
 	}
 
 	@Override
@@ -33,6 +33,10 @@ public class UnknownFutureStatus implements Future<Status> {
 
 	@Override
 	public boolean isDone() {
-		return false;
+		return true;
 	}
+
+    @Override
+    public void add(Future<Status> status) {        
+    }
 }

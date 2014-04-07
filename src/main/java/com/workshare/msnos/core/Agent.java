@@ -2,10 +2,17 @@ package com.workshare.msnos.core;
 
 import java.io.IOException;
 import java.util.UUID;
+import java.util.concurrent.Future;
 
+import com.google.gson.JsonObject;
+import com.workshare.msnos.core.Message.Status;
+import com.workshare.msnos.core.Message.Type;
 import com.workshare.msnos.soup.json.Json;
 
 public class Agent implements Identifiable {
+
+    // FIXME this cannot be hardcoded!!!
+    public static final int DEFAULT_HOPS = 3;
 
     private final Iden iden;
     private transient Cloud cloud;
@@ -65,4 +72,12 @@ public class Agent implements Identifiable {
 	public int hashCode() {
 	    return iden.hashCode();
 	}
+
+    public Future<Status> sendMessage(Identifiable to, Type type, JsonObject data) throws IOException {
+        return cloud.send(new Message(type, this.getIden(), to.getIden(), DEFAULT_HOPS, false, data));
+    }
+
+    public Future<Status> sendReliableMessage(Identifiable to, Type type, JsonObject data) throws IOException {
+        return cloud.send(new Message(type, this.getIden(), to.getIden(), DEFAULT_HOPS, true, data));
+    }
 }

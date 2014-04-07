@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Executor;
+import java.util.concurrent.Future;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -113,13 +114,25 @@ public class Cloud implements Identifiable {
 	}
 
 	void onJoin(Agent agent) throws IOException {
-		for (Gateway gate : gates) {
-			gate.send(Messages.presence(agent, this));
-		}
+	    send(Messages.presence(agent, this));
 		
 		synchronized(agents) {
             agents.put(agent.getIden(), agent);
 		}
 	}
+
+    Future<Message.Status> send(Message message) throws IOException {
+        CompositeFutureStatus res = null;
+        if (!message.isReliable())
+            res = new UnknownFutureStatus();
+        else
+            res = new MultipleFutureStatus();
+        
+        for (Gateway gate : gates) {
+            res.add(gate.send(message));
+        }
+        
+        return res;
+    }
 
 }
