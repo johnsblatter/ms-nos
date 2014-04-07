@@ -13,7 +13,6 @@ import java.util.concurrent.FutureTask;
 
 import org.apache.log4j.Logger;
 
-import com.workshare.msnos.core.Agent;
 import com.workshare.msnos.core.Gateway;
 import com.workshare.msnos.core.Message;
 import com.workshare.msnos.core.Message.Status;
@@ -38,13 +37,9 @@ public class UDPGateway implements Gateway {
     private int ports[];
 
     private final Multicaster<Listener, Message> caster;
-    private final Agent self;
 	private final WireSerializer sz;
 
-    public UDPGateway(MulticastSocketFactory sockets, UDPServer server, Multicaster<Listener, Message> caster, Agent self) throws IOException {
-        if (self == null)
-            throw new IllegalArgumentException("Agent cannot be null!");
-        this.self = self;
+    public UDPGateway(MulticastSocketFactory sockets, UDPServer server, Multicaster<Listener, Message> caster) throws IOException {
         this.caster = caster;
     	this.sz = server.serializer();	
 
@@ -58,8 +53,7 @@ public class UDPGateway implements Gateway {
         server.addListener(new Listener() {
             @Override
             public void onMessage(Message message) {
-                if (self.isForMe(message))
-                    caster.dispatch(message);
+                caster.dispatch(message);
             }
         });
     }

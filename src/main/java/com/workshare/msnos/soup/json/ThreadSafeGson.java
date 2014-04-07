@@ -1,9 +1,6 @@
 package com.workshare.msnos.soup.json;
 
 import java.lang.reflect.Type;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Set;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -14,7 +11,6 @@ import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
 import com.workshare.msnos.core.Agent;
 import com.workshare.msnos.core.Cloud;
-import com.workshare.msnos.core.Iden;
 
 public class ThreadSafeGson {
     private final ThreadLocal<Gson> threadSafeGson = new ThreadLocal<Gson>() {

@@ -23,8 +23,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
-import com.workshare.msnos.core.Agent;
-import com.workshare.msnos.core.Cloud;
 import com.workshare.msnos.core.Gateway.Listener;
 import com.workshare.msnos.core.Iden;
 import com.workshare.msnos.core.Message;
@@ -35,17 +33,13 @@ import com.workshare.msnos.soup.threading.Multicaster;
 public class UDPGatewayTest {
 
     private static final Iden ME = new Iden(Iden.Type.AGT, new UUID(123, 999));
-    private static final Iden YOU = new Iden(Iden.Type.AGT, new UUID(321, 666));
     private static final Iden SOMEONE = new Iden(Iden.Type.AGT, UUID.randomUUID());
-    private static final Iden MY_CLOUD = new Iden(Iden.Type.CLD, UUID.randomUUID());
 
     private UDPGateway gate;
     private UDPServer server;
     private MulticastSocket socket;
     private MulticastSocketFactory sockets;
     private List<Message> messages;
-
-    private Agent rhys;
 
     @Before
     public void setup() throws Exception {
@@ -57,8 +51,6 @@ public class UDPGatewayTest {
         socket = mock(MulticastSocket.class);
         sockets = mock(MulticastSocketFactory.class);
         when(sockets.create()).thenReturn(socket);
-
-        rhys = new Agent(ME.getUUID()).join(new Cloud(MY_CLOUD.getUUID()));
     }
 
     @Test
@@ -137,40 +129,10 @@ public class UDPGatewayTest {
     }
 
     @Test
-    public void shouldNOTInvokeListenerOnMessagesAddressedToSomeoneElse() throws Exception {
-        addListenerToGateway();
-
-        Message message = Utils.newSampleMessage().from(YOU).to(SOMEONE);
-        simulateMessageFromNetwork(message);
-
-        assertMessageNotReceived();
-    }
-
-    @Test
-    public void shouldNOTInvokeListenerOnMessagesSentByMe() throws Exception {
-        addListenerToGateway();
-
-        Message message = Utils.newSampleMessage().from(ME).to(SOMEONE);
-        simulateMessageFromNetwork(message);
-
-        assertMessageNotReceived();
-    }
-
-    @Test
-    public void shouldInvokeListenerOnMessagesAddressedToMe() throws Exception {
+    public void shouldInvokeListenerOnMessages() throws Exception {
         addListenerToGateway();
 
         Message message = Utils.newSampleMessage().from(SOMEONE).to(ME);
-        simulateMessageFromNetwork(message);
-
-        assertMessageReceived(message);
-    }
-
-    @Test
-    public void shouldInvokeListenerOnMessagesAddressedToMyCloud() throws IOException {
-        addListenerToGateway();
-
-        Message message = Utils.newSampleMessage().from(SOMEONE).to(MY_CLOUD);
         simulateMessageFromNetwork(message);
 
         assertMessageReceived(message);
@@ -199,13 +161,9 @@ public class UDPGatewayTest {
         assertEquals(message, messages.get(0));
     }
 
-    private void assertMessageNotReceived() {
-        assertEquals(0, messages.size());
-    }
-
     private UDPGateway gate() throws IOException {
         if (gate == null)
-            gate = new UDPGateway(sockets, server, synchronousMulticaster(), rhys);
+            gate = new UDPGateway(sockets, server, synchronousMulticaster());
 
         return gate;
     }

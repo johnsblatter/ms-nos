@@ -5,7 +5,7 @@ import java.util.UUID;
 
 import com.workshare.msnos.soup.json.Json;
 
-public class Agent {
+public class Agent implements Identifiable {
 
     private final Iden iden;
     private transient Cloud cloud;

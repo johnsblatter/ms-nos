@@ -34,7 +34,7 @@ public class WireJsonSerializerTest {
 
     @Before
     public void before() throws Exception {
-        cloud = new Cloud(CLOUD_UUID, new HashSet<Gateway>(Arrays.asList(new NoopGateway())) );
+        cloud = new Cloud(CLOUD_UUID, new HashSet<Gateway>(Arrays.asList(new NoopGateway())), new Cloud.Multicaster());
 
         agent = new Agent(AGENT_UUID);
         agent.join(cloud);

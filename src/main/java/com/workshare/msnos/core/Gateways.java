@@ -33,6 +33,6 @@ public class Gateways {
 			}
 		};
 
-		return new UDPGateway(ockets, server, caster, null);
+		return new UDPGateway(ockets, server, caster);
 	}
 }
