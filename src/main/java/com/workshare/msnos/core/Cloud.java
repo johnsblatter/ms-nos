@@ -1,50 +1,42 @@
 package com.workshare.msnos.core;
 
-import java.io.IOException;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.Executor;
-import java.util.concurrent.Future;
-
+import com.workshare.msnos.soup.json.Json;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.workshare.msnos.soup.json.Json;
+import java.io.IOException;
+import java.util.*;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Future;
 
 public class Cloud implements Identifiable {
 
     public static interface Listener {
-        public void onMessage(Message message)
-        ;
+        public void onMessage(Message message);
     }
-    
+
     public static class Multicaster extends com.workshare.msnos.soup.threading.Multicaster<Listener, Message> {
         public Multicaster() {
             super();
         }
-        
+
         public Multicaster(Executor executor) {
             super(executor);
         }
-        
+
         @Override
         protected void dispatch(Listener listener, Message message) {
             listener.onMessage(message);
         }
     }
-    
-	private static Logger log = LoggerFactory.getLogger(Cloud.class);
-	
+
+    private static Logger log = LoggerFactory.getLogger(Cloud.class);
+
     private final Iden iden;
     private final Map<Iden, Agent> agents;
 
     transient private final Set<Gateway> gates;
     transient private final Multicaster caster;
-
 
     public Cloud(UUID uuid) throws IOException {
         this(uuid, Gateways.all(), new Multicaster());
@@ -53,26 +45,27 @@ public class Cloud implements Identifiable {
     public Cloud(UUID uuid, Set<Gateway> gates) throws IOException {
         this(uuid, gates, new Multicaster());
     }
-   
+
     public Cloud(UUID uuid, Set<Gateway> gates, Multicaster multicaster) throws IOException {
         this.iden = new Iden(Iden.Type.CLD, uuid);
-		this.agents = new HashMap<Iden, Agent>();
-		this.caster = multicaster;
+        this.agents = new HashMap<Iden, Agent>();
+        this.caster = multicaster;
 
-		this.gates = gates;
-		for (Gateway gate : gates) {
-			gate.addListener(new Gateway.Listener(){
-				@Override
-				public void onMessage(Message message) {
-					process(message);
-				}});
-		}
+        this.gates = gates;
+        for (Gateway gate : gates) {
+            gate.addListener(new Gateway.Listener() {
+                @Override
+                public void onMessage(Message message) {
+                    process(message);
+                }
+            });
+        }
     }
 
     public Iden getIden() {
         return iden;
     }
-    
+
     public String toString() {
         return Json.toJsonString(this);
     }
@@ -80,7 +73,7 @@ public class Cloud implements Identifiable {
     public void addListener(com.workshare.msnos.core.Cloud.Listener listener) {
         caster.addListener(listener);
     }
-    
+
     public Collection<Agent> getAgents() {
         return Collections.unmodifiableCollection(agents.values());
     }
@@ -94,33 +87,33 @@ public class Cloud implements Identifiable {
             log.debug("Skipped message sent to another cloud: {}", message);
             return;
         }
-        
-    	if (message.getType() == Message.Type.PRS) {
-    		processPresence(message);
-    	} else {
-    	    caster.dispatch(message);
-    	}
-	}
 
-	private void processPresence(Message message) {
-		Iden from = message.getFrom();
-		Agent agent = new Agent(from, this);
-		synchronized(agents) {
-			if (!agents.containsKey(agent.getIden())) {
-				log.debug("Discovered new agent from network: {}", agent);
-				agents.put(agent.getIden(), agent);
-			}
-		}
-	}
+        if (message.getType() == Message.Type.PRS) {
+            processPresence(message);
+        } else {
+            caster.dispatch(message);
+        }
+    }
 
-	void onJoin(Agent agent) throws IOException {
-	    send(Messages.presence(agent, this));
-		
-		synchronized(agents) {
+    private void processPresence(Message message) {
+        Iden from = message.getFrom();
+        Agent agent = new Agent(from, this);
+        synchronized (agents) {
+            if (!agents.containsKey(agent.getIden())) {
+                log.debug("Discovered new agent from network: {}", agent);
+                agents.put(agent.getIden(), agent);
+            }
+        }
+    }
+
+    void onJoin(Agent agent) throws IOException {
+        send(Messages.presence(agent, this));
+        send(Messages.discovery(agent, this));
+        synchronized (agents) {
             log.debug("Local agent joined: {}", agent);
             agents.put(agent.getIden(), agent);
-		}
-	}
+        }
+    }
 
     Future<Message.Status> send(Message message) throws IOException {
         CompositeFutureStatus res = null;
@@ -128,11 +121,11 @@ public class Cloud implements Identifiable {
             res = new UnknownFutureStatus();
         else
             res = new MultipleFutureStatus();
-        
+
         for (Gateway gate : gates) {
             res.add(gate.send(message));
         }
-        
+
         return res;
     }
 

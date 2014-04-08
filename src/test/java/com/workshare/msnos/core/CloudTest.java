@@ -1,33 +1,23 @@
 package com.workshare.msnos.core;
 
-import static com.workshare.msnos.core.Message.Type.APP;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.*;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executor;
-import java.util.concurrent.Future;
-
+import com.workshare.msnos.core.Cloud.Multicaster;
+import com.workshare.msnos.core.Gateway.Listener;
+import com.workshare.msnos.core.Message.Status;
+import com.workshare.msnos.core.protocols.ip.udp.UDPGateway;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
-import com.workshare.msnos.core.Cloud.Multicaster;
-import com.workshare.msnos.core.Gateway.Listener;
-import com.workshare.msnos.core.Message.Status;
-import com.workshare.msnos.core.protocols.ip.udp.UDPGateway;
+import java.io.IOException;
+import java.util.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Future;
+
+import static com.workshare.msnos.core.Message.Type.APP;
+import static org.junit.Assert.*;
+import static org.mockito.Mockito.*;
 
 @SuppressWarnings("unchecked")
 public class CloudTest {
@@ -58,7 +48,7 @@ public class CloudTest {
 
         messages = new ArrayList<Message>();
 
-        otherCloud = new Cloud(UUID.randomUUID(), Collections.<Gateway> emptySet(), synchronousMulticaster());
+        otherCloud = new Cloud(UUID.randomUUID(), Collections.<Gateway>emptySet(), synchronousMulticaster());
     }
 
     @Test
@@ -78,9 +68,25 @@ public class CloudTest {
 
         smith.join(thisCloud);
 
-        Message message = getLastMessageSent();
+        List<Message> messageList = getAllMessagesSent();
+        assertTrue(!messageList.isEmpty());
+        Message message = messageList.get(0);
         assertNotNull(message);
         assertEquals(Message.Type.PRS, message.getType());
+        assertEquals(smith.getIden(), message.getFrom());
+        assertEquals(thisCloud.getIden(), message.getTo());
+    }
+
+    @Test
+    public void shouldSendDiscoveryMessageWhenAgentJoins() throws Exception {
+        Agent smith = new Agent(UUID.randomUUID());
+
+        smith.join(thisCloud);
+
+        List<Message> messageList = getAllMessagesSent();
+        Message message = messageList.get(1);
+        assertNotNull(message);
+        assertEquals(Message.Type.DSC, message.getType());
         assertEquals(smith.getIden(), message.getFrom());
         assertEquals(thisCloud.getIden(), message.getTo());
     }
@@ -170,11 +176,11 @@ public class CloudTest {
         Message message = newReliableMessage(APP, SOMEONE, SOMEONELSE);
         Future<Status> res = thisCloud.send(message);
         assertEquals(MultipleFutureStatus.class, res.getClass());
-        
-        MultipleFutureStatus multi = (MultipleFutureStatus)res;
+
+        MultipleFutureStatus multi = (MultipleFutureStatus) res;
         assertTrue(multi.statuses().contains(value1));
         assertTrue(multi.statuses().contains(value2));
-        
+
     }
 
     private Future<Status> createMockFuture(final Status status) throws InterruptedException, ExecutionException {
@@ -197,6 +203,12 @@ public class CloudTest {
         ArgumentCaptor<Message> captor = ArgumentCaptor.forClass(Message.class);
         verify(gate1).send(captor.capture());
         return captor.getValue();
+    }
+
+    private List<Message> getAllMessagesSent() throws IOException {
+        ArgumentCaptor<Message> captor = ArgumentCaptor.forClass(Message.class);
+        verify(gate1, times(2)).send(captor.capture());
+        return captor.getAllValues();
     }
 
     private Message newMessage(final Message.Type type, final Iden idenFrom, final Iden idenTo) {

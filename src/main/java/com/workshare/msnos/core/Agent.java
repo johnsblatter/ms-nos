@@ -1,13 +1,13 @@
 package com.workshare.msnos.core;
 
-import java.io.IOException;
-import java.util.UUID;
-import java.util.concurrent.Future;
-
 import com.google.gson.JsonObject;
 import com.workshare.msnos.core.Message.Status;
 import com.workshare.msnos.core.Message.Type;
 import com.workshare.msnos.soup.json.Json;
+
+import java.io.IOException;
+import java.util.UUID;
+import java.util.concurrent.Future;
 
 public class Agent implements Identifiable {
 
@@ -22,17 +22,17 @@ public class Agent implements Identifiable {
     }
 
     Agent(Iden iden, Cloud cloud) {
-    	validate(iden, cloud);
-    	this.iden = iden;
+        validate(iden, cloud);
+        this.iden = iden;
         this.cloud = cloud;
     }
 
-	private void validate(Iden iden, Cloud cloud) {
-		if (cloud == null)
-    		throw new IllegalArgumentException("Invalid cloud");
-    	if (iden == null || iden.getType() != Iden.Type.AGT)
-    		throw new IllegalArgumentException("Invalid iden");
-	}
+    private void validate(Iden iden, Cloud cloud) {
+        if (cloud == null)
+            throw new IllegalArgumentException("Invalid cloud");
+        if (iden == null || iden.getType() != Iden.Type.AGT)
+            throw new IllegalArgumentException("Invalid iden");
+    }
 
     public Iden getIden() {
         return iden;
@@ -49,7 +49,6 @@ public class Agent implements Identifiable {
     }
 
     public boolean isForMe(Message message) {
-//        BRUNO TOLD ME SO...
         return message.getTo().equals(getIden()) || message.getTo().equals(getCloud().getIden());
     }
     
