@@ -117,6 +117,7 @@ public class Cloud implements Identifiable {
 	    send(Messages.presence(agent, this));
 		
 		synchronized(agents) {
+            log.debug("Local agent joined: {}", agent);
             agents.put(agent.getIden(), agent);
 		}
 	}

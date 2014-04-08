@@ -53,14 +53,16 @@ public class Agent implements Identifiable {
         return message.getTo().equals(getIden()) || message.getTo().equals(getCloud().getIden());
     }
     
+    public void leave(Cloud cloud) {
+        // TODO Auto-generated method stub
+    }
+    
+    @Override
     public String toString() {
         return Json.toJsonString(this);
     }
 
-	public void leave(Cloud cloud) {
-		// TODO Auto-generated method stub
-	}
-	
+    @Override
 	public boolean equals(Object other) {
 	    try {
 	        return this.iden.equals(((Agent)(other)).getIden());
@@ -69,6 +71,7 @@ public class Agent implements Identifiable {
 	    }
 	}
 	
+    @Override
 	public int hashCode() {
 	    return iden.hashCode();
 	}

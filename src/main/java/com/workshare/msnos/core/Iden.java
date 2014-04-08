@@ -23,11 +23,13 @@ public class Iden {
         return uuid;
     }
 
+    @Override
     public String toString() {
         return Json.toJsonString(this);
     }
 
-    public int hashcode() {
+    @Override
+    public int hashCode() {
         return this.uuid.hashCode();
     }
 
