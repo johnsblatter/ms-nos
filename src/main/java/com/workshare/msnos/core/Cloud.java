@@ -92,12 +92,9 @@ public class Cloud implements Identifiable {
             log.debug("Skipped message sent to another cloud: {}", message);
             return;
         }
-
-        if (message.getType() == Message.Type.PRS && !message.getData().equals(Messages.STATUS_FALSE)) {
-            processPresence(message);
-        } else {
-            caster.dispatch(message);
-        }
+        if (isPresence(message)) processPresence(message);
+        else if (isAbsence(message)) processAbsence(message);
+        else caster.dispatch(message);
     }
 
     private void processPresence(Message message) {
@@ -105,8 +102,19 @@ public class Cloud implements Identifiable {
         Agent agent = new Agent(from, this);
         synchronized (agents) {
             if (!agents.containsKey(agent.getIden())) {
-                log.debug("Discovered new agent from network: {}", agent);
+                log.debug("Discovered new agent from network: {}", agent.toString());
                 agents.put(agent.getIden(), agent);
+            }
+        }
+    }
+
+    private void processAbsence(Message message) {
+        Iden from = message.getFrom();
+        Agent agent = new Agent(from, this);
+        synchronized (agents) {
+            if (!agents.containsKey(agent.getIden())) {
+                log.debug("Agent from network leaving: {}", agent.toString());
+                agents.remove(agent.getIden());
             }
         }
     }
@@ -114,7 +122,7 @@ public class Cloud implements Identifiable {
     void onLeave(Agent agent) throws IOException {
         send(Messages.absence(agent, this));
         synchronized (agents) {
-            log.debug("Removing agent from network: {}", agent);
+            log.debug("Local agent joined: {}", agent);
             agents.remove(agent.getIden());
         }
     }
@@ -140,6 +148,14 @@ public class Cloud implements Identifiable {
         }
 
         return res;
+    }
+
+    private boolean isAbsence(Message message) {
+        return message.getType() == Message.Type.PRS && message.getData().equals(Messages.STATUS_FALSE);
+    }
+
+    private boolean isPresence(Message message) {
+        return message.getType() == Message.Type.PRS && !message.getData().equals(Messages.STATUS_FALSE);
     }
 
 }
