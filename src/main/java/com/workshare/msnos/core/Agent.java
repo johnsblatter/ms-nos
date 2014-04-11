@@ -10,6 +10,8 @@ import java.io.IOException;
 import java.util.UUID;
 import java.util.concurrent.Future;
 
+import static com.workshare.msnos.core.Cloud.Listener;
+
 public class Agent implements Identifiable {
 
     private static Logger log = LoggerFactory.getLogger(Agent.class);
@@ -18,6 +20,7 @@ public class Agent implements Identifiable {
     public static final int DEFAULT_HOPS = 3;
     private final Iden iden;
     private transient Cloud cloud;
+    private Listener listener;
 
     public Agent(UUID uuid) {
         this.iden = new Iden(Iden.Type.AGT, uuid);
@@ -44,7 +47,7 @@ public class Agent implements Identifiable {
         this.cloud = cloud;
         cloud.onJoin(this);
         log.debug("Joined: " + getCloud() + " as Agent: " + this);
-        cloud.addListener(new Cloud.Listener() {
+        listener = cloud.addListener(new Listener() {
             @Override
             public void onMessage(Message message) {
                 log.debug("Message received.");
@@ -57,7 +60,7 @@ public class Agent implements Identifiable {
     public void leave(Cloud cloud) throws IOException {
         log.debug("Leaving cloud " + cloud);
         cloud.onLeave(this);
-        sendMessage(Messages.absence(this, cloud));
+        cloud.removeListener(listener);
         log.debug("So long " + cloud);
     }
 
@@ -98,10 +101,6 @@ public class Agent implements Identifiable {
     }
 
     public Future<Status> sendMessage(Message message) throws IOException {
-        return cloud.send(message);
-    }
-
-    public Future<Status> sendReliableMessage(Message message) throws IOException {
         return cloud.send(message);
     }
 }

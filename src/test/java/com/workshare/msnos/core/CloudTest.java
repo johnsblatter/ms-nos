@@ -1,5 +1,6 @@
 package com.workshare.msnos.core;
 
+import com.google.gson.JsonObject;
 import com.workshare.msnos.core.Cloud.Multicaster;
 import com.workshare.msnos.core.Gateway.Listener;
 import com.workshare.msnos.core.Message.Status;
@@ -16,6 +17,7 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.Future;
 
 import static com.workshare.msnos.core.Message.Type.APP;
+import static com.workshare.msnos.core.Message.Type.PRS;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
@@ -125,6 +127,22 @@ public class CloudTest {
     }
 
     @Test
+    public void shouldSendAbsenceWhenLeavingCloud() throws Exception {
+        final JsonObject data = absenceData();
+
+        Agent karl = new Agent(UUID.randomUUID());
+
+        karl.leave(thisCloud);
+
+        Message message = getLastMessageSent();
+
+        assertNotNull(message);
+        assertEquals(PRS, message.getType());
+        assertEquals(karl.getIden(), message.getFrom());
+        assertEquals(data, message.getData());
+    }
+
+    @Test
     public void shouldNOTUpdateAgentsListWhenAgentJoinsTroughGatewayToAnotherCloud() throws Exception {
         Agent frank = new Agent(UUID.randomUUID());
 
@@ -209,7 +227,7 @@ public class CloudTest {
     }
 
     private void simulateAgentLeavingCloud(Agent agent, Cloud cloud) {
-        simulateMessageFromNetwork(Messages.absence(agent, cloud));
+        simulateMessageFromNetwork(new Message(PRS, agent.getIden(), cloud.getIden(), 2, false, absenceData()));
     }
 
     private void simulateMessageFromNetwork(final Message message) {
@@ -228,6 +246,12 @@ public class CloudTest {
         ArgumentCaptor<Message> captor = ArgumentCaptor.forClass(Message.class);
         verify(gate1, atLeastOnce()).send(captor.capture());
         return captor.getAllValues();
+    }
+
+    private JsonObject absenceData() {
+        JsonObject absence = new JsonObject();
+        absence.addProperty("status", false);
+        return absence;
     }
 
     private Message newMessage(final Message.Type type, final Iden idenFrom, final Iden idenTo) {

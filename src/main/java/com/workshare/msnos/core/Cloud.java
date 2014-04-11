@@ -70,8 +70,13 @@ public class Cloud implements Identifiable {
         return Json.toJsonString(this);
     }
 
-    public void addListener(com.workshare.msnos.core.Cloud.Listener listener) {
-        caster.addListener(listener);
+    public void removeListener(com.workshare.msnos.core.Cloud.Listener listener) {
+        log.debug("Removing listener: {}", listener);
+        caster.removeListener(listener);
+    }
+
+    public Listener addListener(com.workshare.msnos.core.Cloud.Listener listener) {
+        return caster.addListener(listener);
     }
 
     public Collection<Agent> getAgents() {
@@ -99,7 +104,7 @@ public class Cloud implements Identifiable {
         Iden from = message.getFrom();
         Agent agent = new Agent(from, this);
         synchronized (agents) {
-            if (!agents.containsKey(agent.getIden()) && message.getData() != Messages.STATUS_FALSE) {
+            if (!agents.containsKey(agent.getIden()) && !message.getData().equals(Messages.STATUS_FALSE)) {
                 log.debug("Discovered new agent from network: {}", agent);
                 agents.put(agent.getIden(), agent);
             }
@@ -107,11 +112,10 @@ public class Cloud implements Identifiable {
     }
 
     void onLeave(Agent agent) throws IOException {
+        send(Messages.absence(agent, this));
         synchronized (agents) {
-            if (agents.containsKey(agent.getIden())) {
-                log.debug("Removing agent from network: {}", agent);
-                agents.remove(agent.getIden());
-            }
+            log.debug("Removing agent from network: {}", agent);
+            agents.remove(agent.getIden());
         }
     }
 

@@ -53,20 +53,6 @@ public class AgentTest {
     }
 
     @Test
-    public void shouldSendAbsenceWhenLeavingCloud() throws Exception {
-        final JsonObject data = absenceData();
-
-        karl.leave(cloud);
-
-        Message message = getLastMessageToCloud();
-
-        assertNotNull(message);
-        assertEquals(PRS, message.getType());
-        assertEquals(karl.getIden(), message.getFrom());
-        assertEquals(data, message.getData());
-    }
-
-    @Test
     public void shouldSendUnreliableMessageThroughCloud() throws Exception {
         final JsonObject data = data();
 
@@ -85,7 +71,7 @@ public class AgentTest {
     public void shouldSendReliableMessageThroughCloud() throws Exception {
         final JsonObject data = data();
 
-        smith.sendReliableMessage(Messages.app(smith, karl, data).reliable());
+        smith.sendMessage(Messages.app(smith, karl, data).reliable());
 
         Message message = getLastMessageToCloud();
         assertNotNull(message);
@@ -106,12 +92,6 @@ public class AgentTest {
         ArgumentCaptor<Cloud.Listener> cloudListener = ArgumentCaptor.forClass(Cloud.Listener.class);
         verify(cloud, atLeastOnce()).addListener(cloudListener.capture());
         cloudListener.getValue().onMessage(message);
-    }
-
-    private JsonObject absenceData() {
-        JsonObject absence = new JsonObject();
-        absence.addProperty("status", false);
-        return absence;
     }
 
     private JsonObject data() {
