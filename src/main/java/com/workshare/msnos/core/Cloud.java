@@ -93,7 +93,7 @@ public class Cloud implements Identifiable {
             return;
         }
 
-        if (message.getType() == Message.Type.PRS) {
+        if (message.getType() == Message.Type.PRS && !message.getData().equals(Messages.STATUS_FALSE)) {
             processPresence(message);
         } else {
             caster.dispatch(message);
@@ -104,7 +104,7 @@ public class Cloud implements Identifiable {
         Iden from = message.getFrom();
         Agent agent = new Agent(from, this);
         synchronized (agents) {
-            if (!agents.containsKey(agent.getIden()) && !message.getData().equals(Messages.STATUS_FALSE)) {
+            if (!agents.containsKey(agent.getIden())) {
                 log.debug("Discovered new agent from network: {}", agent);
                 agents.put(agent.getIden(), agent);
             }
