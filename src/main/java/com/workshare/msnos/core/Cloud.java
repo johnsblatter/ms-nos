@@ -99,9 +99,18 @@ public class Cloud implements Identifiable {
         Iden from = message.getFrom();
         Agent agent = new Agent(from, this);
         synchronized (agents) {
-            if (!agents.containsKey(agent.getIden())) {
+            if (!agents.containsKey(agent.getIden()) && message.getData() != Messages.STATUS_FALSE) {
                 log.debug("Discovered new agent from network: {}", agent);
                 agents.put(agent.getIden(), agent);
+            }
+        }
+    }
+
+    void onLeave(Agent agent) throws IOException {
+        synchronized (agents) {
+            if (agents.containsKey(agent.getIden())) {
+                log.debug("Removing agent from network: {}", agent);
+                agents.remove(agent.getIden());
             }
         }
     }

@@ -4,17 +4,22 @@ import com.google.gson.JsonObject;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.UUID;
 
-import static com.workshare.msnos.core.Message.Type.*;
+import static com.workshare.msnos.core.Message.Type.APP;
+import static com.workshare.msnos.core.Message.Type.PRS;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.*;
 
 public class AgentTest {
+
+    private static Logger log = LoggerFactory.getLogger(Agent.class);
 
     private Cloud cloud;
     private Agent karl;
@@ -39,7 +44,7 @@ public class AgentTest {
 
     @Test
     public void shouldSendPresenceWhenDiscoveryIsReceived() throws IOException {
-        simulateMessageFromCloud(new Message(DSC, cloud.getIden(), karl.getIden(), 2, false, data()));
+        simulateMessageFromCloud(Messages.discovery(cloud, karl));
         Message message = getLastMessageToCloud();
 
         assertNotNull(message);
@@ -48,10 +53,24 @@ public class AgentTest {
     }
 
     @Test
-    public void shouldSendUnreliableMessageTroughCloud() throws Exception {
+    public void shouldSendAbsenceWhenLeavingCloud() throws Exception {
+        final JsonObject data = absenceData();
+
+        karl.leave(cloud);
+
+        Message message = getLastMessageToCloud();
+
+        assertNotNull(message);
+        assertEquals(PRS, message.getType());
+        assertEquals(karl.getIden(), message.getFrom());
+        assertEquals(data, message.getData());
+    }
+
+    @Test
+    public void shouldSendUnreliableMessageThroughCloud() throws Exception {
         final JsonObject data = data();
 
-        smith.sendMessage(karl, APP, data);
+        smith.sendMessage(Messages.app(smith, karl, data));
 
         Message message = getLastMessageToCloud();
         assertNotNull(message);
@@ -63,10 +82,10 @@ public class AgentTest {
     }
 
     @Test
-    public void shouldSendReliableMessageTroughCloud() throws Exception {
+    public void shouldSendReliableMessageThroughCloud() throws Exception {
         final JsonObject data = data();
 
-        smith.sendReliableMessage(karl, APP, data);
+        smith.sendReliableMessage(Messages.app(smith, karl, data).reliable());
 
         Message message = getLastMessageToCloud();
         assertNotNull(message);
@@ -87,6 +106,12 @@ public class AgentTest {
         ArgumentCaptor<Cloud.Listener> cloudListener = ArgumentCaptor.forClass(Cloud.Listener.class);
         verify(cloud, atLeastOnce()).addListener(cloudListener.capture());
         cloudListener.getValue().onMessage(message);
+    }
+
+    private JsonObject absenceData() {
+        JsonObject absence = new JsonObject();
+        absence.addProperty("status", false);
+        return absence;
     }
 
     private JsonObject data() {

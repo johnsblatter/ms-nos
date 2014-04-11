@@ -1,8 +1,5 @@
 package com.workshare.msnos.core;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
 import com.workshare.msnos.core.Message.Status;
 import com.workshare.msnos.core.Message.Type;
 import com.workshare.msnos.soup.json.Json;
@@ -57,6 +54,13 @@ public class Agent implements Identifiable {
         return this;
     }
 
+    public void leave(Cloud cloud) throws IOException {
+        log.debug("Leaving cloud " + cloud);
+        cloud.onLeave(this);
+        sendMessage(Messages.absence(this, cloud));
+        log.debug("So long " + cloud);
+    }
+
     private void process(Message message) {
         if (message.getType() == Type.DSC) processDiscovery(message);
     }
@@ -64,7 +68,7 @@ public class Agent implements Identifiable {
     private void processDiscovery(Message message) {
         log.debug("Processing discovery: " + message);
         try {
-            sendMessage(cloud, Type.PRS, thisToJsonObj());
+            sendMessage(Messages.presence(this, cloud));
         } catch (IOException e) {
             log.debug("Could not send message. ", e);
         }
@@ -93,17 +97,11 @@ public class Agent implements Identifiable {
         return iden.hashCode();
     }
 
-    public Future<Status> sendMessage(Identifiable to, Type type, JsonObject data) throws IOException {
-        return cloud.send(new Message(type, this.getIden(), to.getIden(), DEFAULT_HOPS, false, data));
+    public Future<Status> sendMessage(Message message) throws IOException {
+        return cloud.send(message);
     }
 
-    public Future<Status> sendReliableMessage(Identifiable to, Type type, JsonObject data) throws IOException {
-        return cloud.send(new Message(type, this.getIden(), to.getIden(), DEFAULT_HOPS, true, data));
-    }
-
-    private JsonObject thisToJsonObj() {
-        Gson gson = new Gson();
-        JsonElement element = gson.fromJson(toString(), JsonElement.class);
-        return element.getAsJsonObject();
+    public Future<Status> sendReliableMessage(Message message) throws IOException {
+        return cloud.send(message);
     }
 }

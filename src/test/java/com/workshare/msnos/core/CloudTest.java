@@ -110,6 +110,21 @@ public class CloudTest {
     }
 
     @Test
+    public void shouldRemoveAgentFromAgentsOnLeave() throws Exception {
+        Agent jeff = new Agent(UUID.randomUUID());
+
+        jeff.join(thisCloud);
+
+        assertTrue(thisCloud.getAgents().contains(jeff));
+
+        jeff.leave(thisCloud);
+
+        simulateAgentLeavingCloud(jeff, thisCloud);
+
+        assertFalse(thisCloud.getAgents().contains(jeff));
+    }
+
+    @Test
     public void shouldNOTUpdateAgentsListWhenAgentJoinsTroughGatewayToAnotherCloud() throws Exception {
         Agent frank = new Agent(UUID.randomUUID());
 
@@ -193,6 +208,10 @@ public class CloudTest {
         simulateMessageFromNetwork(Messages.presence(agent, cloud));
     }
 
+    private void simulateAgentLeavingCloud(Agent agent, Cloud cloud) {
+        simulateMessageFromNetwork(Messages.absence(agent, cloud));
+    }
+
     private void simulateMessageFromNetwork(final Message message) {
         ArgumentCaptor<Listener> gateListener = ArgumentCaptor.forClass(Listener.class);
         verify(gate1).addListener(gateListener.capture());
@@ -207,7 +226,7 @@ public class CloudTest {
 
     private List<Message> getAllMessagesSent() throws IOException {
         ArgumentCaptor<Message> captor = ArgumentCaptor.forClass(Message.class);
-        verify(gate1, times(2)).send(captor.capture());
+        verify(gate1, atLeastOnce()).send(captor.capture());
         return captor.getAllValues();
     }
 
