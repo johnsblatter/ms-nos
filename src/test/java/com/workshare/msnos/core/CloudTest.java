@@ -16,7 +16,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Future;
 
-import static com.workshare.msnos.core.Message.Type.*;
+import static com.workshare.msnos.core.Message.Type.APP;
+import static com.workshare.msnos.core.Message.Type.PRS;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
@@ -97,6 +98,15 @@ public class CloudTest {
         Agent smith = new Agent(UUID.randomUUID());
 
         smith.join(thisCloud);
+
+        assertTrue(thisCloud.getAgents().contains(smith));
+    }
+
+    @Test
+    public void shouldUpdateAgentsListWhenAgentPongs() throws Exception {
+        Agent smith = new Agent(UUID.randomUUID());
+
+        simulateMessageFromNetwork(Messages.pong(smith, thisCloud));
 
         assertTrue(thisCloud.getAgents().contains(smith));
     }
