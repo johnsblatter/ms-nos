@@ -1,13 +1,20 @@
 package com.workshare.msnos.core;
 
-import com.workshare.msnos.soup.json.Json;
+import java.io.IOException;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Future;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.util.*;
-import java.util.concurrent.Executor;
-import java.util.concurrent.Future;
+import com.workshare.msnos.soup.data.Payload;
+import com.workshare.msnos.soup.json.Json;
 
 public class Cloud implements Identifiable {
 
@@ -74,7 +81,7 @@ public class Cloud implements Identifiable {
         return Collections.unmodifiableSet(gates);
     }
 
-    Future<Message.Status> send(Message message) throws IOException {
+    public Future<Message.Status> send(Message message) throws IOException {
         CompositeFutureStatus res = null;
         if (!message.isReliable())
             res = new UnknownFutureStatus();
@@ -162,11 +169,11 @@ public class Cloud implements Identifiable {
     }
 
     private boolean isAbsence(Message message) {
-        return message.getType() == Message.Type.PRS && !message.getData().isPresence();
+        return message.getType() == Message.Type.PRS && !((Payload)message.getData()).isPresence();
     }
 
     private boolean isPresence(Message message) {
-        return message.getType() == Message.Type.PRS && message.getData().isPresence();
+        return message.getType() == Message.Type.PRS && ((Payload)message.getData()).isPresence();
     }
 
     private boolean isPong(Message message) {

@@ -148,7 +148,7 @@ public class CloudTest {
         assertNotNull(message);
         assertEquals(PRS, message.getType());
         assertEquals(karl.getIden(), message.getFrom());
-        assertEquals(data.isPresence(), message.getData().isPresence());
+        assertEquals(data.isPresence(), ((Payload)message.getData()).isPresence());
     }
 
     @Test
