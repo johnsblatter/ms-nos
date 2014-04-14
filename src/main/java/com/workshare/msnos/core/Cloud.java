@@ -11,6 +11,8 @@ import java.util.concurrent.Future;
 
 public class Cloud implements Identifiable {
 
+    private static Logger log = LoggerFactory.getLogger(Cloud.class);
+
     public static interface Listener {
         public void onMessage(Message message);
     }
@@ -29,8 +31,6 @@ public class Cloud implements Identifiable {
             listener.onMessage(message);
         }
     }
-
-    private static Logger log = LoggerFactory.getLogger(Cloud.class);
 
     private final Iden iden;
     private final Map<Iden, Agent> agents;
@@ -66,25 +66,52 @@ public class Cloud implements Identifiable {
         return iden;
     }
 
-    public String toString() {
-        return Json.toJsonString(this);
-    }
-
-    public void removeListener(com.workshare.msnos.core.Cloud.Listener listener) {
-        log.debug("Removing listener: {}", listener);
-        caster.removeListener(listener);
-    }
-
-    public Listener addListener(com.workshare.msnos.core.Cloud.Listener listener) {
-        return caster.addListener(listener);
-    }
-
     public Collection<Agent> getAgents() {
         return Collections.unmodifiableCollection(agents.values());
     }
 
     public Set<Gateway> getGateways() {
         return Collections.unmodifiableSet(gates);
+    }
+
+    Future<Message.Status> send(Message message) throws IOException {
+        CompositeFutureStatus res = null;
+        if (!message.isReliable())
+            res = new UnknownFutureStatus();
+        else
+            res = new MultipleFutureStatus();
+
+        for (Gateway gate : gates) {
+            res.add(gate.send(message));
+        }
+
+        return res;
+    }
+
+    void onLeave(Agent agent) throws IOException {
+        send(Messages.absence(agent, this));
+        synchronized (agents) {
+            log.debug("Local agent joined: {}", agent);
+            agents.remove(agent.getIden());
+        }
+    }
+
+    void onJoin(Agent agent) throws IOException {
+        send(Messages.presence(agent, this));
+        send(Messages.discovery(agent, this));
+        synchronized (agents) {
+            log.debug("Local agent joined: {}", agent);
+            agents.put(agent.getIden(), agent);
+        }
+    }
+
+    public Listener addListener(com.workshare.msnos.core.Cloud.Listener listener) {
+        return caster.addListener(listener);
+    }
+
+    void removeListener(com.workshare.msnos.core.Cloud.Listener listener) {
+        log.debug("Removing listener: {}", listener);
+        caster.removeListener(listener);
     }
 
     protected void process(Message message) {
@@ -94,6 +121,7 @@ public class Cloud implements Identifiable {
         }
         if (isPresence(message)) processPresence(message);
         else if (isAbsence(message)) processAbsence(message);
+        else if (isPong(message)) processPong(message);
         else caster.dispatch(message);
     }
 
@@ -117,35 +145,20 @@ public class Cloud implements Identifiable {
         }
     }
 
-    void onLeave(Agent agent) throws IOException {
-        send(Messages.absence(agent, this));
+    private void processPong(Message message) {
+        Iden from = message.getFrom();
+        Agent agent = new Agent(from, this);
         synchronized (agents) {
-            log.debug("Local agent joined: {}", agent);
-            agents.remove(agent.getIden());
+            if (!agents.containsKey(agent.getIden())) {
+                log.debug("Ping from network agent, updating list with: {}", agent.toString());
+                agents.put(agent.getIden(), agent);
+            }
         }
     }
 
-    void onJoin(Agent agent) throws IOException {
-        send(Messages.presence(agent, this));
-        send(Messages.discovery(agent, this));
-        synchronized (agents) {
-            log.debug("Local agent joined: {}", agent);
-            agents.put(agent.getIden(), agent);
-        }
-    }
-
-    Future<Message.Status> send(Message message) throws IOException {
-        CompositeFutureStatus res = null;
-        if (!message.isReliable())
-            res = new UnknownFutureStatus();
-        else
-            res = new MultipleFutureStatus();
-
-        for (Gateway gate : gates) {
-            res.add(gate.send(message));
-        }
-
-        return res;
+    @Override
+    public String toString() {
+        return Json.toJsonString(this);
     }
 
     private boolean isAbsence(Message message) {
@@ -153,7 +166,11 @@ public class Cloud implements Identifiable {
     }
 
     private boolean isPresence(Message message) {
-        return message.getType() == Message.Type.PRS && !message.getData().equals(Messages.STATUS_FALSE);
+        return message.getType() == Message.Type.PRS && message.getData().equals(Messages.STATUS_TRUE);
+    }
+
+    private boolean isPong(Message message) {
+        return message.getType() == Message.Type.PON;
     }
 
 }

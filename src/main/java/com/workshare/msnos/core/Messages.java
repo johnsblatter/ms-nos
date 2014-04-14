@@ -26,12 +26,24 @@ class Messages {
         return new Message(Message.Type.PRS, from.getIden(), to.getIden(), 2, false, STATUS_FALSE);
     }
 
+    public static Message acknowledge(Identifiable from, Identifiable to) {
+        return new Message(Message.Type.ACK, from.getIden(), to.getIden(), 2, false, null);
+    }
+
     public static Message app(Identifiable from, Identifiable to, JsonObject data) {
         return new Message(Message.Type.APP, from.getIden(), to.getIden(), 2, false, data);
     }
 
     public static Message discovery(Identifiable from, Identifiable to) {
         return new Message(Message.Type.DSC, from.getIden(), to.getIden(), 2, false, null);
+    }
+
+    public static Message ping(Identifiable from, Identifiable to) {
+        return new Message(Message.Type.PIN, from.getIden(), to.getIden(), 2, false, null);
+    }
+
+    public static Message pong(Identifiable from, Identifiable to) {
+        return new Message(Message.Type.PON, from.getIden(), to.getIden(), 2, false, null);
     }
 
 }

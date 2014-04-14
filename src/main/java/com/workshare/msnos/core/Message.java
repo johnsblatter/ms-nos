@@ -7,7 +7,7 @@ public class Message {
 
     public enum Status {UNKNOWN, PENDING, DELIVERED}
 
-    public enum Type {PRS, DSC, APP}
+    public enum Type {PRS, DSC, APP, PIN, PON, ACK}
 
     private final Version version = Version.V1_0;
     private final Type type;
@@ -64,10 +64,6 @@ public class Message {
         return reliable;
     }
 
-    public String toString() {
-        return Json.toJsonString(this);
-    }
-
     public Message from(Iden from) {
         return new Message(type, from, to, hops, reliable, data);
     }
@@ -80,6 +76,12 @@ public class Message {
         return new Message(type, from, to, hops, true, data);
     }
 
+    @Override
+    public String toString() {
+        return Json.toJsonString(this);
+    }
+
+    @Override
     public boolean equals(Object o) {
         try {
             String jsonThis = Json.toJsonString(this);

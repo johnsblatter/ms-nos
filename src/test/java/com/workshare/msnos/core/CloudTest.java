@@ -16,8 +16,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Future;
 
-import static com.workshare.msnos.core.Message.Type.APP;
-import static com.workshare.msnos.core.Message.Type.PRS;
+import static com.workshare.msnos.core.Message.Type.*;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 

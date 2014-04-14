@@ -10,10 +10,8 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.UUID;
 
-import static com.workshare.msnos.core.Message.Type.APP;
-import static com.workshare.msnos.core.Message.Type.PRS;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static com.workshare.msnos.core.Message.Type.*;
+import static org.junit.Assert.*;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.*;
 
@@ -53,10 +51,20 @@ public class AgentTest {
     }
 
     @Test
+    public void shouldSendPongWhenPingIsReceived() throws IOException {
+        simulateMessageFromCloud(Messages.ping(cloud, karl));
+        Message message = getLastMessageToCloud();
+
+        assertNotNull(message);
+        assertEquals(karl.getIden(), message.getFrom());
+        assertEquals(PON, message.getType());
+    }
+
+    @Test
     public void shouldSendUnreliableMessageThroughCloud() throws Exception {
         final JsonObject data = data();
 
-        smith.sendMessage(Messages.app(smith, karl, data));
+        smith.send(Messages.app(smith, karl, data));
 
         Message message = getLastMessageToCloud();
         assertNotNull(message);
@@ -71,7 +79,7 @@ public class AgentTest {
     public void shouldSendReliableMessageThroughCloud() throws Exception {
         final JsonObject data = data();
 
-        smith.sendMessage(Messages.app(smith, karl, data).reliable());
+        smith.send(Messages.app(smith, karl, data).reliable());
 
         Message message = getLastMessageToCloud();
         assertNotNull(message);
@@ -80,6 +88,12 @@ public class AgentTest {
         assertEquals(APP, message.getType());
         assertEquals(data, message.getData());
         assertEquals(true, message.isReliable());
+    }
+
+    @Test
+    public void otherAgentsShouldNOTStillSeeAgentOnLeave() throws Exception {
+        smith.leave(cloud);
+        assertFalse(karl.getCloud().getAgents().contains(smith));
     }
 
     private Message getLastMessageToCloud() throws IOException {
