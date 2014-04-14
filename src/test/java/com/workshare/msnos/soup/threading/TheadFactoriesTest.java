@@ -6,7 +6,6 @@ import java.util.concurrent.ThreadFactory;
 
 import org.junit.Test;
 
-import com.workshare.msnos.soup.threading.ThreadFactories;
 import com.workshare.msnos.soup.threading.ThreadFactories.Customizer;
 
 public class TheadFactoriesTest {

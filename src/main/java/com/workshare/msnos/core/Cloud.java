@@ -13,7 +13,6 @@ import java.util.concurrent.Future;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.workshare.msnos.soup.data.Payload;
 import com.workshare.msnos.soup.json.Json;
 
 public class Cloud implements Identifiable {
@@ -169,15 +168,26 @@ public class Cloud implements Identifiable {
     }
 
     private boolean isAbsence(Message message) {
-        return message.getType() == Message.Type.PRS && !((Payload)message.getData()).isPresence();
+        return message.getType() == Message.Type.PRS && !isTrue(message.getData(), "presence");
     }
 
     private boolean isPresence(Message message) {
-        return message.getType() == Message.Type.PRS && ((Payload)message.getData()).isPresence();
+        return message.getType() == Message.Type.PRS && isTrue(message.getData(), "presence");
     }
 
     private boolean isPong(Message message) {
         return message.getType() == Message.Type.PON;
     }
+
+    private boolean isTrue(Map<String, Object> data, String name) {
+        if (data != null) {
+            Boolean val = (Boolean) data.get("presence");
+            if (val != null && val.equals(Boolean.TRUE))
+                return true;
+        }
+            
+        return false;
+    }
+
 
 }

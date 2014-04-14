@@ -5,9 +5,6 @@ import java.net.NetworkInterface;
 import java.util.Enumeration;
 import java.util.Set;
 
-import com.workshare.msnos.core.protocols.ip.Endpoint;
-import com.workshare.msnos.core.protocols.ip.Network;
-
 public class Spike {
     public static void main(String[] args) throws Exception {
         Enumeration<NetworkInterface> nics = NetworkInterface.getNetworkInterfaces();

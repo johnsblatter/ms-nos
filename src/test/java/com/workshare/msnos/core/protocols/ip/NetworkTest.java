@@ -18,8 +18,6 @@ import org.junit.runner.RunWith;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 
-import com.workshare.msnos.core.protocols.ip.Network;
-
 @RunWith(PowerMockRunner.class)
 @PrepareForTest({NetworkInterface.class, InterfaceAddress.class, Network.class})
 public class NetworkTest {

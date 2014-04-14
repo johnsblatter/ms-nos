@@ -1,19 +1,26 @@
 package com.workshare.msnos.core;
 
-import com.workshare.msnos.soup.data.Payload;
+import static com.workshare.msnos.core.Message.Type.APP;
+import static com.workshare.msnos.core.Message.Type.PON;
+import static com.workshare.msnos.core.Message.Type.PRS;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-import java.util.UUID;
-
-import static com.workshare.msnos.core.Message.Type.*;
-import static org.junit.Assert.*;
-import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.*;
 
 public class AgentTest {
 
@@ -62,7 +69,7 @@ public class AgentTest {
 
     @Test
     public void shouldSendUnreliableMessageThroughCloud() throws Exception {
-        final Payload data = data();
+        final Map<String,Object>  data = data();
 
         smith.send(Messages.app(smith, karl, data));
 
@@ -77,7 +84,7 @@ public class AgentTest {
 
     @Test
     public void shouldSendReliableMessageThroughCloud() throws Exception {
-        final Payload data = data();
+        final Map<String,Object>  data = data();
 
         smith.send(Messages.app(smith, karl, data).reliable());
 
@@ -108,7 +115,7 @@ public class AgentTest {
         cloudListener.getValue().onMessage(message);
     }
 
-    private Payload data() {
-        return new Payload();
+    private Map<String,Object>  data() {
+        return new HashMap<String,Object> ();
     }
 }

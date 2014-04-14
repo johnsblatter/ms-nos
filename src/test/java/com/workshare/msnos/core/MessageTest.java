@@ -1,8 +1,8 @@
 package com.workshare.msnos.core;
 
-import org.junit.Test;
-
 import java.util.UUID;
+
+import org.junit.Test;
 
 public class MessageTest {
 

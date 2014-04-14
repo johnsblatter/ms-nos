@@ -1,9 +1,9 @@
 package com.workshare.msnos.core.protocols.ip.udp;
 
+import java.util.UUID;
+
 import com.workshare.msnos.core.Iden;
 import com.workshare.msnos.core.Message;
-
-import java.util.UUID;
 
 // an horrible static class to host utility methods
 // to share across tests

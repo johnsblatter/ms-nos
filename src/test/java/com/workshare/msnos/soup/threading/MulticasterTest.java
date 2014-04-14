@@ -14,9 +14,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.workshare.msnos.soup.threading.ExecutorServices;
-import com.workshare.msnos.soup.threading.Multicaster;
-
 public class MulticasterTest {
 
     private String dataOne;

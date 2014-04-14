@@ -7,8 +7,6 @@ import java.util.concurrent.Future;
 
 import org.junit.Test;
 
-import com.workshare.msnos.soup.threading.ExecutorServices;
-
 public class ExecutorServicesTest {
 
     @Test

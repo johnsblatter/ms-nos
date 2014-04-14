@@ -1,15 +1,16 @@
 package com.workshare.msnos.core;
 
-import java.util.concurrent.ExecutionException;
+import static org.junit.Assert.assertEquals;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyLong;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 import org.junit.Before;
 import org.junit.Test;
-
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
 
 import com.workshare.msnos.core.Message.Status;
 

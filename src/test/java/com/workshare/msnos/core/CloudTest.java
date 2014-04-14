@@ -1,25 +1,39 @@
 package com.workshare.msnos.core;
 
-import com.workshare.msnos.core.Cloud.Multicaster;
-import com.workshare.msnos.core.Gateway.Listener;
-import com.workshare.msnos.core.Message.Status;
-import com.workshare.msnos.core.protocols.ip.udp.UDPGateway;
-import com.workshare.msnos.soup.data.Payload;
+import static com.workshare.msnos.core.Message.Type.APP;
+import static com.workshare.msnos.core.Message.Type.PRS;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Future;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
-import java.io.IOException;
-import java.util.*;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executor;
-import java.util.concurrent.Future;
-
-import static com.workshare.msnos.core.Message.Type.APP;
-import static com.workshare.msnos.core.Message.Type.PRS;
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
+import com.workshare.msnos.core.Cloud.Multicaster;
+import com.workshare.msnos.core.Gateway.Listener;
+import com.workshare.msnos.core.Message.Status;
+import com.workshare.msnos.core.protocols.ip.udp.UDPGateway;
 
 @SuppressWarnings("unchecked")
 public class CloudTest {
@@ -137,7 +151,7 @@ public class CloudTest {
 
     @Test
     public void shouldSendAbsenceWhenLeavingCloud() throws Exception {
-        final Payload data = absenceData();
+        final Map<String,Object>  data = absenceData();
 
         Agent karl = new Agent(UUID.randomUUID());
 
@@ -148,7 +162,7 @@ public class CloudTest {
         assertNotNull(message);
         assertEquals(PRS, message.getType());
         assertEquals(karl.getIden(), message.getFrom());
-        assertEquals(data.isPresence(), ((Payload)message.getData()).isPresence());
+        assertEquals(data, message.getData());
     }
 
     @Test
@@ -257,9 +271,9 @@ public class CloudTest {
         return captor.getAllValues();
     }
 
-    private Payload absenceData() {
-        Payload absence = new Payload();
-        absence.setPresence(false);
+    private Map<String,Object> absenceData() {
+        Map<String,Object> absence = new HashMap<String,Object>();
+        absence.put("presence", Boolean.FALSE);
         return absence;
     }
 
