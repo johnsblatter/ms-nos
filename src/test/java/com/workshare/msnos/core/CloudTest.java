@@ -33,7 +33,9 @@ import org.mockito.Mockito;
 import com.workshare.msnos.core.Cloud.Multicaster;
 import com.workshare.msnos.core.Gateway.Listener;
 import com.workshare.msnos.core.Message.Status;
+import com.workshare.msnos.core.payloads.Presence;
 import com.workshare.msnos.core.protocols.ip.udp.UDPGateway;
+import com.workshare.msnos.soup.json.Json;
 
 @SuppressWarnings("unchecked")
 public class CloudTest {
@@ -151,7 +153,7 @@ public class CloudTest {
 
     @Test
     public void shouldSendAbsenceWhenLeavingCloud() throws Exception {
-        final Map<String,Object>  data = absenceData();
+        Presence data = new Presence(false);
 
         Agent karl = new Agent(UUID.randomUUID());
 
@@ -162,7 +164,7 @@ public class CloudTest {
         assertNotNull(message);
         assertEquals(PRS, message.getType());
         assertEquals(karl.getIden(), message.getFrom());
-        assertEquals(data, message.getData());
+        assertEquals(Json.toJsonString(data), Json.toJsonString(message.getData()));
     }
 
     @Test
@@ -250,7 +252,7 @@ public class CloudTest {
     }
 
     private void simulateAgentLeavingCloud(Agent agent, Cloud cloud) {
-        simulateMessageFromNetwork(new Message(PRS, agent.getIden(), cloud.getIden(), 2, false, absenceData()));
+        simulateMessageFromNetwork(new Message(PRS, agent.getIden(), cloud.getIden(), 2, false, new Presence(false)));
     }
 
     private void simulateMessageFromNetwork(final Message message) {
@@ -269,12 +271,6 @@ public class CloudTest {
         ArgumentCaptor<Message> captor = ArgumentCaptor.forClass(Message.class);
         verify(gate1, atLeastOnce()).send(captor.capture());
         return captor.getAllValues();
-    }
-
-    private Map<String,Object> absenceData() {
-        Map<String,Object> absence = new HashMap<String,Object>();
-        absence.put("presence", Boolean.FALSE);
-        return absence;
     }
 
     private Message newMessage(final Message.Type type, final Iden idenFrom, final Iden idenTo) {

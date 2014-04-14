@@ -17,6 +17,7 @@ import com.workshare.msnos.core.Iden;
 import com.workshare.msnos.core.Message;
 import com.workshare.msnos.core.NoopGateway;
 import com.workshare.msnos.core.Version;
+import com.workshare.msnos.core.payloads.Presence;
 import com.workshare.msnos.core.protocols.ip.udp.Utils;
 import com.workshare.msnos.soup.json.Json;
 
@@ -74,9 +75,9 @@ public class WireJsonSerializerTest {
 	
     @Test
     public void shouldBeAbleToEncodeAndDecode(){
-        Message source = Utils.newSampleMessage().from(AGENT_IDEN).to(CLOUD_IDEN);
-        byte[] data = sz.toBytes(source);
+        Message source = new Message(Message.Type.PRS, AGENT_IDEN, CLOUD_IDEN, 2, false, new Presence(true));
 
+        byte[] data = sz.toBytes(source);
         Message decoded = sz.fromBytes(data, Message.class);
         
         assertEquals(source,decoded);

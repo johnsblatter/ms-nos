@@ -1,10 +1,11 @@
 package com.workshare.msnos.core;
 
-import java.util.Map;
-
 import com.workshare.msnos.soup.json.Json;
 
 public class Message {
+
+    public interface Payload {
+    }
 
     public enum Status {UNKNOWN, PENDING, DELIVERED}
 
@@ -17,9 +18,9 @@ public class Message {
     private final String sig;
     private final int hops;
     private final boolean reliable;
-    private final Map<String,Object> data;
+    private final Payload data;
 
-    public Message(Type type, Iden from, Iden to, int hops, boolean reliable, Map<String,Object> data) {
+    public Message(Type type, Iden from, Iden to, int hops, boolean reliable, Payload data) {
         if (reliable && to.getType() == Iden.Type.CLD) {
             throw new IllegalArgumentException("Cannot create a reliable message to the cloud!");
         }
@@ -53,7 +54,7 @@ public class Message {
         return sig;
     }
 
-    public Map<String,Object> getData() {
+    public Payload getData() {
         return data;
     }
 

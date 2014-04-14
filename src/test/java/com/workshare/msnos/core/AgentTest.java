@@ -1,6 +1,6 @@
 package com.workshare.msnos.core;
 
-import static com.workshare.msnos.core.Message.Type.APP;
+import static com.workshare.msnos.core.Message.Type.PIN;
 import static com.workshare.msnos.core.Message.Type.PON;
 import static com.workshare.msnos.core.Message.Type.PRS;
 import static org.junit.Assert.assertEquals;
@@ -69,31 +69,27 @@ public class AgentTest {
 
     @Test
     public void shouldSendUnreliableMessageThroughCloud() throws Exception {
-        final Map<String,Object>  data = data();
 
-        smith.send(Messages.app(smith, karl, data));
+        smith.send(Messages.ping(smith, karl));
 
         Message message = getLastMessageToCloud();
         assertNotNull(message);
         assertEquals(smith.getIden(), message.getFrom());
         assertEquals(karl.getIden(), message.getTo());
-        assertEquals(APP, message.getType());
-        assertEquals(data, message.getData());
+        assertEquals(PIN, message.getType());
         assertEquals(false, message.isReliable());
     }
 
     @Test
     public void shouldSendReliableMessageThroughCloud() throws Exception {
-        final Map<String,Object>  data = data();
 
-        smith.send(Messages.app(smith, karl, data).reliable());
+        smith.send(Messages.ping(smith, karl).reliable());
 
         Message message = getLastMessageToCloud();
         assertNotNull(message);
         assertEquals(smith.getIden(), message.getFrom());
         assertEquals(karl.getIden(), message.getTo());
-        assertEquals(APP, message.getType());
-        assertEquals(data, message.getData());
+        assertEquals(PIN, message.getType());
         assertEquals(true, message.isReliable());
     }
 

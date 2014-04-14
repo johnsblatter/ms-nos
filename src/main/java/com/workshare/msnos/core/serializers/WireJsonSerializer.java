@@ -10,6 +10,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import com.google.gson.JsonPrimitive;
 import com.google.gson.JsonSerializationContext;
@@ -18,7 +19,11 @@ import com.workshare.msnos.core.Agent;
 import com.workshare.msnos.core.Cloud;
 import com.workshare.msnos.core.Gateway;
 import com.workshare.msnos.core.Iden;
+import com.workshare.msnos.core.Message;
+import com.workshare.msnos.core.Message.Payload;
 import com.workshare.msnos.core.Version;
+import com.workshare.msnos.core.payloads.Presence;
+import com.workshare.msnos.soup.json.Json;
 import com.workshare.msnos.soup.json.ThreadSafeGson;
 
 public class WireJsonSerializer implements WireSerializer {
@@ -48,7 +53,6 @@ public class WireJsonSerializer implements WireSerializer {
         return gson.toJson(anyObject).getBytes(Charset.forName("UTF-8"));
     }
 
-    
     private static final JsonSerializer<Iden> ENC_IDEN = new JsonSerializer<Iden>() {
         @Override
         public JsonElement serialize(Iden iden, Type typeof, JsonSerializationContext context) {
@@ -58,8 +62,7 @@ public class WireJsonSerializer implements WireSerializer {
 
     private static final JsonDeserializer<Iden> DEC_IDEN = new JsonDeserializer<Iden>() {
         @Override
-        public Iden deserialize(JsonElement json, Type typeof, JsonDeserializationContext context)
-                throws JsonParseException {
+        public Iden deserialize(JsonElement json, Type typeof, JsonDeserializationContext context) throws JsonParseException {
             return deserializeIden(json);
         }
     };
@@ -73,8 +76,7 @@ public class WireJsonSerializer implements WireSerializer {
 
     private static final JsonDeserializer<Cloud> DEC_CLOUD = new JsonDeserializer<Cloud>() {
         @Override
-        public Cloud deserialize(JsonElement json, Type typeof, JsonDeserializationContext context)
-                throws JsonParseException {
+        public Cloud deserialize(JsonElement json, Type typeof, JsonDeserializationContext context) throws JsonParseException {
             try {
                 Iden iden = deserializeIden(json);
                 if (iden.getType() != Iden.Type.CLD)
@@ -96,8 +98,7 @@ public class WireJsonSerializer implements WireSerializer {
 
     private static final JsonDeserializer<Agent> DEC_AGENT = new JsonDeserializer<Agent>() {
         @Override
-        public Agent deserialize(JsonElement json, Type typeof, JsonDeserializationContext context)
-                throws JsonParseException {
+        public Agent deserialize(JsonElement json, Type typeof, JsonDeserializationContext context) throws JsonParseException {
             Iden iden = deserializeIden(json);
             if (iden.getType() != Iden.Type.AGT)
                 throw new IllegalArgumentException("Unexpected type when converting cloud!");
@@ -108,7 +109,7 @@ public class WireJsonSerializer implements WireSerializer {
     private static final JsonSerializer<Version> ENC_VERSION = new JsonSerializer<Version>() {
         @Override
         public JsonElement serialize(Version src, Type typeOfSrc, JsonSerializationContext context) {
-            return new JsonPrimitive(src.getMajor()+"."+src.getMinor());
+            return new JsonPrimitive(src.getMajor() + "." + src.getMinor());
         }
     };
 
@@ -119,12 +120,54 @@ public class WireJsonSerializer implements WireSerializer {
             final int dotIndex = text.indexOf(".");
 
             final int major = Integer.parseInt(text.substring(0, dotIndex));
-            final int minor = Integer.parseInt(text.substring(dotIndex+1));
+            final int minor = Integer.parseInt(text.substring(dotIndex + 1));
 
             return new Version(major, minor);
         }
     };
-    
+
+    private static final JsonSerializer<Message> ENC_MESSAGE = new JsonSerializer<Message>() {
+        @Override
+        public JsonElement serialize(Message msg, Type typeof, JsonSerializationContext context) {
+            final JsonObject res = new JsonObject();
+            res.add("v", context.serialize(msg.getVersion()));
+            res.add("fr", context.serialize(msg.getFrom()));
+            res.add("to", context.serialize(msg.getTo()));
+            res.addProperty("hp", msg.getHops());
+            res.addProperty("rx", msg.isReliable());
+            final Message.Type msgType = msg.getType();
+            res.addProperty("ty", msgType.toString());
+            res.add("dt", context.serialize(msg.getData()));
+            return res;
+        }
+    };
+
+    private static final JsonDeserializer<Message> DEC_MESSAGE = new JsonDeserializer<Message>() {
+        @Override
+        public Message deserialize(JsonElement json, Type typeof, JsonDeserializationContext context) throws JsonParseException {
+
+            final JsonObject obj = json.getAsJsonObject();
+            final Message.Type type = Message.Type.valueOf(obj.get("ty").getAsString());
+            final Iden from = context.deserialize(obj.get("fr").getAsJsonPrimitive(), Iden.class);
+            final Iden to = context.deserialize(obj.get("to").getAsJsonPrimitive(), Iden.class);
+            final int hops = obj.get("hp").getAsInt();
+            final boolean reliable = obj.get("hp").getAsBoolean();
+
+            Payload data = null;
+            JsonElement dataJson = obj.get("dt");
+            if (dataJson != null) {
+                switch (type) {
+                    case PRS: data = (Payload)Json.fromJsonTree(dataJson, Presence.class);
+                        break;
+                    default:
+                        break;
+                }
+            }
+
+            return new Message(type, from, to, hops, reliable, data);
+        }
+    };
+
     private static final ThreadSafeGson gson = new ThreadSafeGson() {
         protected Gson newGson() {
             GsonBuilder builder = new GsonBuilder();
@@ -140,7 +183,10 @@ public class WireJsonSerializer implements WireSerializer {
 
             builder.registerTypeAdapter(Version.class, ENC_VERSION);
             builder.registerTypeAdapter(Version.class, DEC_VERSION);
-            
+
+            builder.registerTypeAdapter(Message.class, ENC_MESSAGE);
+            builder.registerTypeAdapter(Message.class, DEC_MESSAGE);
+
             return builder.create();
         }
     };

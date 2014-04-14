@@ -19,6 +19,7 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import com.workshare.msnos.core.Gateway.Listener;
+import com.workshare.msnos.core.protocols.ip.udp.UDPServer;
 import com.workshare.msnos.core.Iden;
 import com.workshare.msnos.core.Message;
 import com.workshare.msnos.soup.json.Json;
