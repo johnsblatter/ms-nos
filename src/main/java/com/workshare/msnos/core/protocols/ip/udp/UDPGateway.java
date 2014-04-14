@@ -16,6 +16,7 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.MulticastSocket;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
@@ -34,6 +35,8 @@ public class UDPGateway implements Gateway {
     private MulticastSocket socket;
     private InetAddress group;
     private int ports[];
+
+    private List<Endpoint> endpoints;
 
     private final Multicaster<Listener, Message> caster;
     private final WireSerializer sz;
@@ -64,10 +67,10 @@ public class UDPGateway implements Gateway {
                 msock.setReuseAddress(true);
                 msock.bind(new InetSocketAddress(port));
                 socket = msock;
-                logger.info("Socket opened on port " + port);
+                logger.info("Socket opened on port: {} ", port);
                 break;
             } catch (IOException ex) {
-                logger.warn("Unable to open multicast socket on port " + port);
+                logger.warn("Unable to open multicast socket on port: {} ", port);
             }
         }
 
@@ -95,7 +98,7 @@ public class UDPGateway implements Gateway {
     public Future<Status> send(Message message) throws IOException {
 
         if (logger.isDebugEnabled())
-            logger.debug("Broadcasting message " + Json.toJsonString(message));
+            logger.debug("Broadcasting message {} ", Json.toJsonString(message));
 
         for (int port : ports) {
             byte[] payload = sz.toBytes(message);
@@ -126,7 +129,7 @@ public class UDPGateway implements Gateway {
             ports[i] = port + i;
         }
 
-        logger.debug("UDP mounted on ports " + Arrays.toString(ports));
+        logger.debug("UDP mounted on ports: {} ", Arrays.toString(ports));
     }
 
     private Integer loadBasePort() {

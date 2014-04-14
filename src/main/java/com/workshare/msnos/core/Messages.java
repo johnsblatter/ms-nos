@@ -1,36 +1,26 @@
 package com.workshare.msnos.core;
 
-import com.google.gson.JsonObject;
+import com.workshare.msnos.soup.data.Payload;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class Messages {
 
-    static JsonObject STATUS_TRUE;
-
-    static {
-        STATUS_TRUE = new JsonObject();
-        STATUS_TRUE.addProperty("status", true);
-    }
-
-    static JsonObject STATUS_FALSE;
-
-    static {
-        STATUS_FALSE = new JsonObject();
-        STATUS_FALSE.addProperty("status", false);
-    }
+    private static Logger log = LoggerFactory.getLogger(Messages.class);
 
     public static Message presence(Identifiable from, Identifiable to) {
-        return new Message(Message.Type.PRS, from.getIden(), to.getIden(), 2, false, STATUS_TRUE);
+        Payload payload = new Payload();
+        payload.setPresence(true);
+        return new Message(Message.Type.PRS, from.getIden(), to.getIden(), 2, false, payload);
     }
 
     public static Message absence(Identifiable from, Identifiable to) {
-        return new Message(Message.Type.PRS, from.getIden(), to.getIden(), 2, false, STATUS_FALSE);
+        Payload payload = new Payload();
+        payload.setPresence(false);
+        return new Message(Message.Type.PRS, from.getIden(), to.getIden(), 2, false, payload);
     }
 
-    public static Message acknowledge(Identifiable from, Identifiable to) {
-        return new Message(Message.Type.ACK, from.getIden(), to.getIden(), 2, false, null);
-    }
-
-    public static Message app(Identifiable from, Identifiable to, JsonObject data) {
+    public static Message app(Identifiable from, Identifiable to, Payload data) {
         return new Message(Message.Type.APP, from.getIden(), to.getIden(), 2, false, data);
     }
 
@@ -45,5 +35,4 @@ class Messages {
     public static Message pong(Identifiable from, Identifiable to) {
         return new Message(Message.Type.PON, from.getIden(), to.getIden(), 2, false, null);
     }
-
 }

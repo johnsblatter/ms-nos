@@ -1,13 +1,13 @@
 package com.workshare.msnos.core;
 
-import com.google.gson.JsonObject;
+import com.workshare.msnos.soup.data.Payload;
 import com.workshare.msnos.soup.json.Json;
 
 public class Message {
 
     public enum Status {UNKNOWN, PENDING, DELIVERED}
 
-    public enum Type {PRS, DSC, APP, PIN, PON, ACK}
+    public enum Type {PRS, DSC, APP, PIN, PON}
 
     private final Version version = Version.V1_0;
     private final Type type;
@@ -16,9 +16,9 @@ public class Message {
     private final String sig;
     private final int hops;
     private final boolean reliable;
-    private final JsonObject data;
+    private final Payload data;
 
-    public Message(Type type, Iden from, Iden to, int hops, boolean reliable, JsonObject data) {
+    public Message(Type type, Iden from, Iden to, int hops, boolean reliable, Payload data) {
         if (reliable && to.getType() == Iden.Type.CLD) {
             throw new IllegalArgumentException("Cannot create a reliable message to the cloud!");
         }
@@ -52,7 +52,7 @@ public class Message {
         return sig;
     }
 
-    public JsonObject getData() {
+    public Payload getData() {
         return data;
     }
 

@@ -1,10 +1,10 @@
 package com.workshare.msnos.core;
 
-import com.google.gson.JsonObject;
 import com.workshare.msnos.core.Cloud.Multicaster;
 import com.workshare.msnos.core.Gateway.Listener;
 import com.workshare.msnos.core.Message.Status;
 import com.workshare.msnos.core.protocols.ip.udp.UDPGateway;
+import com.workshare.msnos.soup.data.Payload;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -137,7 +137,7 @@ public class CloudTest {
 
     @Test
     public void shouldSendAbsenceWhenLeavingCloud() throws Exception {
-        final JsonObject data = absenceData();
+        final Payload data = absenceData();
 
         Agent karl = new Agent(UUID.randomUUID());
 
@@ -148,7 +148,7 @@ public class CloudTest {
         assertNotNull(message);
         assertEquals(PRS, message.getType());
         assertEquals(karl.getIden(), message.getFrom());
-        assertEquals(data, message.getData());
+        assertEquals(data.isPresence(), message.getData().isPresence());
     }
 
     @Test
@@ -257,9 +257,9 @@ public class CloudTest {
         return captor.getAllValues();
     }
 
-    private JsonObject absenceData() {
-        JsonObject absence = new JsonObject();
-        absence.addProperty("status", false);
+    private Payload absenceData() {
+        Payload absence = new Payload();
+        absence.setPresence(false);
         return absence;
     }
 

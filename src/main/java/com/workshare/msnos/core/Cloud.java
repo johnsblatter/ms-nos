@@ -162,11 +162,11 @@ public class Cloud implements Identifiable {
     }
 
     private boolean isAbsence(Message message) {
-        return message.getType() == Message.Type.PRS && message.getData().equals(Messages.STATUS_FALSE);
+        return message.getType() == Message.Type.PRS && !message.getData().isPresence();
     }
 
     private boolean isPresence(Message message) {
-        return message.getType() == Message.Type.PRS && message.getData().equals(Messages.STATUS_TRUE);
+        return message.getType() == Message.Type.PRS && message.getData().isPresence();
     }
 
     private boolean isPong(Message message) {

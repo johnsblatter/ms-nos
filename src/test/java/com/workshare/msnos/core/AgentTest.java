@@ -1,6 +1,6 @@
 package com.workshare.msnos.core;
 
-import com.google.gson.JsonObject;
+import com.workshare.msnos.soup.data.Payload;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -62,7 +62,7 @@ public class AgentTest {
 
     @Test
     public void shouldSendUnreliableMessageThroughCloud() throws Exception {
-        final JsonObject data = data();
+        final Payload data = data();
 
         smith.send(Messages.app(smith, karl, data));
 
@@ -77,7 +77,7 @@ public class AgentTest {
 
     @Test
     public void shouldSendReliableMessageThroughCloud() throws Exception {
-        final JsonObject data = data();
+        final Payload data = data();
 
         smith.send(Messages.app(smith, karl, data).reliable());
 
@@ -108,7 +108,7 @@ public class AgentTest {
         cloudListener.getValue().onMessage(message);
     }
 
-    private JsonObject data() {
-        return new JsonObject();
+    private Payload data() {
+        return new Payload();
     }
 }
