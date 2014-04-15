@@ -1,20 +1,14 @@
 package com.workshare.msnos.core;
 
-import java.io.IOException;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.Executor;
-import java.util.concurrent.Future;
-
+import com.workshare.msnos.core.payloads.Presence;
+import com.workshare.msnos.soup.json.Json;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.workshare.msnos.core.payloads.Presence;
-import com.workshare.msnos.soup.json.Json;
+import java.io.IOException;
+import java.util.*;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Future;
 
 public class Cloud implements Identifiable {
 
@@ -169,11 +163,11 @@ public class Cloud implements Identifiable {
     }
 
     private boolean isAbsence(Message message) {
-        return message.getType() == Message.Type.PRS && !((Presence)message.getData()).isPresent();
+        return message.getType() == Message.Type.PRS && !((Presence) message.getData()).isPresent();
     }
 
     private boolean isPresence(Message message) {
-        return message.getType() == Message.Type.PRS && ((Presence)message.getData()).isPresent();
+        return message.getType() == Message.Type.PRS && ((Presence) message.getData()).isPresent();
     }
 
     private boolean isPong(Message message) {

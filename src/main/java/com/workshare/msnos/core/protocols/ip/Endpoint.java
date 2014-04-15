@@ -5,11 +5,11 @@ import com.workshare.msnos.soup.json.Json;
 import java.net.InetAddress;
 
 public class Endpoint {
+
     private final InetAddress host;
     private final short port;
 
     public Endpoint(Network network, InetAddress host, short port) {
-        super();
         this.host = host;
         this.port = port;
     }
