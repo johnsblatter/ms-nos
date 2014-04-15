@@ -16,7 +16,7 @@ public class Presence implements Message.Payload {
     private static Logger log = LoggerFactory.getLogger(Presence.class);
 
     private final boolean present;
-    private Set<Network> networks;
+    private final Set<Network> networks;
 
     public Presence(boolean present) {
         this.present = present;

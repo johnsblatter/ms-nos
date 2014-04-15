@@ -5,6 +5,7 @@ import static org.mockito.Mockito.verify;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.Set;
 import java.util.UUID;
 
 import org.junit.Before;
@@ -16,7 +17,9 @@ import com.workshare.msnos.core.Cloud;
 import com.workshare.msnos.core.Gateway;
 import com.workshare.msnos.core.Iden;
 import com.workshare.msnos.core.Message;
+import com.workshare.msnos.core.payloads.QnePayload;
 
+@SuppressWarnings("unchecked")
 public class MicroserviceTest {
 
     Cloud cloud;
@@ -47,10 +50,13 @@ public class MicroserviceTest {
 
         Message msg = getLastMessageSent();
         assertEquals(Message.Type.QNE, msg.getType());
+        assertEquals(cloud.getIden(), msg.getTo());
+        Set<RestApi> apis = ((QnePayload)msg.getData()).getApis();
+        assertEquals(api, apis.iterator().next());
     }
 
     // should process QNE messages
-    // should send QNE messages aftee ENQ message
+    // should send QNE messages after ENQ message
 
     private Message getLastMessageSent() throws IOException {
         ArgumentCaptor<Message> captor = ArgumentCaptor.forClass(Message.class);

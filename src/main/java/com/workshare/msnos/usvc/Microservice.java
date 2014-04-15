@@ -9,6 +9,7 @@ import java.util.UUID;
 import com.workshare.msnos.core.Agent;
 import com.workshare.msnos.core.Cloud;
 import com.workshare.msnos.core.Message;
+import com.workshare.msnos.core.payloads.QnePayload;
 
 public class Microservice {
 
@@ -43,7 +44,7 @@ public class Microservice {
     }
 
     public void publish(RestApi api) throws IOException {
-        Message message = new Message(Message.Type.QNE, agent.getIden(), cloud.getIden(), 2, false, null);
+        Message message = new Message(Message.Type.QNE, agent.getIden(), cloud.getIden(), 2, false, new QnePayload(api));
         agent.send(message );
     }
 
