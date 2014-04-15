@@ -1,12 +1,10 @@
 package com.workshare.msnos.core;
 
-import java.util.HashMap;
-import java.util.Map;
-
+import com.workshare.msnos.core.payloads.Presence;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.workshare.msnos.core.payloads.Presence;
+import java.util.Map;
 
 class Messages {
 
@@ -20,7 +18,7 @@ class Messages {
         return new Message(Message.Type.PRS, from.getIden(), to.getIden(), 2, false, new Presence(false));
     }
 
-    public static Message app(Identifiable from, Identifiable to, Map<String,Object> data) {
+    public static Message app(Identifiable from, Identifiable to, Map<String, Object> data) {
         return new Message(Message.Type.APP, from.getIden(), to.getIden(), 2, false, null);
     }
 

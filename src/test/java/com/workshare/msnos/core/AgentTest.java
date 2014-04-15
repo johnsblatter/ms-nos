@@ -1,26 +1,25 @@
 package com.workshare.msnos.core;
 
-import static com.workshare.msnos.core.Message.Type.PIN;
-import static com.workshare.msnos.core.Message.Type.PON;
-import static com.workshare.msnos.core.Message.Type.PRS;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.atLeastOnce;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
-
+import com.workshare.msnos.core.payloads.Presence;
+import com.workshare.msnos.core.protocols.ip.Network;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.net.NetworkInterface;
+import java.net.SocketException;
+import java.util.Enumeration;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.UUID;
+
+import static com.workshare.msnos.core.Message.Type.*;
+import static org.junit.Assert.*;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.*;
 
 public class AgentTest {
 
@@ -94,6 +93,20 @@ public class AgentTest {
     }
 
     @Test
+    public void presenceMessageShouldContainNetworkInfo() throws Exception {
+        smith.send(Messages.presence(smith, cloud));
+
+        Message message = getLastMessageToCloud();
+
+        assertNotNull(message);
+        assertEquals(smith.getIden(), message.getFrom());
+        assertEquals(PRS, message.getType());
+
+        assertNotNull(((Presence) message.getData()).getNetworks());
+        assertEquals(((Presence) message.getData()).getNetworks(), getNetworks());
+    }
+
+    @Test
     public void otherAgentsShouldNOTStillSeeAgentOnLeave() throws Exception {
         smith.leave(cloud);
         assertFalse(karl.getCloud().getAgents().contains(smith));
@@ -111,7 +124,19 @@ public class AgentTest {
         cloudListener.getValue().onMessage(message);
     }
 
-    private Map<String,Object>  data() {
-        return new HashMap<String,Object> ();
+    private static Set<Network> getNetworks() throws SocketException {
+        Set<Network> nets = new HashSet<Network>();
+        try {
+            Enumeration<NetworkInterface> nics = NetworkInterface.getNetworkInterfaces();
+            while (nics.hasMoreElements()) {
+                NetworkInterface nic = nics.nextElement();
+                nets.addAll(Network.list(nic));
+            }
+        } catch (SocketException e) {
+            System.out.println("AgentTest.getNetworks" + e);
+            throw e;
+        }
+        return nets;
     }
+
 }
