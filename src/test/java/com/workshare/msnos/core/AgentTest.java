@@ -1,14 +1,15 @@
 package com.workshare.msnos.core;
 
-import com.workshare.msnos.core.payloads.Presence;
-import com.workshare.msnos.core.protocols.ip.Network;
-import com.workshare.msnos.soup.time.SystemTime;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.ArgumentCaptor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import static com.workshare.msnos.core.Message.Type.PIN;
+import static com.workshare.msnos.core.Message.Type.PON;
+import static com.workshare.msnos.core.Message.Type.PRS;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 import java.io.IOException;
 import java.net.NetworkInterface;
@@ -18,14 +19,16 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 
-import static com.workshare.msnos.core.Message.Type.*;
-import static org.junit.Assert.*;
-import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.*;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.ArgumentCaptor;
+
+import com.workshare.msnos.core.payloads.Presence;
+import com.workshare.msnos.core.protocols.ip.Network;
+import com.workshare.msnos.soup.time.SystemTime;
 
 public class AgentTest {
-
-    private static Logger log = LoggerFactory.getLogger(Agent.class);
 
     private Cloud cloud;
     private Agent karl;
@@ -156,7 +159,7 @@ public class AgentTest {
             Enumeration<NetworkInterface> nics = NetworkInterface.getNetworkInterfaces();
             while (nics.hasMoreElements()) {
                 NetworkInterface nic = nics.nextElement();
-                nets.addAll(Network.list(nic));
+                nets.addAll(Network.list(nic, true));
             }
         } catch (SocketException e) {
             System.out.println("AgentTest.getNetworks" + e);

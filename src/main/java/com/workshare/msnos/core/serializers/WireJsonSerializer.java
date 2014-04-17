@@ -5,6 +5,9 @@ import java.nio.charset.Charset;
 import java.util.Collections;
 import java.util.UUID;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonDeserializationContext;
@@ -15,6 +18,7 @@ import com.google.gson.JsonParseException;
 import com.google.gson.JsonPrimitive;
 import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
+import com.google.gson.JsonSyntaxException;
 import com.workshare.msnos.core.Agent;
 import com.workshare.msnos.core.Cloud;
 import com.workshare.msnos.core.Gateway;
@@ -28,9 +32,17 @@ import com.workshare.msnos.soup.json.ThreadSafeGson;
 
 public class WireJsonSerializer implements WireSerializer {
 
+    private static Logger log = LoggerFactory.getLogger(WireSerializer.class);
+
     @Override
     public <T> T fromText(String text, Class<T> clazz) {
-        return gson.fromJson(text, clazz);
+        try {
+            return gson.fromJson(text, clazz);
+        }
+        catch (JsonSyntaxException ex) {
+            log.warn("Error parsing JSON content: {}", text);
+            throw ex;
+        }
     }
 
     @Override

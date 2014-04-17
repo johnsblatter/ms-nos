@@ -14,7 +14,7 @@ public class Spike {
         while(nics.hasMoreElements()) {
             NetworkInterface nic = nics.nextElement();
             System.out.println(nic.getDisplayName());
-            Set<Network> nets = Network.list(nic);
+            Set<Network> nets = Network.list(nic, true);
             for (Network net : nets) {
                 System.out.println(" - "+net);
                 Endpoint ep = new Endpoint(net,  InetAddress.getByAddress(new byte[]{127,0,0,1}), (short) 9999);

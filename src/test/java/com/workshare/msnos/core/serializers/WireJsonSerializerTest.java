@@ -1,19 +1,25 @@
 package com.workshare.msnos.core.serializers;
 
-import com.workshare.msnos.core.*;
-import com.workshare.msnos.core.payloads.Presence;
-import com.workshare.msnos.core.protocols.ip.Network;
-import com.workshare.msnos.core.protocols.ip.udp.Utils;
-import com.workshare.msnos.soup.json.Json;
+import static org.junit.Assert.assertEquals;
+
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.UUID;
+
 import org.junit.Before;
 import org.junit.Test;
 
-import java.io.IOException;
-import java.net.NetworkInterface;
-import java.net.SocketException;
-import java.util.*;
-
-import static org.junit.Assert.assertEquals;
+import com.workshare.msnos.core.Agent;
+import com.workshare.msnos.core.Cloud;
+import com.workshare.msnos.core.Gateway;
+import com.workshare.msnos.core.Iden;
+import com.workshare.msnos.core.Message;
+import com.workshare.msnos.core.NoopGateway;
+import com.workshare.msnos.core.Version;
+import com.workshare.msnos.core.payloads.Presence;
+import com.workshare.msnos.core.protocols.ip.udp.Utils;
+import com.workshare.msnos.soup.json.Json;
 
 public class WireJsonSerializerTest {
 
@@ -94,20 +100,5 @@ public class WireJsonSerializerTest {
         Message decoded = sz.fromBytes(data, Message.class);
         System.out.println(Json.toJsonString(decoded));
         System.out.println(sz.toText(source));
-    }
-
-    private static Set<Network> getNetworks() throws SocketException {
-        Set<Network> nets = new HashSet<Network>();
-        try {
-            Enumeration<NetworkInterface> nics = NetworkInterface.getNetworkInterfaces();
-            while (nics.hasMoreElements()) {
-                NetworkInterface nic = nics.nextElement();
-                nets.addAll(Network.list(nic));
-            }
-        } catch (SocketException e) {
-            System.out.println("WireJsonSerializerTest.getNetworks" + e);
-            throw e;
-        }
-        return nets;
     }
 }

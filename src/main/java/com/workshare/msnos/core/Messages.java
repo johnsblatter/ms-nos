@@ -1,14 +1,10 @@
 package com.workshare.msnos.core;
 
-import com.workshare.msnos.core.payloads.Presence;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.Map;
 
-class Messages {
+import com.workshare.msnos.core.payloads.Presence;
 
-    private static Logger log = LoggerFactory.getLogger(Messages.class);
+class Messages {
 
     public static Message presence(Identifiable from, Identifiable to) {
         return new Message(Message.Type.PRS, from.getIden(), to.getIden(), 2, false, new Presence(true));

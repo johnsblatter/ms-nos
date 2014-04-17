@@ -2,6 +2,8 @@ package com.workshare.msnos.core.payloads;
 
 import com.workshare.msnos.core.Message;
 import com.workshare.msnos.core.protocols.ip.Network;
+import com.workshare.msnos.soup.json.Json;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,6 +23,7 @@ public class Presence implements Message.Payload {
     public Presence(boolean present) {
         this.present = present;
         networks = present ? setNetworks() : new HashSet<Network>();
+        log.trace("Presence message created: {}", this);
     }
 
     public boolean isPresent() {
@@ -33,7 +36,7 @@ public class Presence implements Message.Payload {
             Enumeration<NetworkInterface> nics = NetworkInterface.getNetworkInterfaces();
             while (nics.hasMoreElements()) {
                 NetworkInterface nic = nics.nextElement();
-                nets.addAll(Network.list(nic));
+                nets.addAll(Network.list(nic, true));
             }
         } catch (SocketException e) {
             log.error("Socket Exception getting NIC info", e);
@@ -45,4 +48,7 @@ public class Presence implements Message.Payload {
         return networks;
     }
 
+    public String toString() {
+        return Json.toJsonString(this);
+    }
 }

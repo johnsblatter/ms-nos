@@ -1,5 +1,18 @@
 package com.workshare.msnos.core.protocols.ip.udp;
 
+import java.io.IOException;
+import java.net.DatagramPacket;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.MulticastSocket;
+import java.util.Arrays;
+import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.Future;
+import java.util.concurrent.FutureTask;
+
+import org.apache.log4j.Logger;
+
 import com.workshare.msnos.core.Gateway;
 import com.workshare.msnos.core.Message;
 import com.workshare.msnos.core.Message.Status;
@@ -8,19 +21,6 @@ import com.workshare.msnos.core.protocols.ip.MulticastSocketFactory;
 import com.workshare.msnos.core.serializers.WireSerializer;
 import com.workshare.msnos.soup.json.Json;
 import com.workshare.msnos.soup.threading.Multicaster;
-import org.apache.log4j.Logger;
-
-import java.io.IOException;
-import java.net.DatagramPacket;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.MulticastSocket;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.Callable;
-import java.util.concurrent.Future;
-import java.util.concurrent.FutureTask;
 
 public class UDPGateway implements Gateway {
 
@@ -35,8 +35,6 @@ public class UDPGateway implements Gateway {
     private MulticastSocket socket;
     private InetAddress group;
     private int ports[];
-
-    private List<Endpoint> endpoints;
 
     private final Multicaster<Listener, Message> caster;
     private final WireSerializer sz;

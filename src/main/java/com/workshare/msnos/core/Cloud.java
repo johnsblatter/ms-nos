@@ -13,8 +13,9 @@ import java.util.concurrent.*;
 public class Cloud implements Identifiable {
 
     private static final long AGENT_TIMEOUT = Long.getLong("msnos.core.agents.timeout", 60000L);
+    private static final long AGENT_RETRIES = Long.getLong("msnos.core.agents.retries", 3);
+
     private static Logger log = LoggerFactory.getLogger(Cloud.class);
-    private static final long RETRIES = Long.getLong("msnos.core.agents.retries", 3);
 
     public static interface Listener {
         public void onMessage(Message message);
@@ -91,17 +92,18 @@ public class Cloud implements Identifiable {
     }
 
     private void probeQuietAgents() throws IOException {
+        log.debug("Probing quite agents...");
         for (Agent agent : getAgents()) {
             if (agent.getAccessTime() < SystemTime.asMillis() - AGENT_TIMEOUT) {
-                log.debug("Sending ping to {}", agent.toString());
+                log.debug("- sending ping to {}", agent.toString());
                 send(Messages.ping(this, agent));
             }
-            if (agent.getAccessTime() < SystemTime.asMillis() - (AGENT_TIMEOUT * RETRIES)) {
-                log.debug("Remote agent removed due to inactivity: {}", agent);
+            if (agent.getAccessTime() < SystemTime.asMillis() - (AGENT_TIMEOUT * AGENT_RETRIES)) {
+                log.debug("- remote agent removed due to inactivity: {}", agent);
                 agents.remove(agent.getIden());
             }
         }
-
+        log.debug("Done!");
     }
 
     public Future<Message.Status> send(Message message) throws IOException {

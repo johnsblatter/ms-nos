@@ -26,7 +26,11 @@ public class Network {
         this(inetAddress.getAddress().getAddress(), inetAddress.getNetworkPrefixLength());
     }
 
-	public byte[] getAddress() {
+    public boolean isIpv4() {
+        return 4 == this.address.length;
+    }
+
+    public byte[] getAddress() {
 	    return this.address;
 	}
 
@@ -98,13 +102,17 @@ public class Network {
         }
     }
 
-    public static Set<Network> list(NetworkInterface nic) {
+    public static Set<Network> list(NetworkInterface nic, boolean ipv4Only) {
         Set<Network> lans = new HashSet<Network>();
-        final List<InterfaceAddress> addresses = nic.getInterfaceAddresses();
-        for (InterfaceAddress address : addresses) {
-            if (!address.getAddress().isLoopbackAddress())
-                lans.add(new Network(address));
+        final List<InterfaceAddress> nicAddresses = nic.getInterfaceAddresses();
+        for (InterfaceAddress nicAddress : nicAddresses) {
+            if (!nicAddress.getAddress().isLoopbackAddress()) {
+                final Network net = new Network(nicAddress);
+                if (!ipv4Only || net.isIpv4())
+                    lans.add(net);
+            }
         }
+
         return lans;
     }
 }

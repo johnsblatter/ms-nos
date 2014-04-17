@@ -19,7 +19,6 @@ import com.workshare.msnos.core.Iden;
 import com.workshare.msnos.core.Message;
 import com.workshare.msnos.core.payloads.QnePayload;
 
-@SuppressWarnings("unchecked")
 public class MicroserviceTest {
 
     Cloud cloud;
