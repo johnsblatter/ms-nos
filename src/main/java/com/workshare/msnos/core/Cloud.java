@@ -12,8 +12,8 @@ import java.util.concurrent.*;
 
 public class Cloud implements Identifiable {
 
-    private static final long AGENT_TIMEOUT = Long.getLong("msnos.core.agents.timeout", 60000L);
-    private static final long AGENT_RETRIES = Long.getLong("msnos.core.agents.retries", 3);
+    private static final long AGENT_TIMEOUT = Long.getLong("msnos.core.agents.timeout.millis", 60000L);
+    private static final long AGENT_RETRIES = Long.getLong("msnos.core.agents.retries.num", 3);
 
     private static Logger log = LoggerFactory.getLogger(Cloud.class);
 
@@ -67,7 +67,9 @@ public class Cloud implements Identifiable {
             });
         }
 
-        scheduler.schedule(new Runnable() {
+        final long period = AGENT_TIMEOUT/2;
+        log.debug("Probing agent every {} milliseconds", period);
+        scheduler.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {
                 try {
@@ -76,7 +78,7 @@ public class Cloud implements Identifiable {
                     log.error("Ping error: {}", e);
                 }
             }
-        }, 10, TimeUnit.SECONDS);
+        }, period, period, TimeUnit.MILLISECONDS);
     }
 
     public Iden getIden() {

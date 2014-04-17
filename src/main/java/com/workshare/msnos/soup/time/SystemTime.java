@@ -21,7 +21,6 @@ public class SystemTime {
     private static TimeSource source = DEFAULT_TIMESOURCE;
 
     public static long asMillis() {
-        log.debug("System time is: {}", source.millis());
         return source.millis();
     }
 

@@ -292,7 +292,7 @@ public class CloudTest {
 
     private Runnable capturePeriodicRunableCheck() {
         ArgumentCaptor<Runnable> captor = ArgumentCaptor.forClass(Runnable.class);
-        verify(scheduler, atLeastOnce()).schedule(captor.capture(), anyInt(), any(TimeUnit.class));
+        verify(scheduler, atLeastOnce()).scheduleAtFixedRate(captor.capture(), anyInt(), anyInt(), any(TimeUnit.class));
         return captor.getValue();
     }
 
