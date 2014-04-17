@@ -94,7 +94,7 @@ public class Cloud implements Identifiable {
     }
 
     private void probeQuietAgents() throws IOException {
-        log.debug("Probing quite agents...");
+        log.trace("Probing quite agents...");
         for (Agent agent : getAgents()) {
             if (agent.getAccessTime() < SystemTime.asMillis() - AGENT_TIMEOUT) {
                 log.debug("- sending ping to {}", agent.toString());
@@ -105,7 +105,7 @@ public class Cloud implements Identifiable {
                 agents.remove(agent.getIden());
             }
         }
-        log.debug("Done!");
+        log.trace("Done!");
     }
 
     public Future<Message.Status> send(Message message) throws IOException {

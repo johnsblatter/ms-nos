@@ -1,11 +1,7 @@
 package com.workshare.msnos.soup.time;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class SystemTime {
-
-    private static final Logger log = LoggerFactory.getLogger(SystemTime.class);
 
     public interface TimeSource {
         long millis();
