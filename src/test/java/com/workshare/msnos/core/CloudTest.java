@@ -1,41 +1,26 @@
 package com.workshare.msnos.core;
 
-import static com.workshare.msnos.core.Message.Type.APP;
-import static com.workshare.msnos.core.Message.Type.PRS;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.atLeastOnce;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executor;
-import java.util.concurrent.Future;
-
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Mockito;
-
 import com.workshare.msnos.core.Cloud.Multicaster;
 import com.workshare.msnos.core.Gateway.Listener;
 import com.workshare.msnos.core.Message.Status;
 import com.workshare.msnos.core.payloads.Presence;
 import com.workshare.msnos.core.protocols.ip.udp.UDPGateway;
 import com.workshare.msnos.soup.json.Json;
+import com.workshare.msnos.soup.time.SystemTime;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mockito;
+
+import java.io.IOException;
+import java.util.*;
+import java.util.concurrent.*;
+
+import static com.workshare.msnos.core.Message.Type.*;
+import static org.junit.Assert.*;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.*;
 
 @SuppressWarnings("unchecked")
 public class CloudTest {
@@ -46,6 +31,8 @@ public class CloudTest {
     private Cloud thisCloud;
     private Cloud otherCloud;
 
+    private ScheduledExecutorService scheduler;
+
     private List<Message> messages;
 
     private static final Iden SOMEONE = new Iden(Iden.Type.AGT, UUID.randomUUID());
@@ -54,9 +41,12 @@ public class CloudTest {
 
     @Before
     public void init() throws Exception {
+        scheduler = Mockito.mock(ScheduledExecutorService.class);
+
         gate1 = Mockito.mock(Gateway.class);
         gate2 = Mockito.mock(Gateway.class);
-        thisCloud = new Cloud(MY_CLOUD.getUUID(), new HashSet<Gateway>(Arrays.asList(gate1, gate2)), synchronousMulticaster());
+
+        thisCloud = new Cloud(MY_CLOUD.getUUID(), new HashSet<Gateway>(Arrays.asList(gate1, gate2)), synchronousMulticaster(), scheduler);
         thisCloud.addListener(new Cloud.Listener() {
             @Override
             public void onMessage(Message message) {
@@ -66,7 +56,13 @@ public class CloudTest {
 
         messages = new ArrayList<Message>();
 
-        otherCloud = new Cloud(UUID.randomUUID(), Collections.<Gateway>emptySet(), synchronousMulticaster());
+        otherCloud = new Cloud(UUID.randomUUID(), Collections.<Gateway>emptySet());
+    }
+
+    @After
+    public void after() throws Exception {
+        SystemTime.reset();
+        scheduler.shutdown();
     }
 
     @Test
@@ -178,7 +174,6 @@ public class CloudTest {
 
     @Test
     public void shouldForwardAnyNonCoreMessageSentToThisCloud() throws Exception {
-
         simulateMessageFromNetwork(newMessage(APP, SOMEONE, thisCloud.getIden()));
         assertEquals(1, messages.size());
     }
@@ -238,7 +233,70 @@ public class CloudTest {
         MultipleFutureStatus multi = (MultipleFutureStatus) res;
         assertTrue(multi.statuses().contains(value1));
         assertTrue(multi.statuses().contains(value2));
+    }
 
+    @Test
+    public void shouldUpdateRemoteAgentAccessTimeOnPresenceReceived() throws Exception {
+        Agent remoteAgent = new Agent(UUID.randomUUID());
+
+        fakeSystemTime(12345L);
+        simulateMessageFromNetwork(Messages.presence(remoteAgent, thisCloud));
+
+        fakeSystemTime(99999L);
+        assertEquals(12345L, getAgentAccessTime(thisCloud, remoteAgent));
+    }
+
+    @Test
+    public void shouldUpdateRemoteAgentAccessTimeOnMessageReceived() throws Exception {
+        Agent remoteAgent = new Agent(UUID.randomUUID());
+        simulateAgentJoiningCloud(remoteAgent, thisCloud);
+
+        fakeSystemTime(12345L);
+        simulateMessageFromNetwork(Messages.ping(remoteAgent, thisCloud));
+
+        fakeSystemTime(99999L);
+        assertEquals(12345L, getAgentAccessTime(thisCloud, remoteAgent));
+    }
+
+    @Test
+    public void shouldPingAgentsWhenAccessTimeIsTooOld() throws Exception {
+        fakeSystemTime(12345L);
+        Agent remoteAgent = new Agent(UUID.randomUUID());
+        simulateAgentJoiningCloud(remoteAgent, thisCloud);
+
+        fakeSystemTime(99999L);
+        forceRunCloudPeriodicCheck();
+
+        Message pingExpected = getLastMessageSent();
+        assertNotNull(pingExpected);
+        assertEquals(PIN, pingExpected.getType());
+        assertEquals(thisCloud.getIden(), pingExpected.getFrom());
+    }
+
+    @Test
+    public void shouldRemoveAgentsThatDoNOTRespondToPing() {
+
+    }
+
+    private void forceRunCloudPeriodicCheck() {
+        Runnable runnable = capturePeriodicRunableCheck();
+        runnable.run();
+    }
+
+    private Runnable capturePeriodicRunableCheck() {
+        ArgumentCaptor<Runnable> captor = ArgumentCaptor.forClass(Runnable.class);
+        verify(scheduler, atLeastOnce()).schedule(captor.capture(), anyInt(), any(TimeUnit.class));
+        return captor.getValue();
+    }
+
+    private long getAgentAccessTime(Cloud cloud, Agent agent) {
+        Collection<Agent> agents = cloud.getAgents();
+        for (Agent a : agents) {
+            if (a.getIden().equals(agent.getIden()))
+                return a.getAccessTime();
+        }
+
+        throw new RuntimeException("Agent " + agent + " not found!");
     }
 
     private Future<Status> createMockFuture(final Status status) throws InterruptedException, ExecutionException {
@@ -290,4 +348,11 @@ public class CloudTest {
         });
     }
 
+    private void fakeSystemTime(final long time) {
+        SystemTime.setTimeSource(new SystemTime.TimeSource() {
+            public long millis() {
+                return time;
+            }
+        });
+    }
 }

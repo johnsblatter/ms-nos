@@ -2,6 +2,8 @@ package com.workshare.msnos.core;
 
 import com.workshare.msnos.core.payloads.Presence;
 import com.workshare.msnos.core.protocols.ip.Network;
+import com.workshare.msnos.soup.time.SystemTime;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -33,14 +35,18 @@ public class AgentTest {
     public void before() throws Exception {
         cloud = mock(Cloud.class);
 
-        smith = new Agent(UUID.randomUUID());
-        smith.join(cloud);
-
         karl = new Agent(UUID.randomUUID());
         karl.join(cloud);
+
+        smith = new Agent(UUID.randomUUID());
+        smith.join(cloud);
     }
 
-    //   TODO send when not joined to the cloud
+    @After
+    public void after() throws Exception {
+        SystemTime.reset();
+    }
+
     @Test
     public void agentShouldAttachListenerToCloud() {
         verify(cloud, atLeastOnce()).addListener(any(Cloud.Listener.class));
@@ -48,21 +54,21 @@ public class AgentTest {
 
     @Test
     public void shouldSendPresenceWhenDiscoveryIsReceived() throws IOException {
-        simulateMessageFromCloud(Messages.discovery(cloud, karl));
+        simulateMessageFromCloud(Messages.discovery(cloud, smith));
         Message message = getLastMessageToCloud();
 
         assertNotNull(message);
-        assertEquals(karl.getIden(), message.getFrom());
+        assertEquals(smith.getIden(), message.getFrom());
         assertEquals(PRS, message.getType());
     }
 
     @Test
     public void shouldSendPongWhenPingIsReceived() throws IOException {
-        simulateMessageFromCloud(Messages.ping(cloud, karl));
+        simulateMessageFromCloud(Messages.ping(cloud, smith));
         Message message = getLastMessageToCloud();
 
         assertNotNull(message);
-        assertEquals(karl.getIden(), message.getFrom());
+        assertEquals(smith.getIden(), message.getFrom());
         assertEquals(PON, message.getType());
     }
 
@@ -107,6 +113,26 @@ public class AgentTest {
     }
 
     @Test
+    public void localAgentLastAccessTimeShouldAlwaysBeNow() throws Exception {
+        fakeSystemTime(123456L);
+
+        Agent jeff = new Agent(UUID.randomUUID());
+        jeff.join(cloud);
+
+        assertEquals(jeff.getAccessTime(), SystemTime.asMillis());
+    }
+
+    @Test
+    public void shouldUpdateAccessTimeWhenMessageIsReceived() {
+        fakeSystemTime(123456790L);
+
+        Message message = Messages.ping(cloud, smith);
+        simulateMessageFromCloud(message);
+
+        assertEquals(123456790L, smith.getAccessTime());
+    }
+
+    @Test
     public void otherAgentsShouldNOTStillSeeAgentOnLeave() throws Exception {
         smith.leave(cloud);
         assertFalse(karl.getCloud().getAgents().contains(smith));
@@ -139,4 +165,11 @@ public class AgentTest {
         return nets;
     }
 
+    private void fakeSystemTime(final long time) {
+        SystemTime.setTimeSource(new SystemTime.TimeSource() {
+            public long millis() {
+                return time;
+            }
+        });
+    }
 }

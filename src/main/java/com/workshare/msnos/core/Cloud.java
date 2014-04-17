@@ -2,16 +2,17 @@ package com.workshare.msnos.core;
 
 import com.workshare.msnos.core.payloads.Presence;
 import com.workshare.msnos.soup.json.Json;
+import com.workshare.msnos.soup.time.SystemTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.*;
-import java.util.concurrent.Executor;
-import java.util.concurrent.Future;
+import java.util.concurrent.*;
 
 public class Cloud implements Identifiable {
 
+    private static final long AGENT_TIMEOUT = Long.getLong("msnos.core.agents.timeout", 60000L);
     private static Logger log = LoggerFactory.getLogger(Cloud.class);
 
     public static interface Listener {
@@ -38,21 +39,23 @@ public class Cloud implements Identifiable {
 
     transient private final Set<Gateway> gates;
     transient private final Multicaster caster;
+    transient private final ScheduledExecutorService scheduler;
 
     public Cloud(UUID uuid) throws IOException {
-        this(uuid, Gateways.all(), new Multicaster());
+        this(uuid, Gateways.all());
     }
 
     public Cloud(UUID uuid, Set<Gateway> gates) throws IOException {
-        this(uuid, gates, new Multicaster());
+        this(uuid, gates, new Multicaster(), Executors.newSingleThreadScheduledExecutor());
     }
 
-    public Cloud(UUID uuid, Set<Gateway> gates, Multicaster multicaster) throws IOException {
+    public Cloud(UUID uuid, Set<Gateway> gates, Multicaster multicaster, ScheduledExecutorService executor) {
         this.iden = new Iden(Iden.Type.CLD, uuid);
         this.agents = new HashMap<Iden, Agent>();
         this.caster = multicaster;
-
         this.gates = gates;
+        this.scheduler = executor;
+
         for (Gateway gate : gates) {
             gate.addListener(new Gateway.Listener() {
                 @Override
@@ -61,6 +64,17 @@ public class Cloud implements Identifiable {
                 }
             });
         }
+
+        scheduler.schedule(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    probeQuietAgents();
+                } catch (IOException e) {
+                    log.error("Ping error: {}", e);
+                }
+            }
+        }, 10, TimeUnit.SECONDS);
     }
 
     public Iden getIden() {
@@ -75,8 +89,18 @@ public class Cloud implements Identifiable {
         return Collections.unmodifiableSet(gates);
     }
 
+    private void probeQuietAgents() throws IOException {
+        long timeout = AGENT_TIMEOUT;
+        for (Agent agent : getAgents()) {
+            if (agent.getAccessTime() < SystemTime.asMillis() - timeout) {
+                log.debug("Sending ping to {}", agent.toString());
+                send(Messages.ping(this, agent));
+            }
+        }
+    }
+
     public Future<Message.Status> send(Message message) throws IOException {
-        CompositeFutureStatus res = null;
+        CompositeFutureStatus res;
         if (!message.isReliable())
             res = new UnknownFutureStatus();
         else
@@ -120,10 +144,13 @@ public class Cloud implements Identifiable {
             log.debug("Skipped message sent to another cloud: {}", message);
             return;
         }
+
         if (isPresence(message)) processPresence(message);
         else if (isAbsence(message)) processAbsence(message);
         else if (isPong(message)) processPong(message);
         else caster.dispatch(message);
+
+        touchSourceAgent(message);
     }
 
     private void processPresence(Message message) {
@@ -172,6 +199,13 @@ public class Cloud implements Identifiable {
 
     private boolean isPong(Message message) {
         return message.getType() == Message.Type.PON;
+    }
+
+    private void touchSourceAgent(Message message) {
+        if (agents.containsKey(message.getFrom())) {
+            Agent agent = agents.get(message.getFrom());
+            agent.touch();
+        }
     }
 
 }

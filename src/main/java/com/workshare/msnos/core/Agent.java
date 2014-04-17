@@ -1,6 +1,7 @@
 package com.workshare.msnos.core;
 
 import com.workshare.msnos.soup.json.Json;
+import com.workshare.msnos.soup.time.SystemTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,8 +18,11 @@ public class Agent implements Identifiable {
     private static Logger log = LoggerFactory.getLogger(Agent.class);
 
     private final Iden iden;
-    private transient Cloud cloud;
+
+    private Cloud cloud;
     private Listener listener;
+    private boolean isRemote = true;
+    private long accessTime;
 
     public Agent(UUID uuid) {
         this.iden = new Iden(Iden.Type.AGT, uuid);
@@ -38,9 +42,26 @@ public class Agent implements Identifiable {
         return cloud;
     }
 
+    public long getAccessTime() {
+        if (isRemote) {
+            return accessTime;
+        } else {
+            return SystemTime.asMillis();
+        }
+    }
+
+    private void setAccessTime(long accessTime) {
+        this.accessTime = accessTime;
+    }
+
+    public void touch() {
+        setAccessTime(SystemTime.asMillis());
+    }
+
     public Agent join(Cloud cloud) throws IOException {
         this.cloud = cloud;
         cloud.onJoin(this);
+        isRemote = false;
         log.debug("Joined: {} as Agent: {}", getCloud(), this);
         listener = cloud.addListener(new Listener() {
             @Override
