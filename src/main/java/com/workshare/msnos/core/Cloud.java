@@ -14,6 +14,7 @@ public class Cloud implements Identifiable {
 
     private static final long AGENT_TIMEOUT = Long.getLong("msnos.core.agents.timeout", 60000L);
     private static Logger log = LoggerFactory.getLogger(Cloud.class);
+    private static final long RETRIES = Long.getLong("msnos.core.agents.retries", 3);
 
     public static interface Listener {
         public void onMessage(Message message);
@@ -90,13 +91,17 @@ public class Cloud implements Identifiable {
     }
 
     private void probeQuietAgents() throws IOException {
-        long timeout = AGENT_TIMEOUT;
         for (Agent agent : getAgents()) {
-            if (agent.getAccessTime() < SystemTime.asMillis() - timeout) {
+            if (agent.getAccessTime() < SystemTime.asMillis() - AGENT_TIMEOUT) {
                 log.debug("Sending ping to {}", agent.toString());
                 send(Messages.ping(this, agent));
             }
+            if (agent.getAccessTime() < SystemTime.asMillis() - (AGENT_TIMEOUT * RETRIES)) {
+                log.debug("Remote agent removed due to inactivity: {}", agent);
+                agents.remove(agent.getIden());
+            }
         }
+
     }
 
     public Future<Message.Status> send(Message message) throws IOException {
@@ -116,7 +121,7 @@ public class Cloud implements Identifiable {
     void onLeave(Agent agent) throws IOException {
         send(Messages.absence(agent, this));
         synchronized (agents) {
-            log.debug("Local agent joined: {}", agent);
+            log.debug("Local agent left: {}", agent);
             agents.remove(agent.getIden());
         }
     }
