@@ -44,23 +44,27 @@ public class WireJsonSerializerTest {
     @Test
     public void shouldSerializeCloudObject() throws Exception {
 
-        String expected = "\"CLD:" + CLOUD_UUID.toString() + "\"";
+        String expected = "\"CLD:" + toShortString(CLOUD_UUID) + "\"";
         String current = sz.toText(cloud);
 
         assertEquals(expected, current);
     }
 
+    private String toShortString(UUID uuid) {
+        return uuid.toString().replaceAll("-", "");
+    }
+
     @Test
     public void shouldDeserializeCloudObject() throws Exception {
         Cloud expected = cloud;
-        Cloud current = sz.fromText("\"CLD:" + CLOUD_UUID.toString() + "\"", Cloud.class);
+        Cloud current = sz.fromText("\"CLD:" + toShortString(CLOUD_UUID) + "\"", Cloud.class);
 
         assertEquals(expected.getIden(), current.getIden());
     }
 
     @Test
     public void shouldSerializeAgentObject() throws Exception {
-        String expected = "\"AGT:" + AGENT_UUID.toString() + "\"";
+        String expected = "\"AGT:" + toShortString(AGENT_UUID) + "\"";
         String current = sz.toText(agent);
 
         assertEquals(expected, current);
@@ -68,7 +72,7 @@ public class WireJsonSerializerTest {
 
     @Test
     public void shouldDeserializeAgentObject() throws Exception {
-        Agent current = sz.fromText("\"AGT:" + AGENT_UUID.toString() + "\"", Agent.class);
+        Agent current = sz.fromText("\"AGT:" + toShortString(AGENT_UUID) + "\"", Agent.class);
 
         assertEquals(agent.getIden(), current.getIden());
     }
@@ -87,6 +91,24 @@ public class WireJsonSerializerTest {
     public void shouldSerializeVersionObject() throws Exception {
         String expected = "\"1.0\"";
         String current = sz.toText(Version.V1_0);
+
+        assertEquals(expected, current);
+    }
+
+    @Test
+    public void shouldSerializeUUIDObject() throws Exception {
+        UUID uuid = UUID.randomUUID();
+        String expected = "\""+toShortString(uuid).replace("-",  "")+"\"";
+        String current = sz.toText(uuid);
+
+        assertEquals(expected, current);
+    }
+
+    @Test
+    public void shouldDeserializeUUIDObject() throws Exception {
+        UUID expected = UUID.randomUUID();
+        String text = "\""+toShortString(expected).replace("-",  "")+"\"";
+        UUID current = sz.fromText(text, UUID.class);
 
         assertEquals(expected, current);
     }

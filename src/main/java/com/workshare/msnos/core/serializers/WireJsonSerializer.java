@@ -38,8 +38,7 @@ public class WireJsonSerializer implements WireSerializer {
     public <T> T fromText(String text, Class<T> clazz) {
         try {
             return gson.fromJson(text, clazz);
-        }
-        catch (JsonSyntaxException ex) {
+        } catch (JsonSyntaxException ex) {
             log.warn("Error parsing JSON content: {}", text);
             throw ex;
         }
@@ -65,6 +64,21 @@ public class WireJsonSerializer implements WireSerializer {
         return gson.toJson(anyObject).getBytes(Charset.forName("UTF-8"));
     }
 
+    private static final JsonSerializer<UUID> ENC_UUID = new JsonSerializer<UUID>() {
+        @Override
+        public JsonElement serialize(UUID uuid, Type typeof, JsonSerializationContext context) {
+            return new JsonPrimitive(serializeUUIDToShortString(uuid));
+        }
+    };
+
+    private static final JsonDeserializer<UUID> DEC_UUID = new JsonDeserializer<UUID>() {
+        @Override
+        public UUID deserialize(JsonElement json, Type typeof, JsonDeserializationContext context)
+                throws JsonParseException {
+            return deserializeUUIDFromShortString(json.getAsString());
+        }
+    };
+
     private static final JsonSerializer<Iden> ENC_IDEN = new JsonSerializer<Iden>() {
         @Override
         public JsonElement serialize(Iden iden, Type typeof, JsonSerializationContext context) {
@@ -74,7 +88,8 @@ public class WireJsonSerializer implements WireSerializer {
 
     private static final JsonDeserializer<Iden> DEC_IDEN = new JsonDeserializer<Iden>() {
         @Override
-        public Iden deserialize(JsonElement json, Type typeof, JsonDeserializationContext context) throws JsonParseException {
+        public Iden deserialize(JsonElement json, Type typeof, JsonDeserializationContext context)
+                throws JsonParseException {
             return deserializeIden(json);
         }
     };
@@ -88,7 +103,8 @@ public class WireJsonSerializer implements WireSerializer {
 
     private static final JsonDeserializer<Cloud> DEC_CLOUD = new JsonDeserializer<Cloud>() {
         @Override
-        public Cloud deserialize(JsonElement json, Type typeof, JsonDeserializationContext context) throws JsonParseException {
+        public Cloud deserialize(JsonElement json, Type typeof, JsonDeserializationContext context)
+                throws JsonParseException {
             try {
                 Iden iden = deserializeIden(json);
                 if (iden.getType() != Iden.Type.CLD)
@@ -110,7 +126,8 @@ public class WireJsonSerializer implements WireSerializer {
 
     private static final JsonDeserializer<Agent> DEC_AGENT = new JsonDeserializer<Agent>() {
         @Override
-        public Agent deserialize(JsonElement json, Type typeof, JsonDeserializationContext context) throws JsonParseException {
+        public Agent deserialize(JsonElement json, Type typeof, JsonDeserializationContext context)
+                throws JsonParseException {
             Iden iden = deserializeIden(json);
             if (iden.getType() != Iden.Type.AGT)
                 throw new IllegalArgumentException("Unexpected type when converting cloud!");
@@ -127,7 +144,8 @@ public class WireJsonSerializer implements WireSerializer {
 
     private static final JsonDeserializer<Version> DEC_VERSION = new JsonDeserializer<Version>() {
         @Override
-        public Version deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
+        public Version deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context)
+                throws JsonParseException {
             final String text = json.getAsString();
             final int dotIndex = text.indexOf(".");
 
@@ -156,7 +174,8 @@ public class WireJsonSerializer implements WireSerializer {
 
     private static final JsonDeserializer<Message> DEC_MESSAGE = new JsonDeserializer<Message>() {
         @Override
-        public Message deserialize(JsonElement json, Type typeof, JsonDeserializationContext context) throws JsonParseException {
+        public Message deserialize(JsonElement json, Type typeof, JsonDeserializationContext context)
+                throws JsonParseException {
 
             final JsonObject obj = json.getAsJsonObject();
             final Message.Type type = Message.Type.valueOf(obj.get("ty").getAsString());
@@ -169,10 +188,11 @@ public class WireJsonSerializer implements WireSerializer {
             JsonElement dataJson = obj.get("dt");
             if (dataJson != null) {
                 switch (type) {
-                    case PRS: data = (Payload)Json.fromJsonTree(dataJson, Presence.class);
-                        break;
-                    default:
-                        break;
+                case PRS:
+                    data = (Payload) Json.fromJsonTree(dataJson, Presence.class);
+                    break;
+                default:
+                    break;
                 }
             }
 
@@ -193,6 +213,9 @@ public class WireJsonSerializer implements WireSerializer {
             builder.registerTypeAdapter(Iden.class, ENC_IDEN);
             builder.registerTypeAdapter(Iden.class, DEC_IDEN);
 
+            builder.registerTypeAdapter(UUID.class, ENC_UUID);
+            builder.registerTypeAdapter(UUID.class, DEC_UUID);
+
             builder.registerTypeAdapter(Version.class, ENC_VERSION);
             builder.registerTypeAdapter(Version.class, DEC_VERSION);
 
@@ -204,7 +227,7 @@ public class WireJsonSerializer implements WireSerializer {
     };
 
     private static final JsonPrimitive serializeIden(Iden iden) {
-        return new JsonPrimitive(iden.getType() + ":" + iden.getUUID());
+        return new JsonPrimitive(iden.getType() + ":" + serializeUUIDToShortString(iden.getUUID()));
     }
 
     private static final Iden deserializeIden(JsonElement json) {
@@ -213,10 +236,34 @@ public class WireJsonSerializer implements WireSerializer {
             int idx = text.indexOf(':');
 
             Iden.Type type = Iden.Type.valueOf(text.substring(0, idx));
-            UUID uuid = UUID.fromString(text.substring(idx + 1));
+            UUID uuid = deserializeUUIDFromShortString(text.substring(idx + 1));
             return new Iden(type, uuid);
         } catch (Exception any) {
             throw new JsonParseException(any);
         }
     }
+
+    private static String serializeUUIDToShortString(UUID uuid) {
+        return uuid.toString().replaceAll("-", "");
+    }
+
+    private static UUID deserializeUUIDFromShortString(String text) {
+        try {
+            StringBuilder sb = new StringBuilder();
+            sb.append(text.substring(0, 8));
+            sb.append('-');
+            sb.append(text.substring(8, 12));
+            sb.append('-');
+            sb.append(text.substring(12, 16));
+            sb.append('-');
+            sb.append(text.substring(16, 20));
+            sb.append('-');
+            sb.append(text.substring(20));
+
+            return UUID.fromString(sb.toString());
+        } catch (Exception any) {
+            throw new JsonParseException(any);
+        }
+    }
+
 }
