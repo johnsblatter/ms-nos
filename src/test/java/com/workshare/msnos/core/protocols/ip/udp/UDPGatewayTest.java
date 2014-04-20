@@ -27,8 +27,6 @@ import com.workshare.msnos.core.Gateway.Listener;
 import com.workshare.msnos.core.Iden;
 import com.workshare.msnos.core.Message;
 import com.workshare.msnos.core.protocols.ip.MulticastSocketFactory;
-import com.workshare.msnos.core.protocols.ip.udp.UDPGateway;
-import com.workshare.msnos.core.protocols.ip.udp.UDPServer;
 import com.workshare.msnos.core.serializers.WireJsonSerializer;
 import com.workshare.msnos.soup.threading.Multicaster;
 
@@ -97,7 +95,7 @@ public class UDPGatewayTest {
 
     @Test
     public void shouldSendAMessageTroughTheSocket() throws Exception {
-        Message message = Utils.newSampleMessage();
+        Message message = UDPGatewayTest.newSampleMessage();
         gate().send(message);
 
         List<DatagramPacket> packets = getSentPackets();
@@ -110,7 +108,7 @@ public class UDPGatewayTest {
         System.setProperty(UDPGateway.SYSP_PORT_NUM, "2727");
         System.setProperty(UDPGateway.SYSP_PORT_WIDTH, "3");
 
-        Message message = Utils.newSampleMessage();
+        Message message = UDPGatewayTest.newSampleMessage();
         gate().send(message);
 
         List<DatagramPacket> packets = getSentPackets();
@@ -134,7 +132,7 @@ public class UDPGatewayTest {
     public void shouldInvokeListenerOnMessages() throws Exception {
         addListenerToGateway();
 
-        Message message = Utils.newSampleMessage().from(SOMEONE).to(ME);
+        Message message = UDPGatewayTest.newSampleMessage().from(SOMEONE).to(ME);
         simulateMessageFromNetwork(message);
 
         assertMessageReceived(message);
@@ -193,5 +191,12 @@ public class UDPGatewayTest {
                 listener.onMessage(message);
             }
         };
+    }
+
+    public static Message newSampleMessage() {
+        final UUID uuid = new UUID(123, 456);
+        final Iden src = new Iden(Iden.Type.AGT, uuid);
+        final Iden dst = new Iden(Iden.Type.CLD, uuid);
+        return new Message(Message.Type.APP, src, dst, 1, false, null);
     }
 }

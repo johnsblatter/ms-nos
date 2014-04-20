@@ -2,7 +2,6 @@ package com.workshare.msnos.core.serializers;
 
 import static org.junit.Assert.assertEquals;
 
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.UUID;
@@ -18,8 +17,6 @@ import com.workshare.msnos.core.Message;
 import com.workshare.msnos.core.NoopGateway;
 import com.workshare.msnos.core.Version;
 import com.workshare.msnos.core.payloads.Presence;
-import com.workshare.msnos.core.protocols.ip.udp.Utils;
-import com.workshare.msnos.soup.json.Json;
 
 public class WireJsonSerializerTest {
 
@@ -111,16 +108,5 @@ public class WireJsonSerializerTest {
         UUID current = sz.fromText(text, UUID.class);
 
         assertEquals(expected, current);
-    }
-
-    public static void main(String[] args) throws IOException {
-        WireJsonSerializer sz = new WireJsonSerializer();
-
-        Message source = Utils.newSampleMessage().from(AGENT_IDEN).to(CLOUD_IDEN);
-        byte[] data = sz.toBytes(source);
-
-        Message decoded = sz.fromBytes(data, Message.class);
-        System.out.println(Json.toJsonString(decoded));
-        System.out.println(sz.toText(source));
     }
 }
