@@ -1,5 +1,8 @@
 package com.workshare.msnos.core;
 
+import java.util.UUID;
+
+import com.workshare.msnos.core.Message.Payload;
 import com.workshare.msnos.soup.json.Json;
 
 public class Message {
@@ -12,6 +15,7 @@ public class Message {
     public enum Type {PRS, DSC, APP, PIN, PON, ACK, ENQ, QNE}
 
     private final Version version = Version.V1_0;
+    private final UUID uuid;
     private final Type type;
     private final Iden from;
     private final Iden to;
@@ -32,6 +36,22 @@ public class Message {
         this.hops = hops;
         this.reliable = reliable;
         this.data = data;
+        this.uuid = UUID.randomUUID();
+    }
+
+    public Message(Type type, Iden from, Iden to, int hops, boolean reliable, Payload data, UUID uuid) {
+        this.type = type;
+        this.from = from;
+        this.to = to;
+        this.sig = null;        // FIXME TODO let's remember to add security, shall we? what about .signedWith(...)
+        this.hops = hops;
+        this.reliable = reliable;
+        this.data = data;
+        this.uuid = uuid;
+    }
+
+    public UUID getUuid() {
+        return uuid;
     }
 
     public Version getVersion() {
@@ -93,4 +113,5 @@ public class Message {
             return false;
         }
     }
+
 }

@@ -161,6 +161,7 @@ public class WireJsonSerializer implements WireSerializer {
         public JsonElement serialize(Message msg, Type typeof, JsonSerializationContext context) {
             final JsonObject res = new JsonObject();
             res.add("v", context.serialize(msg.getVersion()));
+            res.add("id", context.serialize(msg.getUuid()));
             res.add("fr", context.serialize(msg.getFrom()));
             res.add("to", context.serialize(msg.getTo()));
             res.addProperty("hp", msg.getHops());
@@ -178,6 +179,7 @@ public class WireJsonSerializer implements WireSerializer {
                 throws JsonParseException {
 
             final JsonObject obj = json.getAsJsonObject();
+            final UUID uuid = context.deserialize(obj.get("id").getAsJsonPrimitive(), UUID.class);
             final Message.Type type = Message.Type.valueOf(obj.get("ty").getAsString());
             final Iden from = context.deserialize(obj.get("fr").getAsJsonPrimitive(), Iden.class);
             final Iden to = context.deserialize(obj.get("to").getAsJsonPrimitive(), Iden.class);
@@ -196,7 +198,7 @@ public class WireJsonSerializer implements WireSerializer {
                 }
             }
 
-            return new Message(type, from, to, hops, reliable, data);
+            return new Message(type, from, to, hops, reliable, data, uuid);
         }
     };
 
