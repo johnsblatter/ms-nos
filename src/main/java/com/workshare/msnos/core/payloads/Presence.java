@@ -3,7 +3,6 @@ package com.workshare.msnos.core.payloads;
 import com.workshare.msnos.core.Message;
 import com.workshare.msnos.core.protocols.ip.Network;
 import com.workshare.msnos.soup.json.Json;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,7 +22,7 @@ public class Presence implements Message.Payload {
     public Presence(boolean present) {
         this.present = present;
         networks = present ? setNetworks() : new HashSet<Network>();
-        log.trace("Presence message created: {}", this);
+        log.trace(present ? "Presence message created: {}" : "Absence message created: {}", this);
     }
 
     public boolean isPresent() {
@@ -48,7 +47,14 @@ public class Presence implements Message.Payload {
         return networks;
     }
 
+    @Override
     public String toString() {
         return Json.toJsonString(this);
+    }
+
+    //    TODO FIXME
+    @Override
+    public Message.Payload[] split() {
+        return null;
     }
 }

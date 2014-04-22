@@ -1,15 +1,5 @@
 package com.workshare.msnos.core.protocols.ip.udp;
 
-import java.io.IOException;
-import java.net.DatagramPacket;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.MulticastSocket;
-import java.util.Arrays;
-import java.util.Set;
-
-import org.apache.log4j.Logger;
-
 import com.workshare.msnos.core.Gateway;
 import com.workshare.msnos.core.Message;
 import com.workshare.msnos.core.Message.Status;
@@ -20,6 +10,19 @@ import com.workshare.msnos.core.protocols.ip.MulticastSocketFactory;
 import com.workshare.msnos.core.serializers.WireSerializer;
 import com.workshare.msnos.soup.json.Json;
 import com.workshare.msnos.soup.threading.Multicaster;
+import org.apache.log4j.Logger;
+
+import java.io.IOException;
+import java.net.DatagramPacket;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.MulticastSocket;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Set;
+
+import static com.workshare.msnos.core.Message.Payload;
 
 public class UDPGateway implements Gateway {
 
@@ -93,22 +96,47 @@ public class UDPGateway implements Gateway {
 
     @Override
     public Receipt send(Message message) throws IOException {
+        logger.debug(message);
 
         if (logger.isDebugEnabled())
             logger.debug("Broadcasting message {} ", Json.toJsonString(message));
 
-        for (int port : ports) {
-            byte[] payload = sz.toBytes(message);
-            DatagramPacket packet = new DatagramPacket(
-                    payload,
-                    payload.length,
-                    group,
-                    port);
+        List<Payload> payloads;
+        int fullMsgLength = sz.toBytes(message).length;
+        int lengthWithoutPayload = fullMsgLength - sz.toBytes(message.getData()).length;
 
-            socket.send(packet);
+        if (fullMsgLength > 512) {
+            payloads = getSplitPayloads(new ArrayList<Payload>(), message.getData(), lengthWithoutPayload);
+        } else {
+            payloads = Arrays.asList(message.getData());
+        }
+
+        for (Payload load : payloads) {
+            Message msg = message.data(load);
+            byte[] payload = sz.toBytes(msg);
+
+            for (int port : ports) {
+                DatagramPacket packet = new DatagramPacket(
+                        payload,
+                        payload.length,
+                        group,
+                        port);
+                socket.send(packet);
+            }
         }
 
         return new SingleReceipt(Status.PENDING, message);
+    }
+
+    private List<Payload> getSplitPayloads(List<Payload> payloads, Payload payload, int msgLength) {
+        for (Payload load : payload.split()) {
+            if (sz.toBytes(load).length + msgLength > 512) {
+                getSplitPayloads(payloads, load, msgLength);
+            } else {
+                payloads.add(load);
+            }
+        }
+        return payloads;
     }
 
     private void loadPorts() {

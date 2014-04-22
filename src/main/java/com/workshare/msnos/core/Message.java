@@ -1,12 +1,13 @@
 package com.workshare.msnos.core;
 
-import java.util.UUID;
-
 import com.workshare.msnos.soup.json.Json;
+
+import java.util.UUID;
 
 public class Message {
 
     public interface Payload {
+        public Payload[] split();
     }
 
     public enum Status {UNKNOWN, PENDING, DELIVERED}
@@ -95,6 +96,11 @@ public class Message {
 
     public Message reliable() {
         return new Message(type, from, to, hops, true, data);
+    }
+
+    public Message data(Payload load) {
+        return new Message(type, from, to, hops, reliable, load, uuid);
+
     }
 
     @Override

@@ -1,34 +1,24 @@
 package com.workshare.msnos.core.protocols.ip.udp;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.mockito.Mockito.atLeastOnce;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
-import java.io.IOException;
-import java.net.DatagramPacket;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.MulticastSocket;
-import java.net.SocketException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
-import java.util.concurrent.Executor;
-
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.ArgumentCaptor;
-
 import com.workshare.msnos.core.Gateway.Listener;
 import com.workshare.msnos.core.Iden;
 import com.workshare.msnos.core.Message;
 import com.workshare.msnos.core.protocols.ip.MulticastSocketFactory;
 import com.workshare.msnos.core.serializers.WireJsonSerializer;
 import com.workshare.msnos.soup.threading.Multicaster;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.ArgumentCaptor;
+
+import java.io.IOException;
+import java.net.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.Executor;
+
+import static org.junit.Assert.*;
+import static org.mockito.Mockito.*;
 
 public class UDPGatewayTest {
 
@@ -41,13 +31,17 @@ public class UDPGatewayTest {
     private MulticastSocketFactory sockets;
     private List<Message> messages;
 
+    private WireJsonSerializer sz;
+
     @Before
     public void setup() throws Exception {
         messages = new ArrayList<Message>();
 
+        sz = new WireJsonSerializer();
+
         server = mock(UDPServer.class);
         when(server.serializer()).thenReturn(new WireJsonSerializer());
-        
+
         socket = mock(MulticastSocket.class);
         sockets = mock(MulticastSocketFactory.class);
         when(sockets.create()).thenReturn(socket);
@@ -138,6 +132,25 @@ public class UDPGatewayTest {
         assertMessageReceived(message);
     }
 
+    @Test
+    public void shouldSplitUDPPacketsTo512BytesOrLess() throws IOException {
+        Message message = getMessageWithBigPayload();
+
+        gate().send(message);
+
+        List<DatagramPacket> packets = getSentPackets();
+        for (DatagramPacket datagramPacket : packets) {
+            assertTrue(datagramPacket.getLength() <= 512);
+        }
+    }
+
+    private Message getMessageWithBigPayload() {
+        final UUID uuid = new UUID(123, 456);
+        final Iden src = new Iden(Iden.Type.AGT, uuid);
+        final Iden dst = new Iden(Iden.Type.CLD, uuid);
+        return new Message(Message.Type.PRS, src, dst, 1, false, new BigPayload(1000)).from(SOMEONE).to(ME);
+    }
+
     private void simulateMessageFromNetwork(Message message) {
         ArgumentCaptor<Listener> serverListener = ArgumentCaptor.forClass(Listener.class);
         verify(server).addListener(serverListener.capture());
@@ -199,4 +212,22 @@ public class UDPGatewayTest {
         final Iden dst = new Iden(Iden.Type.CLD, uuid);
         return new Message(Message.Type.APP, src, dst, 1, false, null);
     }
+
+    static class BigPayload implements Message.Payload {
+
+        private byte[] data;
+
+        BigPayload(int size) {
+            data = new byte[size];
+        }
+
+        @Override
+        public Message.Payload[] split() {
+            int size1 = data.length / 2;
+            int size2 = data.length - size1;
+
+            return new Message.Payload[]{new BigPayload(size1), new BigPayload(size2)};
+        }
+    }
+
 }
