@@ -9,7 +9,6 @@ import java.util.Observer;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -44,19 +43,19 @@ public class MulticasterTest {
     public void shouldWorkAsynchronously() throws Exception {
         executor = ExecutorServices.newFixedDaemonThreadPool(2);
         
-        final AtomicInteger count = new AtomicInteger(0);
         final StringBuffer dataThree = new StringBuffer();
         caster().addListener(new Observer() {
             @Override
             public void update(Observable o, Object event) {
-                if (count.incrementAndGet() == 1) {
-                    sleep(200l);
+                if ("one".equals(event)) {
+                    sleep(300l);
                 }
                 dataThree.append(event);
             }
         });
 
         caster().dispatch("one");
+        sleep(150l);
         caster().dispatch("two");
 
         executor.shutdown();

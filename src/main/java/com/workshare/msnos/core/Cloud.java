@@ -1,14 +1,23 @@
 package com.workshare.msnos.core;
 
-import com.workshare.msnos.core.payloads.Presence;
-import com.workshare.msnos.soup.json.Json;
-import com.workshare.msnos.soup.time.SystemTime;
+import java.io.IOException;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.util.*;
-import java.util.concurrent.*;
+import com.workshare.msnos.core.payloads.Presence;
+import com.workshare.msnos.soup.json.Json;
+import com.workshare.msnos.soup.time.SystemTime;
 
 public class Cloud implements Identifiable {
 
@@ -108,13 +117,9 @@ public class Cloud implements Identifiable {
         log.trace("Done!");
     }
 
-    public Future<Message.Status> send(Message message) throws IOException {
-        CompositeFutureStatus res;
-        if (!message.isReliable())
-            res = new UnknownFutureStatus();
-        else
-            res = new MultipleFutureStatus();
+    public Receipt send(Message message) throws IOException {
 
+        MultiGatewayReceipt res = new MultiGatewayReceipt(message);
         for (Gateway gate : gates) {
             res.add(gate.send(message));
         }

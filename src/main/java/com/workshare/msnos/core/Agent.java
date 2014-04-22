@@ -1,17 +1,17 @@
 package com.workshare.msnos.core;
 
-import com.workshare.msnos.soup.json.Json;
-import com.workshare.msnos.soup.time.SystemTime;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import static com.workshare.msnos.core.Message.Type.DSC;
+import static com.workshare.msnos.core.Message.Type.PIN;
 
 import java.io.IOException;
 import java.util.UUID;
-import java.util.concurrent.Future;
 
-import static com.workshare.msnos.core.Cloud.Listener;
-import static com.workshare.msnos.core.Message.Type.DSC;
-import static com.workshare.msnos.core.Message.Type.PIN;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.workshare.msnos.core.Cloud.Listener;
+import com.workshare.msnos.soup.json.Json;
+import com.workshare.msnos.soup.time.SystemTime;
 
 public class Agent implements Identifiable {
 
@@ -80,7 +80,7 @@ public class Agent implements Identifiable {
         log.debug("So long {}", cloud);
     }
 
-    public Future<Message.Status> send(Message message) throws IOException {
+    public Receipt send(Message message) throws IOException {
         return cloud.send(message);
     }
 

@@ -1,5 +1,39 @@
 package com.workshare.msnos.core;
 
+import static com.workshare.msnos.core.Message.Type.APP;
+import static com.workshare.msnos.core.Message.Type.PIN;
+import static com.workshare.msnos.core.Message.Type.PRS;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyInt;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mockito;
+
 import com.workshare.msnos.core.Cloud.Multicaster;
 import com.workshare.msnos.core.Gateway.Listener;
 import com.workshare.msnos.core.Message.Status;
@@ -7,22 +41,7 @@ import com.workshare.msnos.core.payloads.Presence;
 import com.workshare.msnos.core.protocols.ip.udp.UDPGateway;
 import com.workshare.msnos.soup.json.Json;
 import com.workshare.msnos.soup.time.SystemTime;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Mockito;
 
-import java.io.IOException;
-import java.util.*;
-import java.util.concurrent.*;
-
-import static com.workshare.msnos.core.Message.Type.*;
-import static org.junit.Assert.*;
-import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.*;
-
-@SuppressWarnings("unchecked")
 public class CloudTest {
 
     private Gateway gate1;
@@ -41,10 +60,15 @@ public class CloudTest {
 
     @Before
     public void init() throws Exception {
-        scheduler = Mockito.mock(ScheduledExecutorService.class);
+        scheduler = mock(ScheduledExecutorService.class);
 
-        gate1 = Mockito.mock(Gateway.class);
-        gate2 = Mockito.mock(Gateway.class);
+        Receipt unknownReceipt = mock(Receipt.class);
+        when(unknownReceipt.getStatus()).thenReturn(Status.UNKNOWN);
+
+        gate1 = mock(Gateway.class);
+        when(gate1.send(any(Message.class))).thenReturn(unknownReceipt);
+        gate2 = mock(Gateway.class);
+        when(gate2.send(any(Message.class))).thenReturn(unknownReceipt);
 
         thisCloud = new Cloud(MY_CLOUD.getUUID(), new HashSet<Gateway>(Arrays.asList(gate1, gate2)), synchronousMulticaster(), scheduler);
         thisCloud.addListener(new Cloud.Listener() {
@@ -214,25 +238,25 @@ public class CloudTest {
     @Test
     public void shouldSendMessagesReturnUnknownStatusWhenUnreliable() throws Exception {
         Message message = newMessage(APP, SOMEONE, thisCloud.getIden());
-        Future<Status> res = thisCloud.send(message);
-        assertEquals(UnknownFutureStatus.class, res.getClass());
+        Receipt res = thisCloud.send(message);
+        assertEquals(Status.UNKNOWN, res.getStatus());
     }
 
     @Test
     public void shouldSendMessagesReturnMultipleStatusWhenReliable() throws Exception {
-        Future<Status> value1 = createMockFuture(Status.UNKNOWN);
+        Receipt value1 = createMockFuture(Status.UNKNOWN);
         when(gate1.send(any(Message.class))).thenReturn(value1);
 
-        Future<Status> value2 = createMockFuture(Status.UNKNOWN);
+        Receipt value2 = createMockFuture(Status.UNKNOWN);
         when(gate2.send(any(Message.class))).thenReturn(value2);
 
         Message message = newReliableMessage(APP, SOMEONE, SOMEONELSE);
-        Future<Status> res = thisCloud.send(message);
-        assertEquals(MultipleFutureStatus.class, res.getClass());
+        Receipt res = thisCloud.send(message);
+        assertEquals(MultiGatewayReceipt.class, res.getClass());
 
-        MultipleFutureStatus multi = (MultipleFutureStatus) res;
-        assertTrue(multi.statuses().contains(value1));
-        assertTrue(multi.statuses().contains(value2));
+        MultiGatewayReceipt multi = (MultiGatewayReceipt) res;
+        assertTrue(multi.getReceipts().contains(value1));
+        assertTrue(multi.getReceipts().contains(value2));
     }
 
     @Test
@@ -306,9 +330,9 @@ public class CloudTest {
         throw new RuntimeException("Agent " + agent + " not found!");
     }
 
-    private Future<Status> createMockFuture(final Status status) throws InterruptedException, ExecutionException {
-        Future<Status> value = Mockito.mock(Future.class);
-        when(value.get()).thenReturn(status);
+    private Receipt createMockFuture(final Status status) throws InterruptedException, ExecutionException {
+        Receipt value = Mockito.mock(Receipt.class);
+        when(value.getStatus()).thenReturn(status);
         return value;
     }
 

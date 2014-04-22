@@ -2,7 +2,6 @@ package com.workshare.msnos.core;
 
 import java.util.UUID;
 
-import com.workshare.msnos.core.Message.Payload;
 import com.workshare.msnos.soup.json.Json;
 
 public class Message {

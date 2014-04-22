@@ -7,15 +7,14 @@ import java.net.InetSocketAddress;
 import java.net.MulticastSocket;
 import java.util.Arrays;
 import java.util.Set;
-import java.util.concurrent.Callable;
-import java.util.concurrent.Future;
-import java.util.concurrent.FutureTask;
 
 import org.apache.log4j.Logger;
 
 import com.workshare.msnos.core.Gateway;
 import com.workshare.msnos.core.Message;
 import com.workshare.msnos.core.Message.Status;
+import com.workshare.msnos.core.Receipt;
+import com.workshare.msnos.core.SingleReceipt;
 import com.workshare.msnos.core.protocols.ip.Endpoint;
 import com.workshare.msnos.core.protocols.ip.MulticastSocketFactory;
 import com.workshare.msnos.core.serializers.WireSerializer;
@@ -93,7 +92,7 @@ public class UDPGateway implements Gateway {
     }
 
     @Override
-    public Future<Status> send(Message message) throws IOException {
+    public Receipt send(Message message) throws IOException {
 
         if (logger.isDebugEnabled())
             logger.debug("Broadcasting message {} ", Json.toJsonString(message));
@@ -109,13 +108,7 @@ public class UDPGateway implements Gateway {
             socket.send(packet);
         }
 
-        // TODO Auto-generated method stub
-        return new FutureTask<Status>(new Callable<Status>() {
-            @Override
-            public Status call() throws Exception {
-                return Status.PENDING;
-            }
-        });
+        return new SingleReceipt(Status.PENDING, message);
     }
 
     private void loadPorts() {

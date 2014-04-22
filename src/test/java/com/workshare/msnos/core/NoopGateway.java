@@ -3,7 +3,6 @@ package com.workshare.msnos.core;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Set;
-import java.util.concurrent.Future;
 
 import com.workshare.msnos.core.Message.Status;
 import com.workshare.msnos.core.protocols.ip.Endpoint;
@@ -20,8 +19,8 @@ public class NoopGateway implements Gateway {
 	}
 
 	@Override
-	public Future<Status> send(Message message) throws IOException {
-		return new UnknownFutureStatus();
+	public Receipt send(Message message) throws IOException {
+		return new SingleReceipt(Status.UNKNOWN, message);
 	}
 
 }
