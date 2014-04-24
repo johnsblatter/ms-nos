@@ -287,7 +287,7 @@ public class CloudTest {
         Agent remoteAgent = new Agent(UUID.randomUUID());
         simulateAgentJoiningCloud(remoteAgent, thisCloud);
 
-        fakeSystemTime(99999L);
+        fakeSystemTime(999999L);
         forceRunCloudPeriodicCheck();
 
         assertTrue(!thisCloud.getAgents().contains(remoteAgent));
