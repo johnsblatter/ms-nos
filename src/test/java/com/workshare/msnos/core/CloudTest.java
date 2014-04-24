@@ -1,46 +1,31 @@
 package com.workshare.msnos.core;
 
-import static com.workshare.msnos.core.Message.Type.APP;
-import static com.workshare.msnos.core.Message.Type.PIN;
-import static com.workshare.msnos.core.Message.Type.PRS;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyInt;
-import static org.mockito.Mockito.atLeastOnce;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executor;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-
+import com.workshare.msnos.core.Cloud.Multicaster;
+import com.workshare.msnos.core.Gateway.Listener;
+import com.workshare.msnos.core.Message.Status;
+import com.workshare.msnos.core.payloads.FltPayload;
+import com.workshare.msnos.core.payloads.Presence;
+import com.workshare.msnos.core.protocols.ip.udp.UDPGateway;
+import com.workshare.msnos.soup.json.Json;
+import com.workshare.msnos.soup.time.SystemTime;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
-import com.workshare.msnos.core.Cloud.Multicaster;
-import com.workshare.msnos.core.Gateway.Listener;
-import com.workshare.msnos.core.Message.Status;
-import com.workshare.msnos.core.payloads.Presence;
-import com.workshare.msnos.core.protocols.ip.udp.UDPGateway;
-import com.workshare.msnos.soup.json.Json;
-import com.workshare.msnos.soup.time.SystemTime;
+import java.io.IOException;
+import java.util.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
+import static com.workshare.msnos.core.Message.Type.*;
+import static org.junit.Assert.*;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyInt;
+import static org.mockito.Mockito.*;
 
 public class CloudTest {
 
@@ -91,7 +76,6 @@ public class CloudTest {
 
     @Test
     public void shouldCreateDefaultGateways() throws Exception {
-
         thisCloud = new Cloud(UUID.randomUUID());
 
         Set<Gateway> gates = thisCloud.getGateways();
@@ -179,7 +163,7 @@ public class CloudTest {
 
         karl.leave(thisCloud);
 
-        Message message = getLastMessageSent();
+        Message message = getLastMessageSentToNetwork();
 
         assertNotNull(message);
         assertEquals(PRS, message.getType());
@@ -291,7 +275,7 @@ public class CloudTest {
         fakeSystemTime(99999L);
         forceRunCloudPeriodicCheck();
 
-        Message pingExpected = getLastMessageSent();
+        Message pingExpected = getLastMessageSentToNetwork();
         assertNotNull(pingExpected);
         assertEquals(PIN, pingExpected.getType());
         assertEquals(thisCloud.getIden(), pingExpected.getFrom());
@@ -303,10 +287,25 @@ public class CloudTest {
         Agent remoteAgent = new Agent(UUID.randomUUID());
         simulateAgentJoiningCloud(remoteAgent, thisCloud);
 
-        fakeSystemTime(999999L);
+        fakeSystemTime(99999L);
         forceRunCloudPeriodicCheck();
 
         assertTrue(!thisCloud.getAgents().contains(remoteAgent));
+    }
+
+    @Test
+    public void shouldSendFaultWhenAgentRemoved() throws Exception {
+        fakeSystemTime(12345L);
+        Agent remoteAgent = new Agent(UUID.randomUUID());
+        simulateAgentJoiningCloud(remoteAgent, thisCloud);
+
+        fakeSystemTime(99999999L);
+        forceRunCloudPeriodicCheck();
+
+        Message message = getLastMessageSentToCloudListeners();
+        assertEquals(FLT, message.getType());
+        assertEquals(thisCloud.getIden(), message.getFrom());
+        assertEquals(remoteAgent.getIden(), ((FltPayload) message.getData()).getAbout());
     }
 
     private void forceRunCloudPeriodicCheck() {
@@ -350,7 +349,11 @@ public class CloudTest {
         gateListener.getValue().onMessage(message);
     }
 
-    private Message getLastMessageSent() throws IOException {
+    private Message getLastMessageSentToCloudListeners() {
+        return messages.get(messages.size() - 1);
+    }
+
+    private Message getLastMessageSentToNetwork() throws IOException {
         ArgumentCaptor<Message> captor = ArgumentCaptor.forClass(Message.class);
         verify(gate1).send(captor.capture());
         return captor.getValue();

@@ -2,7 +2,9 @@ package com.workshare.msnos.usvc;
 
 import com.workshare.msnos.core.Agent;
 import com.workshare.msnos.core.Cloud;
+import com.workshare.msnos.core.Iden;
 import com.workshare.msnos.core.Message;
+import com.workshare.msnos.core.payloads.FltPayload;
 import com.workshare.msnos.core.payloads.QnePayload;
 
 import java.io.IOException;
@@ -15,12 +17,12 @@ public class Microservice {
     private final Agent agent;
 
     private Cloud cloud;
-    private final Map<String, Set<RestApi>> microServices;
+    private final Map<Iden, Set<RestApi>> microServices;
 
     public Microservice(String name) {
         this.name = name;
         this.apis = new ArrayList<RestApi>();
-        this.microServices = new HashMap<String, Set<RestApi>>();
+        this.microServices = new HashMap<Iden, Set<RestApi>>();
         this.agent = new Agent(UUID.randomUUID());
         this.cloud = null;
     }
@@ -37,7 +39,7 @@ public class Microservice {
         return Collections.unmodifiableList(apis);
     }
 
-    public Map<String, Set<RestApi>> getMicroServices() {
+    public Map<Iden, Set<RestApi>> getMicroServices() {
         return Collections.unmodifiableMap(microServices);
     }
 
@@ -63,15 +65,27 @@ public class Microservice {
         if (message.getType() == Message.Type.QNE) {
             processQNE(message);
         }
+        if (message.getType() == Message.Type.FLT) {
+            processFault(message);
+        }
     }
 
     private void processQNE(Message message) {
         synchronized (microServices) {
-            String name = ((QnePayload) message.getData()).getName();
+            Iden iden = message.getFrom();
             Set<RestApi> apis = ((QnePayload) message.getData()).getApis();
-            if (!microServices.containsKey(name)) {
-                microServices.put(name, apis);
+            if (!microServices.containsKey(iden)) {
+                microServices.put(iden, apis);
             }
         }
     }
+
+    private void processFault(Message message) {
+        FltPayload fault = (FltPayload) message.getData();
+        synchronized (microServices) {
+            microServices.remove(fault.getAbout());
+        }
+
+    }
+
 }

@@ -106,6 +106,7 @@ public class Cloud implements Identifiable {
             if (agent.getAccessTime() < SystemTime.asMillis() - (AGENT_TIMEOUT * AGENT_RETRIES)) {
                 log.debug("- remote agent removed due to inactivity: {}", agent);
                 agents.remove(agent.getIden());
+                caster.dispatch(Messages.fault(this, agent));
             }
         }
         log.trace("Done!");
