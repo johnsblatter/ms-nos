@@ -1,23 +1,17 @@
 package com.workshare.msnos.core;
 
+import com.workshare.msnos.core.payloads.Presence;
+import com.workshare.msnos.soup.json.Json;
+import com.workshare.msnos.soup.time.SystemTime;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.workshare.msnos.core.payloads.Presence;
-import com.workshare.msnos.soup.json.Json;
-import com.workshare.msnos.soup.time.SystemTime;
 
 public class Cloud implements Identifiable {
 
@@ -76,7 +70,7 @@ public class Cloud implements Identifiable {
             });
         }
 
-        final long period = AGENT_TIMEOUT/2;
+        final long period = AGENT_TIMEOUT / 2;
         log.debug("Probing agent every {} milliseconds", period);
         scheduler.scheduleAtFixedRate(new Runnable() {
             @Override

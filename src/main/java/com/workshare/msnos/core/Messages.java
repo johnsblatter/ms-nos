@@ -1,8 +1,8 @@
 package com.workshare.msnos.core;
 
-import java.util.Map;
-
 import com.workshare.msnos.core.payloads.Presence;
+
+import java.util.Map;
 
 class Messages {
 
@@ -28,5 +28,9 @@ class Messages {
 
     public static Message pong(Identifiable from, Identifiable to) {
         return new Message(Message.Type.PON, from.getIden(), to.getIden(), 2, false, null);
+    }
+
+    public static Message enquiry(Identifiable from, Identifiable to) {
+        return new Message(Message.Type.ENQ, from.getIden(), to.getIden(), 2, false, null);
     }
 }
