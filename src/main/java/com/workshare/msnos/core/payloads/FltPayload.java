@@ -13,7 +13,7 @@ public class FltPayload implements Message.Payload {
 
     @Override
     public Message.Payload[] split() {
-        return new Message.Payload[0];
+        return null;
     }
 
     public Iden getAbout() {

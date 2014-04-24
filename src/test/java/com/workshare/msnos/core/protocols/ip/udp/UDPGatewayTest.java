@@ -144,7 +144,7 @@ public class UDPGatewayTest {
     @Test
     public void shouldSplitUDPPacketsToMaxPacketSizeOrLess() throws IOException {
         System.setProperty(UDPGateway.SYSP_UDP_PACKET_SIZE, Integer.toString(333));
-        Message message = getMessageWithBigPayload();
+        Message message = getMessageWithPayload(new BigPayload(1000));
 
         gate().send(message);
 
@@ -154,11 +154,19 @@ public class UDPGatewayTest {
         }
     }
 
-    private Message getMessageWithBigPayload() {
+    @Test(expected = IOException.class)
+    public void shouldFailWhenUnableToSplitUDPPackets() throws IOException {
+        System.setProperty(UDPGateway.SYSP_UDP_PACKET_SIZE, Integer.toString(333));
+        Message message = getMessageWithPayload(new BigPayload(1000).unsplittable());
+
+        gate().send(message);
+    }
+
+    private Message getMessageWithPayload(final BigPayload payload) {
         final UUID uuid = new UUID(123, 456);
         final Iden src = new Iden(Iden.Type.AGT, uuid);
         final Iden dst = new Iden(Iden.Type.CLD, uuid);
-        return new Message(Message.Type.PRS, src, dst, 1, false, new BigPayload(1000)).from(SOMEONE).to(ME);
+        return new Message(Message.Type.PRS, src, dst, 1, false, payload).from(SOMEONE).to(ME);
     }
 
     private void simulateMessageFromNetwork(Message message) {
@@ -226,13 +234,22 @@ public class UDPGatewayTest {
     static class BigPayload implements Message.Payload {
 
         private byte[] data;
-
+        private boolean splittable = true;
+        
         BigPayload(int size) {
             data = new byte[size];
         }
 
+        public BigPayload unsplittable() {
+            this.splittable = false;
+            return this;
+        }
+
         @Override
         public Message.Payload[] split() {
+            if (!splittable)
+                return null;
+
             int size1 = data.length / 2;
             int size2 = data.length - size1;
 

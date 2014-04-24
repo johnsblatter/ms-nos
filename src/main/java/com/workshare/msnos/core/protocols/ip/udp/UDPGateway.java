@@ -2,6 +2,7 @@ package com.workshare.msnos.core.protocols.ip.udp;
 
 import com.workshare.msnos.core.Gateway;
 import com.workshare.msnos.core.Message;
+import com.workshare.msnos.core.Message.Payload;
 import com.workshare.msnos.core.Message.Status;
 import com.workshare.msnos.core.Receipt;
 import com.workshare.msnos.core.SingleReceipt;
@@ -21,8 +22,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
-
-import static com.workshare.msnos.core.Message.Payload;
 
 public class UDPGateway implements Gateway {
 
@@ -130,8 +129,12 @@ public class UDPGateway implements Gateway {
         return new SingleReceipt(Status.PENDING, message);
     }
 
-    private List<Payload> getSplitPayloads(List<Payload> payloads, Payload payload, int msgLength) {
-        for (Payload load : payload.split()) {
+    private List<Payload> getSplitPayloads(List<Payload> payloads, Payload payload, int msgLength) throws IOException {
+        Payload[] loads = payload.split();
+        if (loads == null)
+            throw new IOException("Unable to send message: the payload is too big and unsplittable");
+        
+        for (Payload load : loads) {
             if (sz.toBytes(load).length + msgLength > packetSize) {
                 getSplitPayloads(payloads, load, msgLength);
             } else {
