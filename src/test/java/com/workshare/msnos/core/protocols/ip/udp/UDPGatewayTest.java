@@ -1,24 +1,37 @@
 package com.workshare.msnos.core.protocols.ip.udp;
 
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.anyInt;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.io.IOException;
+import java.net.DatagramPacket;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.MulticastSocket;
+import java.net.SocketException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.Executor;
+
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.ArgumentCaptor;
+
 import com.workshare.msnos.core.Gateway.Listener;
 import com.workshare.msnos.core.Iden;
 import com.workshare.msnos.core.Message;
 import com.workshare.msnos.core.protocols.ip.MulticastSocketFactory;
 import com.workshare.msnos.core.serializers.WireJsonSerializer;
 import com.workshare.msnos.soup.threading.Multicaster;
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.ArgumentCaptor;
-
-import java.io.IOException;
-import java.net.*;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
-import java.util.concurrent.Executor;
-
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
 
 public class UDPGatewayTest {
 
@@ -31,13 +44,9 @@ public class UDPGatewayTest {
     private MulticastSocketFactory sockets;
     private List<Message> messages;
 
-    private WireJsonSerializer sz;
-
     @Before
     public void setup() throws Exception {
         messages = new ArrayList<Message>();
-
-        sz = new WireJsonSerializer();
 
         server = mock(UDPServer.class);
         when(server.serializer()).thenReturn(new WireJsonSerializer());
@@ -119,7 +128,7 @@ public class UDPGatewayTest {
     @Test
     public void shouldStartServer() throws Exception {
         gate();
-        verify(server).start(socket, UDPGateway.PACKET_SIZE);
+        verify(server).start(eq(socket),anyInt());
     }
 
     @Test
@@ -133,14 +142,15 @@ public class UDPGatewayTest {
     }
 
     @Test
-    public void shouldSplitUDPPacketsTo512BytesOrLess() throws IOException {
+    public void shouldSplitUDPPacketsToMaxPacketSizeOrLess() throws IOException {
+        System.setProperty(UDPGateway.SYSP_UDP_PACKET_SIZE, Integer.toString(333));
         Message message = getMessageWithBigPayload();
 
         gate().send(message);
 
         List<DatagramPacket> packets = getSentPackets();
         for (DatagramPacket datagramPacket : packets) {
-            assertTrue(datagramPacket.getLength() <= 512);
+            assertTrue(datagramPacket.getLength() <= 333);
         }
     }
 

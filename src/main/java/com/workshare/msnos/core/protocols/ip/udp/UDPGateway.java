@@ -26,13 +26,13 @@ import static com.workshare.msnos.core.Message.Payload;
 
 public class UDPGateway implements Gateway {
 
+
     private static Logger logger = Logger.getLogger(UDPGateway.class);
 
     public static final String SYSP_PORT_NUM = "com.ws.nsnos.udp.port.number";
     public static final String SYSP_PORT_WIDTH = "com.ws.nsnos.udp.port.width";
     public static final String SYSP_UDP_GROUP = "com.ws.nsnos.udp.group";
-
-    static final int PACKET_SIZE = Integer.getInteger("com.ws.nsnos.udp.packet.size", 512);
+    public static final String SYSP_UDP_PACKET_SIZE = "com.ws.nsnos.udp.packet.size";
 
     private MulticastSocket socket;
     private InetAddress group;
@@ -40,10 +40,12 @@ public class UDPGateway implements Gateway {
 
     private final Multicaster<Listener, Message> caster;
     private final WireSerializer sz;
-
+    private final int packetSize;
+    
     public UDPGateway(MulticastSocketFactory sockets, UDPServer server, Multicaster<Listener, Message> caster) throws IOException {
         this.caster = caster;
         this.sz = server.serializer();
+        this.packetSize = Integer.getInteger(SYSP_UDP_PACKET_SIZE, 512);
 
         loadPorts();
         openSocket(sockets);
@@ -51,7 +53,7 @@ public class UDPGateway implements Gateway {
     }
 
     private void startServer(UDPServer server) {
-        server.start(socket, PACKET_SIZE);
+        server.start(socket, packetSize);
         server.addListener(new Listener() {
             @Override
             public void onMessage(Message message) {
@@ -105,7 +107,7 @@ public class UDPGateway implements Gateway {
         int fullMsgLength = sz.toBytes(message).length;
         int lengthWithoutPayload = fullMsgLength - sz.toBytes(message.getData()).length;
 
-        if (fullMsgLength > 512) {
+        if (fullMsgLength > packetSize) {
             payloads = getSplitPayloads(new ArrayList<Payload>(), message.getData(), lengthWithoutPayload);
         } else {
             payloads = Arrays.asList(message.getData());
@@ -130,7 +132,7 @@ public class UDPGateway implements Gateway {
 
     private List<Payload> getSplitPayloads(List<Payload> payloads, Payload payload, int msgLength) {
         for (Payload load : payload.split()) {
-            if (sz.toBytes(load).length + msgLength > 512) {
+            if (sz.toBytes(load).length + msgLength > packetSize) {
                 getSplitPayloads(payloads, load, msgLength);
             } else {
                 payloads.add(load);
