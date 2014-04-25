@@ -9,13 +9,17 @@ import java.util.HashSet;
 import java.util.Set;
 
 public class QnePayload implements Payload {
+    
+    private String name;
     private Set<RestApi> apis;
 
-    private String name;
-
     public QnePayload(String name, RestApi... apis) {
+        this(name,  Collections.unmodifiableSet(new HashSet<RestApi>(Arrays.asList(apis))));
+    }
+
+    public QnePayload(String name, Set<RestApi> apis) {
         this.name = name;
-        this.apis = Collections.unmodifiableSet(new HashSet<RestApi>(Arrays.asList(apis)));
+        this.apis = apis;
     }
 
     public Set<RestApi> getApis() {
@@ -28,6 +32,22 @@ public class QnePayload implements Payload {
 
     @Override
     public Payload[] split() {
-        return null;
+
+        Set<RestApi> apisOne = new HashSet<RestApi>();
+        Set<RestApi> apisTwo = new HashSet<RestApi>();
+
+        int i = 0;
+        for (RestApi api : apis) {
+            if (i++%2 == 0)
+                apisOne.add(api);
+            else
+                apisTwo.add(api);
+        }
+        
+        
+        return new Payload[] {
+            new QnePayload(name, apisOne),
+            new QnePayload(name, apisTwo)
+        };
     }
 }

@@ -1,16 +1,18 @@
 package com.workshare.msnos.core.payloads;
 
-import com.workshare.msnos.core.Message;
-import com.workshare.msnos.core.protocols.ip.Network;
-import com.workshare.msnos.soup.json.Json;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.Set;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.workshare.msnos.core.Message;
+import com.workshare.msnos.core.Message.Payload;
+import com.workshare.msnos.core.protocols.ip.Network;
+import com.workshare.msnos.soup.json.Json;
 
 public class Presence implements Message.Payload {
 
@@ -20,8 +22,12 @@ public class Presence implements Message.Payload {
     private final Set<Network> networks;
 
     public Presence(boolean present) {
+        this(present, present ? getAllNetworks() : new HashSet<Network>());
+    }
+
+    Presence(boolean present, Set<Network> networks) {
         this.present = present;
-        networks = present ? setNetworks() : new HashSet<Network>();
+        this.networks = networks;
         log.trace(present ? "Presence message created: {}" : "Absence message created: {}", this);
     }
 
@@ -29,7 +35,7 @@ public class Presence implements Message.Payload {
         return present;
     }
 
-    private Set<Network> setNetworks() {
+    private static Set<Network> getAllNetworks() {
         Set<Network> nets = new HashSet<Network>();
         try {
             Enumeration<NetworkInterface> nics = NetworkInterface.getNetworkInterfaces();
@@ -52,9 +58,44 @@ public class Presence implements Message.Payload {
         return Json.toJsonString(this);
     }
 
-    //    TODO FIXME
     @Override
     public Message.Payload[] split() {
-        return null;
+        Set<Network> netOne = new HashSet<Network>();
+        Set<Network> netTwo = new HashSet<Network>();
+
+        int i = 0;
+        for (Network net : networks) {
+            if (i++%2 == 0)
+                netOne.add(net);
+            else
+                netTwo.add(net);
+        }
+        
+        
+        return new Payload[] {
+            new Presence(present, netOne),
+            new Presence(present, netTwo)
+        };    
     }
+
+    @Override
+    public int hashCode() {
+        final int prime = 31;
+        int result = 1;
+        result = prime * result + networks.hashCode();
+        result = prime * result + (present ? 1231 : 1237);
+        return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        try {
+            Presence other = (Presence) obj;
+            return networks.equals(other.networks) && present == other.present;
+        } catch (Exception any) {
+            return false;
+        }
+    }
+    
+    
 }

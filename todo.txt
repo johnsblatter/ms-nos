@@ -1,2 +1,6 @@
 - the underlying protocol should take care of splitting big messages? yes, we need to add a method "split()" to the payload class so that a payload can split itself
   in two parts and the protocol can call it, even several times, in order to be able to end the message (split into few messages)
+ 
+- TCP gateway (point to point)
+
+- WWW gateway (point to server)
