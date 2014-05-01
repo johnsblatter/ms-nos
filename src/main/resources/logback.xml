@@ -7,9 +7,10 @@
     </appender>
 
     <logger name="org.apache.commons" level="WARN"/>
+    <logger name="org.eclipse" level="WARN"/>
 
     <root>
-        <level value="DEBUG"/>
+        <level value="INFO"/>
         <appender-ref ref="STDOUT"/>
     </root>
 
