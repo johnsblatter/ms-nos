@@ -2,6 +2,7 @@ package com.workshare.msnos.core.payloads;
 
 import com.workshare.msnos.core.Iden;
 import com.workshare.msnos.core.Message;
+import com.workshare.msnos.soup.json.Json;
 
 public class FltPayload implements Message.Payload {
 
@@ -19,4 +20,10 @@ public class FltPayload implements Message.Payload {
     public Iden getAbout() {
         return about;
     }
+
+    @Override
+    public String toString() {
+        return Json.toJsonString(this);
+    }
+
 }

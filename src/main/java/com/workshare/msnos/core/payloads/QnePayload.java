@@ -1,6 +1,7 @@
 package com.workshare.msnos.core.payloads;
 
 import com.workshare.msnos.core.Message.Payload;
+import com.workshare.msnos.soup.json.Json;
 import com.workshare.msnos.usvc.RestApi;
 
 import java.util.Arrays;
@@ -29,6 +30,12 @@ public class QnePayload implements Payload {
     public String getName() {
         return name;
     }
+
+    @Override
+    public String toString() {
+        return Json.toJsonString(this);
+    }
+
 
     @Override
     public Payload[] split() {
