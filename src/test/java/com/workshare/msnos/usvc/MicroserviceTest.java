@@ -114,6 +114,17 @@ public class MicroserviceTest {
         assertEquals(cloud.getIden(), msg.getTo());
     }
 
+    @Test
+    public void shouldNotProcessMessagesFromSelf() throws Exception {
+        uService1.join(cloud);
+
+        simulateMessageFromCloud(getENQMessage(uService1.getAgent(), uService1.getAgent()));
+
+        Message msg = getLastMessageSent();
+
+        assertEquals(Message.Type.ENQ, msg.getType());
+    }
+
     private Message getENQMessage(Identifiable from, Identifiable to) {
         return new Message(Message.Type.ENQ, from.getIden(), to.getIden(), 2, false, null);
 

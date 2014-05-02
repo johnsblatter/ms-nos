@@ -9,7 +9,6 @@ import com.workshare.msnos.core.SingleReceipt;
 import com.workshare.msnos.core.protocols.ip.Endpoint;
 import com.workshare.msnos.core.protocols.ip.MulticastSocketFactory;
 import com.workshare.msnos.core.serializers.WireSerializer;
-import com.workshare.msnos.soup.json.Json;
 import com.workshare.msnos.soup.threading.Multicaster;
 import org.apache.log4j.Logger;
 
@@ -25,7 +24,6 @@ import java.util.Set;
 
 public class UDPGateway implements Gateway {
 
-
     private static Logger logger = Logger.getLogger(UDPGateway.class);
 
     public static final String SYSP_PORT_NUM = "com.ws.nsnos.udp.port.number";
@@ -40,7 +38,7 @@ public class UDPGateway implements Gateway {
     private final Multicaster<Listener, Message> caster;
     private final WireSerializer sz;
     private final int packetSize;
-    
+
     public UDPGateway(MulticastSocketFactory sockets, UDPServer server, Multicaster<Listener, Message> caster) throws IOException {
         this.caster = caster;
         this.sz = server.serializer();
@@ -97,10 +95,8 @@ public class UDPGateway implements Gateway {
 
     @Override
     public Receipt send(Message message) throws IOException {
-        logger.debug(message);
 
-        if (logger.isDebugEnabled())
-            logger.debug("Broadcasting message {} ", Json.toJsonString(message));
+        logger.debug("send message {} ", message);
 
         List<Payload> payloads;
         int fullMsgLength = sz.toBytes(message).length;
@@ -133,7 +129,7 @@ public class UDPGateway implements Gateway {
         Payload[] loads = payload.split();
         if (loads == null)
             throw new IOException("Unable to send message: the payload is too big and unsplittable");
-        
+
         for (Payload load : loads) {
             if (sz.toBytes(load).length + msgLength > packetSize) {
                 getSplitPayloads(payloads, load, msgLength);

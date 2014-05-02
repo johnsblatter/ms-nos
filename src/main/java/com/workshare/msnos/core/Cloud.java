@@ -20,6 +20,8 @@ public class Cloud implements Identifiable {
 
     private static Logger log = LoggerFactory.getLogger(Cloud.class);
 
+    private static Logger proto = LoggerFactory.getLogger("protocol");
+
     public static interface Listener {
         public void onMessage(Message message);
     }
@@ -114,6 +116,8 @@ public class Cloud implements Identifiable {
 
     public Receipt send(Message message) throws IOException {
 
+        proto.info("TX: {} {} {}", message.getType(), message.getFrom(), message.getData());
+
         MultiGatewayReceipt res = new MultiGatewayReceipt(message);
         for (Gateway gate : gates) {
             res.add(gate.send(message));
@@ -153,6 +157,8 @@ public class Cloud implements Identifiable {
             log.debug("Skipped message sent to another cloud: {}", message);
             return;
         }
+
+        proto.info("RX: {} {} {}", message.getType(), message.getFrom(), message.getData());
 
         if (isPresence(message)) processPresence(message);
         else if (isAbsence(message)) processAbsence(message);

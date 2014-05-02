@@ -67,32 +67,33 @@ public class Microservice {
     public void publish(RestApi api) throws IOException {
         Message message = new Message(Message.Type.QNE, agent.getIden(), cloud.getIden(), 2, false, new QnePayload(name, api));
         agent.send(message);
+        apis.add(api);
     }
 
     private void process(Message message) throws IOException {
-        if (message.getType() == Message.Type.ENQ) {
-            processENQ();
-        }
-        if (message.getType() == Message.Type.QNE) {
-            processQNE(message);
-        }
-        if (message.getType() == Message.Type.FLT) {
-            processFault(message);
+        if (!message.getFrom().equals(agent.getIden())) {
+            if (message.getType() == Message.Type.ENQ) {
+                processENQ();
+            }
+            if (message.getType() == Message.Type.QNE) {
+                processQNE(message);
+            }
+            if (message.getType() == Message.Type.FLT) {
+                processFault(message);
+            }
         }
     }
 
     private void processENQ() throws IOException {
-        agent.send(new Message(Message.Type.QNE, agent.getIden(), cloud.getIden(), 2, false, new QnePayload(name, new HashSet<RestApi>(apis))));
+        agent.send(new Message(Message.Type.QNE, agent.getIden(), cloud.getIden(), 2, false, new QnePayload(name, new HashSet<RestApi>(listApis()))));
     }
 
     private void processQNE(Message message) {
         synchronized (microServices) {
             Iden iden = message.getFrom();
-            if (!iden.equals(agent.getIden())) {
-                Set<RestApi> apis = ((QnePayload) message.getData()).getApis();
-                if (!microServices.containsKey(iden)) {
-                    microServices.put(iden, apis);
-                }
+            Set<RestApi> apis = ((QnePayload) message.getData()).getApis();
+            if (!microServices.containsKey(iden)) {
+                microServices.put(iden, apis);
             }
         }
     }
