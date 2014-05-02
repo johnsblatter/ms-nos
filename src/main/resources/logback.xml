@@ -10,7 +10,7 @@
     <logger name="org.eclipse" level="WARN"/>
 
     <root>
-        <level value="INFO"/>
+        <level value="DEBUG"/>
         <appender-ref ref="STDOUT"/>
     </root>
 

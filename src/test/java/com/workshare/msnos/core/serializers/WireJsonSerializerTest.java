@@ -1,22 +1,17 @@
 package com.workshare.msnos.core.serializers;
 
-import static org.junit.Assert.assertEquals;
+import com.workshare.msnos.core.*;
+import com.workshare.msnos.core.payloads.Presence;
+import com.workshare.msnos.core.payloads.QnePayload;
+import com.workshare.msnos.usvc.RestApi;
+import org.junit.Before;
+import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.UUID;
 
-import org.junit.Before;
-import org.junit.Test;
-
-import com.workshare.msnos.core.Agent;
-import com.workshare.msnos.core.Cloud;
-import com.workshare.msnos.core.Gateway;
-import com.workshare.msnos.core.Iden;
-import com.workshare.msnos.core.Message;
-import com.workshare.msnos.core.NoopGateway;
-import com.workshare.msnos.core.Version;
-import com.workshare.msnos.core.payloads.Presence;
+import static org.junit.Assert.assertEquals;
 
 public class WireJsonSerializerTest {
 
@@ -77,6 +72,16 @@ public class WireJsonSerializerTest {
     @Test
     public void shouldBeAbleToEncodeAndDecodeMessage() throws Exception {
         Message source = new Message(Message.Type.PRS, AGENT_IDEN, CLOUD_IDEN, 2, false, new Presence(true));
+
+        byte[] data = sz.toBytes(source);
+        Message decoded = sz.fromBytes(data, Message.class);
+
+        assertEquals(source, decoded);
+    }
+
+    @Test
+    public void shouldBeAbleToEncodeAndDecodeQNE() throws Exception {
+        Message source = new Message(Message.Type.QNE, AGENT_IDEN, CLOUD_IDEN, 2, false, new QnePayload("test", new RestApi("/test", 7070)));
 
         byte[] data = sz.toBytes(source);
         Message decoded = sz.fromBytes(data, Message.class);

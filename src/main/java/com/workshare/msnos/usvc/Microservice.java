@@ -6,11 +6,15 @@ import com.workshare.msnos.core.Iden;
 import com.workshare.msnos.core.Message;
 import com.workshare.msnos.core.payloads.FltPayload;
 import com.workshare.msnos.core.payloads.QnePayload;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.*;
 
 public class Microservice {
+
+    private static final Logger log = LoggerFactory.getLogger("root");
 
     private final String name;
     private final List<RestApi> apis;
@@ -27,7 +31,7 @@ public class Microservice {
         this.cloud = null;
     }
 
-    Agent getAgent() {
+    public Agent getAgent() {
         return agent;
     }
 
@@ -49,7 +53,11 @@ public class Microservice {
         cloud.addListener(new Cloud.Listener() {
             @Override
             public void onMessage(Message message) {
-                process(message);
+                try {
+                    process(message);
+                } catch (IOException e) {
+                    log.error("Error processing message {}", e);
+                }
             }
         });
         Message message = new Message(Message.Type.ENQ, agent.getIden(), cloud.getIden(), 2, false, null);
@@ -61,7 +69,10 @@ public class Microservice {
         agent.send(message);
     }
 
-    private void process(Message message) {
+    private void process(Message message) throws IOException {
+        if (message.getType() == Message.Type.ENQ) {
+            processENQ();
+        }
         if (message.getType() == Message.Type.QNE) {
             processQNE(message);
         }
@@ -70,12 +81,18 @@ public class Microservice {
         }
     }
 
+    private void processENQ() throws IOException {
+        agent.send(new Message(Message.Type.QNE, agent.getIden(), cloud.getIden(), 2, false, new QnePayload(name, new HashSet<RestApi>(apis))));
+    }
+
     private void processQNE(Message message) {
         synchronized (microServices) {
             Iden iden = message.getFrom();
-            Set<RestApi> apis = ((QnePayload) message.getData()).getApis();
-            if (!microServices.containsKey(iden)) {
-                microServices.put(iden, apis);
+            if (!iden.equals(agent.getIden())) {
+                Set<RestApi> apis = ((QnePayload) message.getData()).getApis();
+                if (!microServices.containsKey(iden)) {
+                    microServices.put(iden, apis);
+                }
             }
         }
     }
