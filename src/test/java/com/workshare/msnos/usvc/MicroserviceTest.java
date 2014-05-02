@@ -23,7 +23,7 @@ import static org.mockito.Mockito.verify;
 public class MicroserviceTest {
 
     Cloud cloud;
-    Microservice ms;
+    Microservice uService1;
     Microservice otherMs;
     UDPGateway gate1;
 
@@ -36,7 +36,7 @@ public class MicroserviceTest {
 
         Mockito.when(cloud.getIden()).thenReturn(iden);
 
-        ms = new Microservice("fluffy");
+        uService1 = new Microservice("fluffy");
         otherMs = new Microservice("kiki");
 
         fakeSystemTime(12345L);
@@ -50,16 +50,16 @@ public class MicroserviceTest {
     @Test
     public void shouldInternalAgentJoinTheCloudOnJoin() throws Exception {
         cloud = new Cloud(UUID.randomUUID(), Collections.<Gateway>emptySet());
-        ms.join(cloud);
-        assertEquals(ms.getAgent(), cloud.getAgents().iterator().next());
+        uService1.join(cloud);
+        assertEquals(uService1.getAgent(), cloud.getAgents().iterator().next());
     }
 
     @Test
     public void shouldSendQNEwhenPublishApi() throws Exception {
-        ms.join(cloud);
+        uService1.join(cloud);
 
         RestApi api = new RestApi("/foo", 8080);
-        ms.publish(api);
+        uService1.publish(api);
 
         Message msg = getLastMessageSent();
         assertEquals(Message.Type.QNE, msg.getType());
@@ -70,7 +70,7 @@ public class MicroserviceTest {
 
     @Test
     public void shouldSendENQonJoin() throws Exception {
-        ms.join(cloud);
+        uService1.join(cloud);
 
         Message msg = getLastMessageSent();
 
@@ -80,24 +80,42 @@ public class MicroserviceTest {
 
     @Test
     public void shouldProcessQNEMsgs() throws Exception {
-        ms.join(cloud);
+        uService1.join(cloud);
 
-        simulateMessageFromCloud(getQNEMessage(otherMs.getAgent(), ms.getAgent()));
+        simulateMessageFromCloud(getQNEMessage(otherMs.getAgent(), uService1.getAgent()));
 
-        assertTrue(ms.getMicroServices().containsKey(otherMs.getAgent().getIden()));
+        assertTrue(uService1.getMicroServices().containsKey(otherMs.getAgent().getIden()));
     }
 
     @Test
     public void shouldBeRemovedWhenUnderlyingAgentDies() throws Exception {
-        ms.join(cloud);
+        uService1.join(cloud);
         Microservice remoteMicroservice = new Microservice("remote");
 
-        simulateMessageFromCloud(getQNEMessage(remoteMicroservice.getAgent(), ms.getAgent()));
-        assertTrue(ms.getMicroServices().containsKey(remoteMicroservice.getAgent().getIden()));
+        simulateMessageFromCloud(getQNEMessage(remoteMicroservice.getAgent(), uService1.getAgent()));
+        assertTrue(uService1.getMicroServices().containsKey(remoteMicroservice.getAgent().getIden()));
 
         simulateMessageFromCloud(getFaultMessage(remoteMicroservice.getAgent()));
 
-        assertFalse(ms.getMicroServices().containsKey(remoteMicroservice.getAgent().getIden()));
+        assertFalse(uService1.getMicroServices().containsKey(remoteMicroservice.getAgent().getIden()));
+
+    }
+
+    @Test
+    public void shouldSendQNEOnEnquiry() throws Exception {
+        uService1.join(cloud);
+        Microservice remoteMicroservice = new Microservice("remote");
+
+        simulateMessageFromCloud(getENQMessage(remoteMicroservice.getAgent(), uService1.getAgent()));
+
+        Message msg = getLastMessageSent();
+
+        assertEquals(Message.Type.QNE, msg.getType());
+        assertEquals(cloud.getIden(), msg.getTo());
+    }
+
+    private Message getENQMessage(Identifiable from, Identifiable to) {
+        return new Message(Message.Type.ENQ, from.getIden(), to.getIden(), 2, false, null);
 
     }
 

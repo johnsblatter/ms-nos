@@ -10,7 +10,7 @@ public class RestApi {
     public RestApi(String path, int port) {
         if (path == null)
             throw new IllegalArgumentException("path cannot be null");
-        
+
         this.path = path;
         this.port = port;
     }

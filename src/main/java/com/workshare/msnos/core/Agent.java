@@ -1,17 +1,16 @@
 package com.workshare.msnos.core;
 
-import static com.workshare.msnos.core.Message.Type.DSC;
-import static com.workshare.msnos.core.Message.Type.PIN;
+import com.workshare.msnos.core.Cloud.Listener;
+import com.workshare.msnos.soup.json.Json;
+import com.workshare.msnos.soup.time.SystemTime;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.UUID;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.workshare.msnos.core.Cloud.Listener;
-import com.workshare.msnos.soup.json.Json;
-import com.workshare.msnos.soup.time.SystemTime;
+import static com.workshare.msnos.core.Message.Type.DSC;
+import static com.workshare.msnos.core.Message.Type.PIN;
 
 public class Agent implements Identifiable {
 
@@ -87,7 +86,6 @@ public class Agent implements Identifiable {
     private void process(Message message) {
         if (isDiscovery(message)) processDiscovery(message);
         else if (isPing(message)) processPing(message);
-        else log.warn("Message type {} not acceptable or unimplemented.", message.getType());
     }
 
     private void processDiscovery(Message message) {

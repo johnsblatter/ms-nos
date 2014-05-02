@@ -1,34 +1,19 @@
 package com.workshare.msnos.core.serializers;
 
+import com.google.gson.*;
+import com.workshare.msnos.core.*;
+import com.workshare.msnos.core.Message.Payload;
+import com.workshare.msnos.core.payloads.Presence;
+import com.workshare.msnos.core.payloads.QnePayload;
+import com.workshare.msnos.soup.json.Json;
+import com.workshare.msnos.soup.json.ThreadSafeGson;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.lang.reflect.Type;
 import java.nio.charset.Charset;
 import java.util.Collections;
 import java.util.UUID;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonDeserializationContext;
-import com.google.gson.JsonDeserializer;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParseException;
-import com.google.gson.JsonPrimitive;
-import com.google.gson.JsonSerializationContext;
-import com.google.gson.JsonSerializer;
-import com.google.gson.JsonSyntaxException;
-import com.workshare.msnos.core.Agent;
-import com.workshare.msnos.core.Cloud;
-import com.workshare.msnos.core.Gateway;
-import com.workshare.msnos.core.Iden;
-import com.workshare.msnos.core.Message;
-import com.workshare.msnos.core.Message.Payload;
-import com.workshare.msnos.core.Version;
-import com.workshare.msnos.core.payloads.Presence;
-import com.workshare.msnos.soup.json.Json;
-import com.workshare.msnos.soup.json.ThreadSafeGson;
 
 public class WireJsonSerializer implements WireSerializer {
 
@@ -109,7 +94,7 @@ public class WireJsonSerializer implements WireSerializer {
                 Iden iden = deserializeIden(json);
                 if (iden.getType() != Iden.Type.CLD)
                     throw new IllegalArgumentException("Unexpected type when converting cloud!");
-                return new Cloud(iden.getUUID(), Collections.<Gateway> emptySet());
+                return new Cloud(iden.getUUID(), Collections.<Gateway>emptySet());
             } catch (Exception any) {
                 throw new JsonParseException(any);
             }
@@ -190,11 +175,14 @@ public class WireJsonSerializer implements WireSerializer {
             JsonElement dataJson = obj.get("dt");
             if (dataJson != null) {
                 switch (type) {
-                case PRS:
-                    data = (Payload) Json.fromJsonTree(dataJson, Presence.class);
-                    break;
-                default:
-                    break;
+                    case PRS:
+                        data = (Payload) Json.fromJsonTree(dataJson, Presence.class);
+                        break;
+                    case QNE:
+                        data = (Payload) Json.fromJsonTree(dataJson, QnePayload.class);
+                        break;
+                    default:
+                        break;
                 }
             }
 
