@@ -6,11 +6,13 @@ public class RestApi {
 
     private String path;
     private int port;
+    private transient boolean faulty;
 
     public RestApi(String path, int port) {
-        if (path == null)
+        if (path == null) {
             throw new IllegalArgumentException("path cannot be null");
-
+        }
+        this.faulty = false;
         this.path = path;
         this.port = port;
     }
@@ -36,7 +38,7 @@ public class RestApi {
     public boolean equals(Object obj) {
         try {
             RestApi other = (RestApi) obj;
-            return path.equals(other.path) && port == other.port;
+            return path.equals(other.path) && port == other.port && faulty == other.faulty;
         } catch (Exception any) {
             return false;
         }
@@ -45,5 +47,13 @@ public class RestApi {
     @Override
     public String toString() {
         return Json.toJsonString(this);
+    }
+
+    public void markAsFaulty() {
+        faulty = true;
+    }
+
+    public boolean isFaulty() {
+        return faulty;
     }
 }

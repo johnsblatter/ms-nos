@@ -82,9 +82,9 @@ public class MicroserviceTest {
     public void shouldProcessQNEMsgs() throws Exception {
         uService1.join(cloud);
 
-        simulateMessageFromCloud(getQNEMessage(otherMs.getAgent(), uService1.getAgent()));
+        simulateMessageFromCloud(getQNEMessage(otherMs, uService1.getAgent()));
 
-        assertTrue(uService1.getMicroServices().containsKey(otherMs.getAgent().getIden()));
+        assertTrue(iterateMicroServiceListGetByName(uService1, otherMs));
     }
 
     @Test
@@ -92,13 +92,12 @@ public class MicroserviceTest {
         uService1.join(cloud);
         Microservice remoteMicroservice = new Microservice("remote");
 
-        simulateMessageFromCloud(getQNEMessage(remoteMicroservice.getAgent(), uService1.getAgent()));
-        assertTrue(uService1.getMicroServices().containsKey(remoteMicroservice.getAgent().getIden()));
+        simulateMessageFromCloud(getQNEMessage(remoteMicroservice, uService1.getAgent()));
+        assertTrue(iterateMicroServiceListGetByName(uService1, remoteMicroservice));
 
         simulateMessageFromCloud(getFaultMessage(remoteMicroservice.getAgent()));
 
-        assertFalse(uService1.getMicroServices().containsKey(remoteMicroservice.getAgent().getIden()));
-
+        assertFalse(iterateMicroServiceListGetByName(uService1, remoteMicroservice));
     }
 
     @Test
@@ -125,6 +124,73 @@ public class MicroserviceTest {
         assertEquals(Message.Type.ENQ, msg.getType());
     }
 
+    @Test
+    public void shouldReturnCorrectRestApi() throws Exception {
+        Microservice localMicroservice = getLocalMicroservice();
+        String endpoint = "/files";
+
+        setupRemoteMicroservice("content", endpoint);
+        setupRemoteMicroservice("content", endpoint);
+        setupRemoteMicroservice("peoples", "/users");
+        setupRemoteMicroservice("content", "/folders");
+
+        RestApi result = localMicroservice.searchApi("content", endpoint);
+
+        assertFalse(result.getPath().equals("/folders"));
+        assertTrue(endpoint.equals(result.getPath()));
+    }
+
+    @Test
+    public void shouldBeAbleToMarkRestApiAsFaulty() throws Exception {
+        Microservice localMicroservice = getLocalMicroservice();
+
+        setupRemoteMicroservice("content", "/files");
+        setupRemoteMicroservice("content", "/files");
+        setupRemoteMicroservice("peoples", "/users");
+        setupRemoteMicroservice("content", "/folders");
+
+        RestApi result1 = localMicroservice.searchApi("content", "/files");
+        result1.markAsFaulty();
+
+        RestApi result2 = localMicroservice.searchApi("content", "/files");
+        assertFalse(result2.equals(result1));
+    }
+
+    @Test
+    public void shouldReturnNullWhenNoWorkingMicroserviceAvailable() throws Exception {
+        Microservice localMicroservice = getLocalMicroservice();
+
+        setupRemoteMicroservice("content", "/files");
+        setupRemoteMicroservice("content", "/files");
+        setupRemoteMicroservice("peoples", "/users");
+        setupRemoteMicroservice("content", "/folders");
+
+        RestApi result1 = localMicroservice.searchApi("peoples", "/users");
+        result1.markAsFaulty();
+
+        RestApi result2 = localMicroservice.searchApi("peoples", "/users");
+
+        assertNull(result2);
+    }
+
+    private Microservice getLocalMicroservice() throws IOException {
+        uService1.join(cloud);
+        return uService1;
+    }
+
+    private boolean iterateMicroServiceListGetByName(Microservice ms1, Microservice ms2) {
+        for (RemoteMicroservice remote : ms1.getMicroServices()) {
+            if (remote.getName().equals(ms2.getName())) return true;
+        }
+        return false;
+    }
+
+    private Microservice setupRemoteMicroservice(String name, String endpoint) throws IOException {
+        Microservice remote = new Microservice(name);
+        simulateMessageFromCloud(new Message(Message.Type.QNE, remote.getAgent().getIden(), cloud.getIden(), 2, false, new QnePayload(name, new RestApi(endpoint, 9999))));
+        return remote;
+    }
+
     private Message getENQMessage(Identifiable from, Identifiable to) {
         return new Message(Message.Type.ENQ, from.getIden(), to.getIden(), 2, false, null);
 
@@ -146,8 +212,8 @@ public class MicroserviceTest {
         cloudListener.getValue().onMessage(message);
     }
 
-    private Message getQNEMessage(Identifiable from, Identifiable to) {
-        return new Message(Message.Type.QNE, from.getIden(), to.getIden(), 2, false, new QnePayload(otherMs.getName(), new RestApi("/someApi/otherMS", 222)));
+    private Message getQNEMessage(Microservice from, Identifiable to) {
+        return new Message(Message.Type.QNE, from.getAgent().getIden(), to.getIden(), 2, false, new QnePayload(from.getName(), new RestApi("/" + from.getName(), 222)));
     }
 
     private void fakeSystemTime(final long time) {
