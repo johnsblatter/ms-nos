@@ -21,30 +21,34 @@ public class Microservice {
     private final Agent agent;
 
     private Cloud cloud;
-    private final Map<Iden, Set<RestApi>> microServices;
+    private final List<RemoteMicroservice> microServices;
 
     public Microservice(String name) {
         this.name = name;
         this.apis = new ArrayList<RestApi>();
-        this.microServices = new HashMap<Iden, Set<RestApi>>();
+        this.microServices = new ArrayList<RemoteMicroservice>();
         this.agent = new Agent(UUID.randomUUID());
         this.cloud = null;
     }
 
-    public Agent getAgent() {
-        return agent;
+    public Iden getAgentIden() {
+        return agent.getIden();
     }
 
     public String getName() {
         return name;
     }
 
-    public List<RestApi> listApis() {
-        return Collections.unmodifiableList(apis);
+    public Set<RestApi> getApis() {
+        return Collections.unmodifiableSet(new HashSet<RestApi>(apis));
     }
 
-    public Map<Iden, Set<RestApi>> getMicroServices() {
-        return Collections.unmodifiableMap(microServices);
+    public Agent getAgent() {
+        return agent;
+    }
+
+    public List<RemoteMicroservice> getMicroServices() {
+        return Collections.unmodifiableList(microServices);
     }
 
     public void join(Cloud nimbus) throws IOException {
@@ -64,10 +68,10 @@ public class Microservice {
         agent.send(message);
     }
 
-    public void publish(RestApi api) throws IOException {
+    public void publish(RestApi... api) throws IOException {
         Message message = new Message(Message.Type.QNE, agent.getIden(), cloud.getIden(), 2, false, new QnePayload(name, api));
         agent.send(message);
-        apis.add(api);
+        apis.addAll(Arrays.asList(api));
     }
 
     private void process(Message message) throws IOException {
@@ -85,25 +89,39 @@ public class Microservice {
     }
 
     private void processENQ() throws IOException {
-        agent.send(new Message(Message.Type.QNE, agent.getIden(), cloud.getIden(), 2, false, new QnePayload(name, new HashSet<RestApi>(listApis()))));
+        agent.send(new Message(Message.Type.QNE, agent.getIden(), cloud.getIden(), 2, false, new QnePayload(name, getApis())));
     }
 
     private void processQNE(Message message) {
         synchronized (microServices) {
+            String name = ((QnePayload) message.getData()).getName();
             Iden iden = message.getFrom();
             Set<RestApi> apis = ((QnePayload) message.getData()).getApis();
-            if (!microServices.containsKey(iden)) {
-                microServices.put(iden, apis);
-            }
+            microServices.add(new RemoteMicroservice(iden, name, apis));
         }
     }
 
     private void processFault(Message message) {
         FltPayload fault = (FltPayload) message.getData();
         synchronized (microServices) {
-            microServices.remove(fault.getAbout());
+            for (int i = 0; i < microServices.size(); i++) {
+                if (microServices.get(i).getIden().equals(fault.getAbout())) {
+                    microServices.remove(microServices.get(i));
+                    break;
+                }
+            }
         }
-
     }
 
+    public RestApi searchApi(String name, String endpoint) throws Exception {
+        synchronized (microServices) {
+            for (RemoteMicroservice remote : microServices) {
+                for (RestApi rest : remote.getApis()) {
+                    if (remote.getName().contains(name) && rest.getPath().contains(endpoint) && !rest.isFaulty())
+                        return rest;
+                }
+            }
+        }
+        return null;
+    }
 }
