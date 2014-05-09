@@ -76,7 +76,6 @@ public class Network {
             int i = 1 + b;
             tot *= i;
         }
-
         return tot;
     }
 
@@ -84,7 +83,6 @@ public class Network {
     public boolean equals(Object obj) {
         try {
             Network other = (Network) obj;
-
             if (address.length != other.address.length)
                 return false;
 
@@ -95,7 +93,6 @@ public class Network {
                 if (address[i] != other.address[i])
                     return false;
             }
-
             return true;
         } catch (Exception ignore) {
             return false;
@@ -112,7 +109,6 @@ public class Network {
                     lans.add(net);
             }
         }
-
         return lans;
     }
 }

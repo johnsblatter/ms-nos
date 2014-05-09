@@ -132,7 +132,7 @@ public class CloudTest {
     }
 
     @Test
-    public void shouldUpdateAgentsListWhenAgentJoinsTroughGateway() throws Exception {
+    public void shouldUpdateAgentsListWhenRemoteAgentJoins() throws Exception {
         Agent frank = new Agent(UUID.randomUUID());
 
         simulateAgentJoiningCloud(frank, thisCloud);
@@ -308,6 +308,23 @@ public class CloudTest {
         assertEquals(remoteAgent.getIden(), ((FltPayload) message.getData()).getAbout());
     }
 
+    @Test
+    public void shouldStoreHostInfoWhenRemoteAgentJoins() throws Exception {
+        Agent frank = new Agent(UUID.randomUUID());
+        Presence presence = (Presence) simulateAgentJoiningCloud(frank, thisCloud).getData();
+
+        Agent remoteFrank = getRemoteAgent(thisCloud, frank.getIden());
+
+        assertEquals(presence.getNetworks(), remoteFrank.getHosts());
+    }
+
+    private Agent getRemoteAgent(Cloud thisCloud, Iden iden) {
+        for (Agent agent : thisCloud.getAgents()) {
+            if (agent.getIden().equals(iden)) return agent;
+        }
+        return null;
+    }
+
     private void forceRunCloudPeriodicCheck() {
         Runnable runnable = capturePeriodicRunableCheck();
         runnable.run();
@@ -335,8 +352,10 @@ public class CloudTest {
         return value;
     }
 
-    private void simulateAgentJoiningCloud(Agent agent, Cloud cloud) {
-        simulateMessageFromNetwork(Messages.presence(agent, cloud));
+    private Message simulateAgentJoiningCloud(Agent agent, Cloud cloud) {
+        Message message = (Messages.presence(agent, cloud));
+        simulateMessageFromNetwork(message);
+        return message;
     }
 
     private void simulateAgentLeavingCloud(Agent agent, Cloud cloud) {
