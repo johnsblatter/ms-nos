@@ -171,6 +171,7 @@ public class Cloud implements Identifiable {
     private void processPresence(Message message) {
         Iden from = message.getFrom();
         Agent agent = new Agent(from, this);
+        agent.setHosts(((Presence) message.getData()).getNetworks());
         synchronized (agents) {
             if (!agents.containsKey(agent.getIden())) {
                 log.debug("Discovered new agent from network: {}", agent.toString());

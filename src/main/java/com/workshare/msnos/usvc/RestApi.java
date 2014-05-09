@@ -6,6 +6,7 @@ public class RestApi {
 
     private String path;
     private int port;
+    private String host;
     private transient boolean faulty;
 
     public RestApi(String path, int port) {
@@ -15,6 +16,17 @@ public class RestApi {
         this.faulty = false;
         this.path = path;
         this.port = port;
+        this.host = null;
+    }
+
+    public RestApi(String path, int port, String host) {
+        if (path == null) {
+            throw new IllegalArgumentException("path cannot be null");
+        }
+        this.faulty = false;
+        this.path = path;
+        this.port = port;
+        this.host = host;
     }
 
     public String getPath() {
@@ -56,4 +68,13 @@ public class RestApi {
     public boolean isFaulty() {
         return faulty;
     }
+
+    public RestApi withHost(String host) {
+        return new RestApi(path, port, host);
+    }
+
+    public String getHost() {
+        return host;
+    }
+
 }

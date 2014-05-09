@@ -1,12 +1,14 @@
 package com.workshare.msnos.core;
 
 import com.workshare.msnos.core.Cloud.Listener;
+import com.workshare.msnos.core.protocols.ip.Network;
 import com.workshare.msnos.soup.json.Json;
 import com.workshare.msnos.soup.time.SystemTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.Set;
 import java.util.UUID;
 
 import static com.workshare.msnos.core.Message.Type.DSC;
@@ -22,6 +24,7 @@ public class Agent implements Identifiable {
     private Listener listener;
     private boolean isRemote = true;
     private long accessTime;
+    private Set<Network> hosts;
 
     public Agent(UUID uuid) {
         this.iden = new Iden(Iden.Type.AGT, uuid);
@@ -138,5 +141,13 @@ public class Agent implements Identifiable {
 
     private boolean isDiscovery(Message message) {
         return message.getType() == DSC;
+    }
+
+    public Set<Network> getHosts() {
+        return hosts;
+    }
+
+    public void setHosts(Set<Network> hosts) {
+        this.hosts = hosts;
     }
 }

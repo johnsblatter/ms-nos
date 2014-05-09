@@ -1,15 +1,12 @@
 package com.workshare.msnos.core;
 
-import static com.workshare.msnos.core.Message.Type.PIN;
-import static com.workshare.msnos.core.Message.Type.PON;
-import static com.workshare.msnos.core.Message.Type.PRS;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.atLeastOnce;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
+import com.workshare.msnos.core.payloads.Presence;
+import com.workshare.msnos.core.protocols.ip.Network;
+import com.workshare.msnos.soup.time.SystemTime;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 
 import java.io.IOException;
 import java.net.NetworkInterface;
@@ -19,14 +16,10 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.ArgumentCaptor;
-
-import com.workshare.msnos.core.payloads.Presence;
-import com.workshare.msnos.core.protocols.ip.Network;
-import com.workshare.msnos.soup.time.SystemTime;
+import static com.workshare.msnos.core.Message.Type.*;
+import static org.junit.Assert.*;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.*;
 
 public class AgentTest {
 

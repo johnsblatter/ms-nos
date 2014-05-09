@@ -2,7 +2,6 @@ package com.workshare.msnos.usvc;
 
 import com.workshare.msnos.core.Agent;
 import com.workshare.msnos.core.Cloud;
-import com.workshare.msnos.core.Iden;
 import com.workshare.msnos.core.Message;
 import com.workshare.msnos.core.payloads.FltPayload;
 import com.workshare.msnos.core.payloads.QnePayload;
@@ -14,7 +13,7 @@ import java.util.*;
 
 public class Microservice {
 
-    private static final Logger log = LoggerFactory.getLogger("root");
+    private static final Logger log = LoggerFactory.getLogger("STANDARD");
 
     private final String name;
     private final List<RestApi> apis;
@@ -31,16 +30,12 @@ public class Microservice {
         this.cloud = null;
     }
 
-    public Iden getAgentIden() {
-        return agent.getIden();
-    }
-
     public String getName() {
         return name;
     }
 
     public Set<RestApi> getApis() {
-        return Collections.unmodifiableSet(new HashSet<RestApi>(apis));
+        return new HashSet<RestApi>(apis);
     }
 
     public Agent getAgent() {
@@ -94,10 +89,17 @@ public class Microservice {
 
     private void processQNE(Message message) {
         synchronized (microServices) {
-            String name = ((QnePayload) message.getData()).getName();
-            Iden iden = message.getFrom();
-            Set<RestApi> apis = ((QnePayload) message.getData()).getApis();
-            microServices.add(new RemoteMicroservice(iden, name, apis));
+            QnePayload qnePayload = ((QnePayload) message.getData());
+            String name = qnePayload.getName();
+            Set<RestApi> remoteApis = new HashSet<RestApi>(qnePayload.getApis());
+            Agent remoteAgent = null;
+            for (Agent agent : cloud.getAgents()) {
+                if (agent.getIden().equals(message.getFrom())) {
+                    remoteAgent = agent;
+                }
+            }
+            RemoteMicroservice remote = new RemoteMicroservice(name, remoteAgent, remoteApis);
+            microServices.add(remote);
         }
     }
 
@@ -105,7 +107,7 @@ public class Microservice {
         FltPayload fault = (FltPayload) message.getData();
         synchronized (microServices) {
             for (int i = 0; i < microServices.size(); i++) {
-                if (microServices.get(i).getIden().equals(fault.getAbout())) {
+                if (microServices.get(i).getAgent().getIden().equals(fault.getAbout())) {
                     microServices.remove(microServices.get(i));
                     break;
                 }
