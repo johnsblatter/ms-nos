@@ -31,6 +31,9 @@ public class MicroserviceTest {
         cloud = Mockito.mock(Cloud.class);
         gate1 = Mockito.mock(UDPGateway.class);
 
+        Agent remoteAgent = new Agent(UUID.randomUUID());
+        Mockito.when(cloud.getAgents()).thenReturn(new HashSet<Agent>(Arrays.asList(remoteAgent)));
+
         Iden iden = new Iden(Iden.Type.CLD, new UUID(111, 111));
 
         Mockito.when(cloud.getIden()).thenReturn(iden);
@@ -87,6 +90,8 @@ public class MicroserviceTest {
     @Test
     public void shouldBeRemovedWhenUnderlyingAgentDies() throws Exception {
         Microservice remoteMicroservice = new Microservice("remote");
+
+        putAgentInCloudAgentsList(remoteMicroservice.getAgent());
 
         simulateMessageFromCloud(getQNEMessage(remoteMicroservice, localMicroservice.getAgent()));
         assertTrue(iterateMicroServiceListGetByName(localMicroservice, remoteMicroservice));
@@ -165,6 +170,8 @@ public class MicroserviceTest {
     public void shouldCreateRemoteMicroserviceOnQNE() throws IOException {
         Agent remoteAgent = new Agent(UUID.randomUUID());
 
+        putAgentInCloudAgentsList(remoteAgent);
+
         simulateMessageFromCloud(newQNEMessage(remoteAgent));
 
         assertAgentInMicroserviceList(remoteAgent);
@@ -181,6 +188,10 @@ public class MicroserviceTest {
 
         RestApi api = getRestApi();
         assertEquals(api.getHost(), "10.10.10.10/15");
+    }
+
+    private void putAgentInCloudAgentsList(Agent agent) {
+        Mockito.when(cloud.getAgents()).thenReturn(new HashSet<Agent>(Arrays.asList(agent)));
     }
 
     private RestApi getRestApi() {
@@ -218,7 +229,7 @@ public class MicroserviceTest {
     }
 
     private RemoteMicroservice setupRemoteMicroservice(String name, String endpoint) throws IOException {
-        RestApi restApi = new RestApi(endpoint, 9999);
+        RestApi restApi = new RestApi(endpoint, 9999).withHost("10.10.10.10");
         RemoteMicroservice remote = new RemoteMicroservice("remote", new Agent(UUID.randomUUID()), toSet(restApi));
         simulateMessageFromCloud(new Message(Message.Type.QNE, remote.getAgent().getIden(), cloud.getIden(), 2, false, new QnePayload(name, restApi)));
         return remote;
