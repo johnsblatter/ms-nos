@@ -24,7 +24,7 @@ public class RemoteMicroservice {
         for (RestApi api : apis) {
             if (api.getHost() == null || api.getHost().isEmpty()) {
                 for (Network network : agent.getHosts()) {
-                    result.add(api.withHost(network.toString()));
+                    result.add(api.host(network.toString()));
                 }
             } else {
                 result.add(api);
