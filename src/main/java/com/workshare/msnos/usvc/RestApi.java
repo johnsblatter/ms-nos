@@ -1,5 +1,6 @@
 package com.workshare.msnos.usvc;
 
+import com.workshare.msnos.core.Agent;
 import com.workshare.msnos.soup.json.Json;
 
 public class RestApi {
@@ -8,6 +9,7 @@ public class RestApi {
     private int port;
     private String host;
     private transient boolean faulty;
+    private Agent agent;
 
     public RestApi(String path, int port) {
         if (path == null) {
@@ -27,6 +29,30 @@ public class RestApi {
         this.path = path;
         this.port = port;
         this.host = host;
+        this.agent = null;
+    }
+
+    public RestApi(String path, int port, String host, Agent agent) {
+        if (path == null) {
+            throw new IllegalArgumentException("path cannot be null");
+        }
+        this.faulty = false;
+        this.path = path;
+        this.port = port;
+        this.host = host;
+        this.agent = agent;
+    }
+
+    public RestApi host(String host) {
+        return new RestApi(path, port, host);
+    }
+
+    public RestApi agent(Agent agent) {
+        return new RestApi(path, port, host, agent);
+    }
+
+    public void markAsFaulty() {
+        faulty = true;
     }
 
     public String getPath() {
@@ -35,6 +61,18 @@ public class RestApi {
 
     public int getPort() {
         return port;
+    }
+
+    public boolean isFaulty() {
+        return faulty;
+    }
+
+    public String getHost() {
+        return host;
+    }
+
+    public Agent getAgent() {
+        return agent;
     }
 
     @Override
@@ -50,7 +88,7 @@ public class RestApi {
     public boolean equals(Object obj) {
         try {
             RestApi other = (RestApi) obj;
-            return path.equals(other.path) && port == other.port && faulty == other.faulty;
+            return path.equals(other.path) && port == other.port && faulty == other.faulty && agent.equals(other.agent);
         } catch (Exception any) {
             return false;
         }
@@ -60,21 +98,4 @@ public class RestApi {
     public String toString() {
         return Json.toJsonString(this);
     }
-
-    public void markAsFaulty() {
-        faulty = true;
-    }
-
-    public boolean isFaulty() {
-        return faulty;
-    }
-
-    public RestApi withHost(String host) {
-        return new RestApi(path, port, host);
-    }
-
-    public String getHost() {
-        return host;
-    }
-
 }

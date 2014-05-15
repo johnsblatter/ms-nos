@@ -18,14 +18,15 @@ public class Microservice {
     private final String name;
     private final List<RestApi> apis;
     private final Agent agent;
-
-    private Cloud cloud;
     private final List<RemoteMicroservice> microServices;
+    private final Set<Agent> faultyAgents;
+    private Cloud cloud;
 
     public Microservice(String name) {
         this.name = name;
         this.apis = new ArrayList<RestApi>();
         this.microServices = new ArrayList<RemoteMicroservice>();
+        faultyAgents = new HashSet<Agent>();
         this.agent = new Agent(UUID.randomUUID());
         this.cloud = null;
     }
@@ -119,11 +120,38 @@ public class Microservice {
         synchronized (microServices) {
             for (RemoteMicroservice remote : microServices) {
                 for (RestApi rest : remote.getApis()) {
-                    if (remote.getName().contains(name) && rest.getPath().contains(endpoint) && !rest.isFaulty())
-                        return rest;
+                    if (rest.isFaulty()) faultyAgents.add(rest.getAgent());
+                    if (apiDetailsCorrectAndNotFaulty(name, endpoint, remote, rest)) return rest;
                 }
             }
         }
         return null;
+    }
+
+    private boolean apiDetailsCorrectAndNotFaulty(String name, String endpoint, RemoteMicroservice remote, RestApi rest) {
+        if (remote.getName().contains(name) && rest.getPath().contains(endpoint)) {
+            if (faultyAgents.isEmpty()) return true;
+            for (Agent agent1 : faultyAgents) {
+                if (!rest.getAgent().equals(agent1)) return true;
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Microservice that = (Microservice) o;
+        return agent.equals(that.agent) && apis.equals(that.apis) && cloud.equals(that.cloud) && name.equals(that.name);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = name.hashCode();
+        result = 31 * result + apis.hashCode();
+        result = 31 * result + agent.hashCode();
+        result = 31 * result + cloud.hashCode();
+        return result;
     }
 }
