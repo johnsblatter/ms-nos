@@ -8,14 +8,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 
 import static com.workshare.msnos.core.Message.Type.DSC;
 import static com.workshare.msnos.core.Message.Type.PIN;
 
-public class Agent implements Identifiable {
+public class Agent implements AgentInterface {
 
     private static Logger log = LoggerFactory.getLogger(Agent.class);
 
@@ -23,8 +22,6 @@ public class Agent implements Identifiable {
 
     private Cloud cloud;
     private Listener listener;
-    private boolean isRemote = true;
-    private long accessTime;
     private Set<Network> hosts;
 
     public Agent(UUID uuid) {
@@ -37,6 +34,17 @@ public class Agent implements Identifiable {
         this.cloud = cloud;
     }
 
+    public Agent(Iden iden, Cloud cloud, Set<Network> hosts) {
+        this.iden = iden;
+        this.cloud = cloud;
+        this.hosts = hosts;
+    }
+
+    public Agent withHosts(Set<Network> hosts) {
+        return new Agent(iden, cloud, hosts);
+    }
+
+    @Override
     public Iden getIden() {
         return iden;
     }
@@ -46,25 +54,12 @@ public class Agent implements Identifiable {
     }
 
     public long getAccessTime() {
-        if (isRemote) {
-            return accessTime;
-        } else {
-            return SystemTime.asMillis();
-        }
-    }
-
-    private void setAccessTime(long accessTime) {
-        this.accessTime = accessTime;
-    }
-
-    public void touch() {
-        setAccessTime(SystemTime.asMillis());
+        return SystemTime.asMillis();
     }
 
     public Agent join(Cloud cloud) throws IOException {
         this.cloud = cloud;
         cloud.onJoin(this);
-        isRemote = false;
         log.debug("Joined: {} as Agent: {}", getCloud(), this);
         listener = cloud.addListener(new Listener() {
             @Override
@@ -118,7 +113,7 @@ public class Agent implements Identifiable {
     @Override
     public boolean equals(Object other) {
         try {
-            return this.iden.equals(((Agent) (other)).getIden());
+            return this.iden.equals(((AgentInterface) (other)).getIden());
         } catch (Exception any) {
             return false;
         }
@@ -146,9 +141,5 @@ public class Agent implements Identifiable {
 
     public Set<Network> getHosts() {
         return hosts;
-    }
-
-    public void setHosts(Set<Network> hosts) {
-        this.hosts = hosts;
     }
 }

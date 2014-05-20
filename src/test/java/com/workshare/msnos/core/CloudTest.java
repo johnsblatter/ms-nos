@@ -29,6 +29,10 @@ import static org.mockito.Mockito.*;
 
 public class CloudTest {
 
+    private static final Iden SOMEONE = new Iden(Iden.Type.AGT, UUID.randomUUID());
+    private static final Iden SOMEONELSE = new Iden(Iden.Type.AGT, UUID.randomUUID());
+    private static final Iden MY_CLOUD = new Iden(Iden.Type.CLD, UUID.randomUUID());
+
     private Gateway gate1;
     private Gateway gate2;
 
@@ -36,12 +40,7 @@ public class CloudTest {
     private Cloud otherCloud;
 
     private ScheduledExecutorService scheduler;
-
     private List<Message> messages;
-
-    private static final Iden SOMEONE = new Iden(Iden.Type.AGT, UUID.randomUUID());
-    private static final Iden SOMEONELSE = new Iden(Iden.Type.AGT, UUID.randomUUID());
-    private static final Iden MY_CLOUD = new Iden(Iden.Type.CLD, UUID.randomUUID());
 
     @Before
     public void init() throws Exception {
@@ -119,25 +118,18 @@ public class CloudTest {
 
         smith.join(thisCloud);
 
-        assertTrue(thisCloud.getAgents().contains(smith));
+        assertTrue(thisCloud.getLocalAgents().contains(smith));
     }
 
     @Test
     public void shouldUpdateAgentsListWhenAgentPongs() throws Exception {
-        Agent smith = new Agent(UUID.randomUUID());
+        UUID uuid = UUID.randomUUID();
+        RemoteAgent smithRemote = new RemoteAgent(uuid);
+        Agent smith = new Agent(uuid);
 
         simulateMessageFromNetwork(Messages.pong(smith, thisCloud));
 
-        assertTrue(thisCloud.getAgents().contains(smith));
-    }
-
-    @Test
-    public void shouldUpdateAgentsListWhenRemoteAgentJoins() throws Exception {
-        Agent frank = new Agent(UUID.randomUUID());
-
-        simulateAgentJoiningCloud(frank, thisCloud);
-
-        assertTrue(thisCloud.getAgents().contains(frank));
+        assertTrue(thisCloud.getRemoteAgents().contains(smithRemote));
     }
 
     @Test
@@ -146,13 +138,13 @@ public class CloudTest {
 
         jeff.join(thisCloud);
 
-        assertTrue(thisCloud.getAgents().contains(jeff));
+        assertTrue(thisCloud.getLocalAgents().contains(jeff));
 
         jeff.leave(thisCloud);
 
         simulateAgentLeavingCloud(jeff, thisCloud);
 
-        assertFalse(thisCloud.getAgents().contains(jeff));
+        assertFalse(thisCloud.getLocalAgents().contains(jeff));
     }
 
     @Test
@@ -177,7 +169,7 @@ public class CloudTest {
 
         simulateAgentJoiningCloud(frank, otherCloud);
 
-        assertFalse(thisCloud.getAgents().contains(frank));
+        assertFalse(thisCloud.getLocalAgents().contains(frank));
     }
 
     @Test
@@ -251,7 +243,7 @@ public class CloudTest {
         simulateMessageFromNetwork(Messages.presence(remoteAgent, thisCloud));
 
         fakeSystemTime(99999L);
-        assertEquals(12345L, getAgentAccessTime(thisCloud, remoteAgent));
+        assertEquals(12345L, getRemoteAgentAccessTime(thisCloud, remoteAgent));
     }
 
     @Test
@@ -263,7 +255,7 @@ public class CloudTest {
         simulateMessageFromNetwork(Messages.ping(remoteAgent, thisCloud));
 
         fakeSystemTime(99999L);
-        assertEquals(12345L, getAgentAccessTime(thisCloud, remoteAgent));
+        assertEquals(12345L, getRemoteAgentAccessTime(thisCloud, remoteAgent));
     }
 
     @Test
@@ -290,7 +282,7 @@ public class CloudTest {
         fakeSystemTime(999999L);
         forceRunCloudPeriodicCheck();
 
-        assertTrue(!thisCloud.getAgents().contains(remoteAgent));
+        assertTrue(!thisCloud.getLocalAgents().contains(remoteAgent));
     }
 
     @Test
@@ -313,13 +305,22 @@ public class CloudTest {
         Agent frank = new Agent(UUID.randomUUID());
         Presence presence = (Presence) simulateAgentJoiningCloud(frank, thisCloud).getData();
 
-        Agent remoteFrank = getRemoteAgent(thisCloud, frank.getIden());
+        RemoteAgent remoteFrank = getRemoteAgent(thisCloud, frank.getIden());
 
         assertEquals(presence.getNetworks(), remoteFrank.getHosts());
     }
 
-    private Agent getRemoteAgent(Cloud thisCloud, Iden iden) {
-        for (Agent agent : thisCloud.getAgents()) {
+    @Test
+    public void shouldUpdateRemoteAgentsWhenARemoteJoins() throws Exception {
+        Agent frank = new Agent(UUID.randomUUID());
+
+        simulateAgentJoiningCloud(frank, thisCloud);
+
+        assertEquals(frank.getIden(), thisCloud.getRemoteAgents().iterator().next().getIden());
+    }
+
+    private RemoteAgent getRemoteAgent(Cloud thisCloud, Iden iden) {
+        for (RemoteAgent agent : thisCloud.getRemoteAgents()) {
             if (agent.getIden().equals(iden)) return agent;
         }
         return null;
@@ -336,9 +337,9 @@ public class CloudTest {
         return captor.getValue();
     }
 
-    private long getAgentAccessTime(Cloud cloud, Agent agent) {
-        Collection<Agent> agents = cloud.getAgents();
-        for (Agent a : agents) {
+    private long getRemoteAgentAccessTime(Cloud cloud, Agent agent) {
+        Collection<RemoteAgent> agents = cloud.getRemoteAgents();
+        for (RemoteAgent a : agents) {
             if (a.getIden().equals(agent.getIden()))
                 return a.getAccessTime();
         }

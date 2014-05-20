@@ -3,6 +3,7 @@ package com.workshare.msnos.usvc;
 import com.workshare.msnos.core.Agent;
 import com.workshare.msnos.core.Cloud;
 import com.workshare.msnos.core.Message;
+import com.workshare.msnos.core.RemoteAgent;
 import com.workshare.msnos.core.payloads.FltPayload;
 import com.workshare.msnos.core.payloads.QnePayload;
 import org.slf4j.Logger;
@@ -19,16 +20,17 @@ public class Microservice {
     private final List<RestApi> apis;
     private final Agent agent;
     private final List<RemoteMicroservice> microServices;
-    private final Set<Agent> faultyAgents;
+    private final List<RemoteMicroservice> faultyMicroservices;
     private Cloud cloud;
 
     public Microservice(String name) {
         this.name = name;
         this.apis = new ArrayList<RestApi>();
-        this.microServices = new ArrayList<RemoteMicroservice>();
-        faultyAgents = new HashSet<Agent>();
         this.agent = new Agent(UUID.randomUUID());
         this.cloud = null;
+
+        microServices = new ArrayList<RemoteMicroservice>();
+        faultyMicroservices = new ArrayList<RemoteMicroservice>();
     }
 
     public String getName() {
@@ -93,8 +95,8 @@ public class Microservice {
             QnePayload qnePayload = ((QnePayload) message.getData());
             String name = qnePayload.getName();
             Set<RestApi> remoteApis = new HashSet<RestApi>(qnePayload.getApis());
-            Agent remoteAgent = null;
-            for (Agent agent : cloud.getAgents()) {
+            RemoteAgent remoteAgent = null;
+            for (RemoteAgent agent : cloud.getRemoteAgents()) {
                 if (agent.getIden().equals(message.getFrom())) {
                     remoteAgent = agent;
                 }
@@ -120,22 +122,13 @@ public class Microservice {
         synchronized (microServices) {
             for (RemoteMicroservice remote : microServices) {
                 for (RestApi rest : remote.getApis()) {
-                    if (rest.isFaulty()) faultyAgents.add(rest.getAgent());
-                    if (apiDetailsCorrectAndNotFaulty(name, endpoint, remote, rest)) return rest;
+                    if (rest.isFaulty()) faultyMicroservices.add(remote);
+                    if (remote.getName().contains(name) && rest.getPath().contains(endpoint) && !faultyMicroservices.contains(remote))
+                        return rest;
                 }
             }
         }
         return null;
-    }
-
-    private boolean apiDetailsCorrectAndNotFaulty(String name, String endpoint, RemoteMicroservice remote, RestApi rest) {
-        if (remote.getName().contains(name) && rest.getPath().contains(endpoint)) {
-            if (faultyAgents.isEmpty()) return true;
-            for (Agent agent1 : faultyAgents) {
-                if (!rest.getAgent().equals(agent1)) return true;
-            }
-        }
-        return false;
     }
 
     @Override
@@ -143,7 +136,7 @@ public class Microservice {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Microservice that = (Microservice) o;
-        return agent.equals(that.agent) && apis.equals(that.apis) && cloud.equals(that.cloud) && name.equals(that.name);
+        return this.hashCode() == that.hashCode() && name.equals(that.name);
     }
 
     @Override

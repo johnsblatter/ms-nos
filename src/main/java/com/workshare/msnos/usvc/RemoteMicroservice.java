@@ -1,6 +1,6 @@
 package com.workshare.msnos.usvc;
 
-import com.workshare.msnos.core.Agent;
+import com.workshare.msnos.core.RemoteAgent;
 import com.workshare.msnos.core.protocols.ip.Network;
 
 import java.util.HashSet;
@@ -8,11 +8,11 @@ import java.util.Set;
 
 public class RemoteMicroservice {
 
-    private Agent agent;
+    private RemoteAgent agent;
     private String name;
     private Set<RestApi> apis;
 
-    public RemoteMicroservice(String name, Agent agent, Set<RestApi> apis) {
+    public RemoteMicroservice(String name, RemoteAgent agent, Set<RestApi> apis) {
         this.name = name;
         this.apis = apis;
         this.agent = agent;
@@ -42,7 +42,7 @@ public class RemoteMicroservice {
         return apis;
     }
 
-    public Agent getAgent() {
+    public RemoteAgent getAgent() {
         return agent;
     }
 }
