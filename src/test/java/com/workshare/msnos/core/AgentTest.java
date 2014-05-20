@@ -131,7 +131,7 @@ public class AgentTest {
     @Test
     public void otherAgentsShouldNOTStillSeeAgentOnLeave() throws Exception {
         smith.leave(cloud);
-        assertFalse(karl.getCloud().getAgents().contains(smith));
+        assertFalse(karl.getCloud().getLocalAgents().contains(smith));
     }
 
     private Message getLastMessageToCloud() throws IOException {
@@ -144,6 +144,14 @@ public class AgentTest {
         ArgumentCaptor<Cloud.Listener> cloudListener = ArgumentCaptor.forClass(Cloud.Listener.class);
         verify(cloud, atLeastOnce()).addListener(cloudListener.capture());
         cloudListener.getValue().onMessage(message);
+    }
+
+    private void fakeSystemTime(final long time) {
+        SystemTime.setTimeSource(new SystemTime.TimeSource() {
+            public long millis() {
+                return time;
+            }
+        });
     }
 
     private static Set<Network> getNetworks() throws SocketException {
@@ -159,13 +167,5 @@ public class AgentTest {
             throw e;
         }
         return nets;
-    }
-
-    private void fakeSystemTime(final long time) {
-        SystemTime.setTimeSource(new SystemTime.TimeSource() {
-            public long millis() {
-                return time;
-            }
-        });
     }
 }

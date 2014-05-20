@@ -43,6 +43,7 @@ public class Cloud implements Identifiable {
 
     private final Iden iden;
     private final Map<Iden, Agent> agents;
+    private final Map<Iden, RemoteAgent> remoteAgents;
 
     transient private final Set<Gateway> gates;
     transient private final Multicaster caster;
@@ -59,6 +60,7 @@ public class Cloud implements Identifiable {
     public Cloud(UUID uuid, Set<Gateway> gates, Multicaster multicaster, ScheduledExecutorService executor) {
         this.iden = new Iden(Iden.Type.CLD, uuid);
         this.agents = new HashMap<Iden, Agent>();
+        this.remoteAgents = new HashMap<Iden, RemoteAgent>();
         this.caster = multicaster;
         this.gates = gates;
         this.scheduler = executor;
@@ -90,7 +92,11 @@ public class Cloud implements Identifiable {
         return iden;
     }
 
-    public Collection<Agent> getAgents() {
+    public Collection<RemoteAgent> getRemoteAgents() {
+        return Collections.unmodifiableCollection(remoteAgents.values());
+    }
+
+    public Collection<Agent> getLocalAgents() {
         return Collections.unmodifiableCollection(agents.values());
     }
 
@@ -100,7 +106,7 @@ public class Cloud implements Identifiable {
 
     private void probeQuietAgents() throws IOException {
         log.trace("Probing quite agents...");
-        for (Agent agent : getAgents()) {
+        for (RemoteAgent agent : getRemoteAgents()) {
             if (agent.getAccessTime() < SystemTime.asMillis() - AGENT_TIMEOUT) {
                 log.debug("- sending ping to {}", agent.toString());
                 send(Messages.ping(this, agent));
@@ -115,7 +121,6 @@ public class Cloud implements Identifiable {
     }
 
     public Receipt send(Message message) throws IOException {
-
         proto.info("TX: {} {} {}", message.getType(), message.getFrom(), message.getData());
 
         MultiGatewayReceipt res = new MultiGatewayReceipt(message);
@@ -126,20 +131,20 @@ public class Cloud implements Identifiable {
         return res;
     }
 
-    void onLeave(Agent agent) throws IOException {
-        send(Messages.absence(agent, this));
-        synchronized (agents) {
-            log.debug("Local agent left: {}", agent);
-            agents.remove(agent.getIden());
-        }
-    }
-
     void onJoin(Agent agent) throws IOException {
         send(Messages.presence(agent, this));
         send(Messages.discovery(agent, this));
         synchronized (agents) {
             log.debug("Local agent joined: {}", agent);
             agents.put(agent.getIden(), agent);
+        }
+    }
+
+    void onLeave(Agent agent) throws IOException {
+        send(Messages.absence(agent, this));
+        synchronized (agents) {
+            log.debug("Local agent left: {}", agent);
+            agents.remove(agent.getIden());
         }
     }
 
@@ -170,32 +175,31 @@ public class Cloud implements Identifiable {
 
     private void processPresence(Message message) {
         Iden from = message.getFrom();
-        Agent agent = new Agent(from, this);
-        agent.setHosts(((Presence) message.getData()).getNetworks());
-        synchronized (agents) {
+        RemoteAgent agent = new RemoteAgent(from, this).withHosts(((Presence) message.getData()).getNetworks());
+        synchronized (remoteAgents) {
             if (!agents.containsKey(agent.getIden())) {
                 log.debug("Discovered new agent from network: {}", agent.toString());
-                agents.put(agent.getIden(), agent);
+                remoteAgents.put(agent.getIden(), agent);
             }
         }
     }
 
     private void processAbsence(Message message) {
         Iden from = message.getFrom();
-        Agent agent = new Agent(from, this);
-        synchronized (agents) {
+        RemoteAgent agent = new RemoteAgent(from, this);
+        synchronized (remoteAgents) {
             log.debug("Agent from network leaving: {}", agent.toString());
-            agents.remove(agent.getIden());
+            remoteAgents.remove(agent.getIden());
         }
     }
 
     private void processPong(Message message) {
         Iden from = message.getFrom();
-        Agent agent = new Agent(from, this);
-        synchronized (agents) {
-            if (!agents.containsKey(agent.getIden())) {
+        RemoteAgent agent = new RemoteAgent(from, this);
+        synchronized (remoteAgents) {
+            if (!remoteAgents.containsKey(agent.getIden())) {
                 log.debug("Ping from network agent, updating list with: {}", agent.toString());
-                agents.put(agent.getIden(), agent);
+                remoteAgents.put(agent.getIden(), agent);
             }
         }
     }
@@ -218,8 +222,8 @@ public class Cloud implements Identifiable {
     }
 
     private void touchSourceAgent(Message message) {
-        if (agents.containsKey(message.getFrom())) {
-            Agent agent = agents.get(message.getFrom());
+        if (remoteAgents.containsKey(message.getFrom())) {
+            RemoteAgent agent = remoteAgents.get(message.getFrom());
             agent.touch();
         }
     }

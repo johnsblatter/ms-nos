@@ -23,7 +23,7 @@ public class ThreadSafeGson {
                 res.add("iden", context.serialize(src.getIden()));
 
                 final JsonArray idens = new JsonArray();
-                for (final Agent agent : src.getAgents()) {
+                for (final Agent agent : src.getLocalAgents()) {
                     idens.add(context.serialize(agent.getIden()));
                 }
                 res.add("agents", idens);

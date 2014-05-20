@@ -32,7 +32,7 @@ public class MicroserviceTest {
         gate1 = Mockito.mock(UDPGateway.class);
 
         Agent remoteAgent = new Agent(UUID.randomUUID());
-        Mockito.when(cloud.getAgents()).thenReturn(new HashSet<Agent>(Arrays.asList(remoteAgent)));
+        Mockito.when(cloud.getLocalAgents()).thenReturn(new HashSet<Agent>(Arrays.asList(remoteAgent)));
 
         Iden iden = new Iden(Iden.Type.CLD, new UUID(111, 111));
 
@@ -57,7 +57,7 @@ public class MicroserviceTest {
 
         localMicroservice.join(cloud);
 
-        assertEquals(localMicroservice.getAgent(), cloud.getAgents().iterator().next());
+        assertEquals(localMicroservice.getAgent(), cloud.getLocalAgents().iterator().next());
     }
 
     @Test
@@ -68,8 +68,9 @@ public class MicroserviceTest {
         Message msg = getLastMessageSent();
         assertEquals(Message.Type.QNE, msg.getType());
         assertEquals(cloud.getIden(), msg.getTo());
+
         Set<RestApi> apis = ((QnePayload) msg.getData()).getApis();
-        assertEquals(api, apis.iterator().next());
+        assertTrue(api.equals(apis.iterator().next()));
     }
 
     @Test
@@ -91,7 +92,7 @@ public class MicroserviceTest {
     public void shouldBeRemovedWhenUnderlyingAgentDies() throws Exception {
         Microservice remoteMicroservice = new Microservice("remote");
 
-        putAgentInCloudAgentsList(remoteMicroservice.getAgent());
+        putRemoteAgentInCloudAgentsList(remoteMicroservice.getAgent());
 
         simulateMessageFromCloud(getQNEMessage(remoteMicroservice, localMicroservice.getAgent()));
         assertTrue(iterateMicroServiceListGetByName(localMicroservice, remoteMicroservice));
@@ -170,21 +171,20 @@ public class MicroserviceTest {
     public void shouldCreateRemoteMicroserviceOnQNE() throws IOException {
         Agent remoteAgent = new Agent(UUID.randomUUID());
 
-        putAgentInCloudAgentsList(remoteAgent);
+        putRemoteAgentInCloudAgentsList(remoteAgent);
 
-        simulateMessageFromCloud(newQNEMessage(remoteAgent));
+        simulateMessageFromCloud(newQNEMessage(remoteAgent.getIden()));
 
         assertAgentInMicroserviceList(remoteAgent);
     }
 
     @Test
     public void shouldCreateBoundRestApisWhenRestApiNotBound() throws IOException {
-        Agent remoteAgent = new Agent(UUID.randomUUID());
-        fakeHosts(remoteAgent, new byte[]{10, 10, 10, 10});
-        Mockito.when(cloud.getAgents()).thenReturn(new HashSet<Agent>(Arrays.asList(remoteAgent)));
+        RemoteAgent remoteAgent = getRemoteAgentWithFakeHosts();
+        Mockito.when(cloud.getRemoteAgents()).thenReturn(new HashSet<RemoteAgent>(Arrays.asList(remoteAgent)));
 
         RestApi unboundApi = new RestApi("/files", 9999);
-        simulateMessageFromCloud(newQNEMessage(remoteAgent, unboundApi));
+        simulateMessageFromCloud(newQNEMessage(remoteAgent.getIden(), unboundApi));
 
         RestApi api = getRestApi();
         assertEquals(api.getHost(), "10.10.10.10/15");
@@ -192,28 +192,23 @@ public class MicroserviceTest {
 
     @Test
     public void whenRestApiMarkedAsFaultyNextMicroServiceSelected() throws Exception {
-        setupTwoRemoteMicroserviceEntriesWithSameAgent();
+        setupRemoteMicroserviceWithMultipleRestAPIs("content", "/files");
         setupRemoteMicroservice("content", "/files");
 
         RestApi result1 = localMicroservice.searchApi("content", "/files");
         result1.markAsFaulty();
 
         RestApi result2 = localMicroservice.searchApi("content", "/files");
-        assertFalse(result2.getAgent().equals(result1.getAgent()));
+        assertEquals(result2.getHost(), "10.10.10.10");
     }
 
-    private void setupTwoRemoteMicroserviceEntriesWithSameAgent() {
-        Agent agent = new Agent(UUID.randomUUID());
-        RestApi restApi = new RestApi("/files", 9999).host("10.10.10.10").agent(agent);
-        RemoteMicroservice remote = new RemoteMicroservice("content", agent, toSet(restApi));
-        simulateMessageFromCloud(new Message(Message.Type.QNE, remote.getAgent().getIden(), cloud.getIden(), 2, false, new QnePayload("content", restApi)));
-        restApi = new RestApi("/files", 9999).host("10.10.10.10").agent(agent);
-        RemoteMicroservice remote2 = new RemoteMicroservice("content", agent, toSet(restApi));
-        simulateMessageFromCloud(new Message(Message.Type.QNE, remote2.getAgent().getIden(), cloud.getIden(), 2, false, new QnePayload("content", restApi)));
+    private RemoteAgent getRemoteAgentWithFakeHosts() {
+        return new RemoteAgent(UUID.randomUUID()).withHosts(new HashSet<Network>(Arrays.asList(new Network(new byte[]{10, 10, 10, 10}, (short) 15))));
     }
 
-    private void putAgentInCloudAgentsList(Agent agent) {
-        Mockito.when(cloud.getAgents()).thenReturn(new HashSet<Agent>(Arrays.asList(agent)));
+    private void putRemoteAgentInCloudAgentsList(Agent agent) {
+        RemoteAgent remote = new RemoteAgent(agent.getIden(), cloud);
+        Mockito.when(cloud.getRemoteAgents()).thenReturn(new HashSet<RemoteAgent>(Arrays.asList(remote)));
     }
 
     private RestApi getRestApi() {
@@ -222,19 +217,14 @@ public class MicroserviceTest {
         return apis.iterator().next();
     }
 
-    private void fakeHosts(Agent remoteAgent, byte[] host) {
-        remoteAgent.setHosts(new HashSet<Network>(Arrays.asList(new Network(host, (short) 15))));
-    }
-
     private void assertAgentInMicroserviceList(Agent remoteAgent) {
         for (RemoteMicroservice remote : localMicroservice.getMicroServices()) {
             assertEquals(remote.getAgent(), remoteAgent);
         }
     }
 
-
-    private Message newQNEMessage(Agent remoteAgent, RestApi... apis) {
-        return new Message(Message.Type.QNE, remoteAgent.getIden(), cloud.getIden(), 2, false, new QnePayload("content", apis));
+    private Message newQNEMessage(Iden iden, RestApi... apis) {
+        return new Message(Message.Type.QNE, iden, cloud.getIden(), 2, false, new QnePayload("content", apis));
     }
 
     private Microservice getLocalMicroservice() throws IOException {
@@ -250,9 +240,18 @@ public class MicroserviceTest {
         return false;
     }
 
+    private RemoteMicroservice setupRemoteMicroserviceWithMultipleRestAPIs(String name, String endpoint) throws IOException {
+        RemoteAgent agent = new RemoteAgent(UUID.randomUUID());
+        RestApi restApi = new RestApi(endpoint, 9999).host("10.10.0.2");
+        RestApi restApi2 = new RestApi(endpoint, 9999).host("10.10.232.5");
+        RemoteMicroservice remote = new RemoteMicroservice(name, agent, toSet(restApi, restApi2));
+        simulateMessageFromCloud(new Message(Message.Type.QNE, remote.getAgent().getIden(), cloud.getIden(), 2, false, new QnePayload(name, restApi, restApi2)));
+        return remote;
+    }
+
     private RemoteMicroservice setupRemoteMicroservice(String name, String endpoint) throws IOException {
-        Agent agent = new Agent(UUID.randomUUID());
-        RestApi restApi = new RestApi(endpoint, 9999).host("10.10.10.10").agent(agent);
+        RemoteAgent agent = new RemoteAgent(UUID.randomUUID());
+        RestApi restApi = new RestApi(endpoint, 9999).host("10.10.10.10");
         RemoteMicroservice remote = new RemoteMicroservice(name, agent, toSet(restApi));
         simulateMessageFromCloud(new Message(Message.Type.QNE, remote.getAgent().getIden(), cloud.getIden(), 2, false, new QnePayload(name, restApi)));
         return remote;
