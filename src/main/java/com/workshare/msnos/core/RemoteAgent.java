@@ -9,28 +9,21 @@ import java.util.UUID;
 
 public class RemoteAgent implements Agent {
 
-    private Iden iden;
-    private Cloud cloud;
-    private long accessTime;
+    private final Iden iden;
+    private final Cloud cloud;
+
     private Set<Network> hosts;
+    private long accessTime;
 
-    public RemoteAgent(UUID uuid) {
+    public RemoteAgent(UUID uuid, Cloud cloud) {
         this.iden = new Iden(Iden.Type.AGT, uuid);
-    }
-
-    public RemoteAgent(Iden iden, Cloud cloud) {
-        this.iden = iden;
         this.cloud = cloud;
-    }
-
-    public RemoteAgent(Iden iden, Cloud cloud, Set<Network> hosts) {
-        this.iden = iden;
-        this.cloud = cloud;
-        this.hosts = hosts;
     }
 
     public RemoteAgent withHosts(Set<Network> networks) {
-        return new RemoteAgent(iden, cloud, networks);
+        final RemoteAgent remoteAgent = new RemoteAgent(iden.getUUID(), cloud);
+        remoteAgent.hosts = networks;
+        return remoteAgent;
     }
 
     @Override

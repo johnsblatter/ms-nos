@@ -113,7 +113,7 @@ public class Cloud implements Identifiable {
             }
             if (agent.getAccessTime() < SystemTime.asMillis() - (AGENT_TIMEOUT * AGENT_RETRIES)) {
                 log.debug("- remote agent removed due to inactivity: {}", agent);
-                localAgents.remove(agent.getIden());
+                remoteAgents.remove(agent.getIden());
                 caster.dispatch(Messages.fault(this, agent));
             }
         }
@@ -187,7 +187,7 @@ public class Cloud implements Identifiable {
 
     private void processPresence(Message message) {
         Iden from = message.getFrom();
-        RemoteAgent agent = new RemoteAgent(from, this).withHosts(((Presence) message.getData()).getNetworks());
+        RemoteAgent agent = new RemoteAgent(from.getUUID(), this).withHosts(((Presence) message.getData()).getNetworks());
         synchronized (remoteAgents) {
             if (!localAgents.containsKey(agent.getIden())) {
                 log.debug("Discovered new agent from network: {}", agent.toString());
@@ -198,22 +198,19 @@ public class Cloud implements Identifiable {
 
     private void processAbsence(Message message) {
         Iden from = message.getFrom();
-        RemoteAgent agent = new RemoteAgent(from, this);
         synchronized (remoteAgents) {
-            log.debug("Agent from network leaving: {}", agent.toString());
-            remoteAgents.remove(agent.getIden());
+            log.debug("Agent from network leaving: {}", from);
+            remoteAgents.remove(from);
         }
     }
 
     private void processPong(Message message) {
-        Iden from = message.getFrom();
-        RemoteAgent agent = new RemoteAgent(from, this);
-        synchronized (remoteAgents) {
-            if (!localAgents.containsKey(agent.getIden())) {
-                log.debug("Ping from network agent, updating list with: {}", agent.toString());
-                remoteAgents.put(agent.getIden(), agent);
+        if (!remoteAgents.containsKey(message.getFrom()))
+            try {
+                send(Messages.discovery(this, message.getFrom()));
+            } catch (IOException e) {
+                log.error("Unexpected exception sending message "+message, e);
             }
-        }
     }
 
     @Override
@@ -234,9 +231,11 @@ public class Cloud implements Identifiable {
     }
 
     private void touchSourceAgent(Message message) {
-        if (remoteAgents.containsKey(message.getFrom())) {
-            RemoteAgent agent = remoteAgents.get(message.getFrom());
-            agent.touch();
+        synchronized (remoteAgents) {
+            if (remoteAgents.containsKey(message.getFrom())) {
+                RemoteAgent agent = remoteAgents.get(message.getFrom());
+                agent.touch();
+            }
         }
     }
 

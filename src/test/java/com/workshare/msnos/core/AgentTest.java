@@ -130,7 +130,7 @@ public class AgentTest {
 
     @Test
     public void otherAgentsShouldNOTStillSeeAgentOnLeave() throws Exception {
-        smith.leave(cloud);
+        smith.leave();
         assertFalse(karl.getCloud().getLocalAgents().contains(smith));
     }
 
