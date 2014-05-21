@@ -7,7 +7,7 @@ import com.workshare.msnos.soup.time.SystemTime;
 import java.util.Set;
 import java.util.UUID;
 
-public class RemoteAgent implements AgentInterface {
+public class RemoteAgent implements Agent {
 
     private Iden iden;
     private Cloud cloud;
@@ -68,7 +68,7 @@ public class RemoteAgent implements AgentInterface {
     @Override
     public boolean equals(Object other) {
         try {
-            return this.iden.equals(((AgentInterface) (other)).getIden());
+            return this.iden.equals(((Agent) (other)).getIden());
         } catch (Exception any) {
             return false;
         }

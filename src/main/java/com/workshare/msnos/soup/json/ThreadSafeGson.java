@@ -1,7 +1,7 @@
 package com.workshare.msnos.soup.json;
 
 import com.google.gson.*;
-import com.workshare.msnos.core.Agent;
+import com.workshare.msnos.core.LocalAgent;
 import com.workshare.msnos.core.Cloud;
 
 import java.lang.reflect.Type;
@@ -23,7 +23,7 @@ public class ThreadSafeGson {
                 res.add("iden", context.serialize(src.getIden()));
 
                 final JsonArray idens = new JsonArray();
-                for (final Agent agent : src.getLocalAgents()) {
+                for (final LocalAgent agent : src.getLocalAgents()) {
                     idens.add(context.serialize(agent.getIden()));
                 }
                 res.add("agents", idens);

@@ -102,21 +102,21 @@ public class WireJsonSerializer implements WireSerializer {
         }
     };
 
-    private static final JsonSerializer<Agent> ENC_AGENT = new JsonSerializer<Agent>() {
+    private static final JsonSerializer<LocalAgent> ENC_AGENT = new JsonSerializer<LocalAgent>() {
         @Override
-        public JsonElement serialize(Agent agent, Type typeof, JsonSerializationContext context) {
+        public JsonElement serialize(LocalAgent agent, Type typeof, JsonSerializationContext context) {
             return serializeIden(agent.getIden());
         }
     };
 
-    private static final JsonDeserializer<Agent> DEC_AGENT = new JsonDeserializer<Agent>() {
+    private static final JsonDeserializer<LocalAgent> DEC_AGENT = new JsonDeserializer<LocalAgent>() {
         @Override
-        public Agent deserialize(JsonElement json, Type typeof, JsonDeserializationContext context)
+        public LocalAgent deserialize(JsonElement json, Type typeof, JsonDeserializationContext context)
                 throws JsonParseException {
             Iden iden = deserializeIden(json);
             if (iden.getType() != Iden.Type.AGT)
                 throw new IllegalArgumentException("Unexpected type when converting cloud!");
-            return new Agent(iden.getUUID());
+            return new LocalAgent(iden.getUUID());
         }
     };
 
@@ -197,8 +197,8 @@ public class WireJsonSerializer implements WireSerializer {
             builder.registerTypeAdapter(Cloud.class, ENC_CLOUD);
             builder.registerTypeAdapter(Cloud.class, DEC_CLOUD);
 
-            builder.registerTypeAdapter(Agent.class, ENC_AGENT);
-            builder.registerTypeAdapter(Agent.class, DEC_AGENT);
+            builder.registerTypeAdapter(LocalAgent.class, ENC_AGENT);
+            builder.registerTypeAdapter(LocalAgent.class, DEC_AGENT);
 
             builder.registerTypeAdapter(Iden.class, ENC_IDEN);
             builder.registerTypeAdapter(Iden.class, DEC_IDEN);

@@ -23,13 +23,13 @@ public class WireJsonSerializerTest {
 
     private WireJsonSerializer sz = new WireJsonSerializer();
     private Cloud cloud;
-    private Agent agent;
+    private LocalAgent agent;
 
     @Before
     public void before() throws Exception {
         cloud = new Cloud(CLOUD_UUID, new HashSet<Gateway>(Arrays.asList(new NoopGateway())));
 
-        agent = new Agent(AGENT_UUID);
+        agent = new LocalAgent(AGENT_UUID);
         agent.join(cloud);
     }
 
@@ -64,7 +64,7 @@ public class WireJsonSerializerTest {
 
     @Test
     public void shouldDeserializeAgentObject() throws Exception {
-        Agent current = sz.fromText("\"AGT:" + toShortString(AGENT_UUID) + "\"", Agent.class);
+        LocalAgent current = sz.fromText("\"AGT:" + toShortString(AGENT_UUID) + "\"", LocalAgent.class);
 
         assertEquals(agent.getIden(), current.getIden());
     }
