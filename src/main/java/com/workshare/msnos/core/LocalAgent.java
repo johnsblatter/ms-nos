@@ -49,6 +49,7 @@ public class LocalAgent implements Agent {
         return iden;
     }
 
+    @Override
     public Cloud getCloud() {
         return cloud;
     }
