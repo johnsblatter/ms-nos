@@ -24,17 +24,17 @@ import static org.mockito.Mockito.*;
 public class AgentTest {
 
     private Cloud cloud;
-    private Agent karl;
-    private Agent smith;
+    private LocalAgent karl;
+    private LocalAgent smith;
 
     @Before
     public void before() throws Exception {
         cloud = mock(Cloud.class);
 
-        karl = new Agent(UUID.randomUUID());
+        karl = new LocalAgent(UUID.randomUUID());
         karl.join(cloud);
 
-        smith = new Agent(UUID.randomUUID());
+        smith = new LocalAgent(UUID.randomUUID());
         smith.join(cloud);
     }
 
@@ -112,7 +112,7 @@ public class AgentTest {
     public void localAgentLastAccessTimeShouldAlwaysBeNow() throws Exception {
         fakeSystemTime(123456L);
 
-        Agent jeff = new Agent(UUID.randomUUID());
+        LocalAgent jeff = new LocalAgent(UUID.randomUUID());
         jeff.join(cloud);
 
         assertEquals(jeff.getAccessTime(), SystemTime.asMillis());

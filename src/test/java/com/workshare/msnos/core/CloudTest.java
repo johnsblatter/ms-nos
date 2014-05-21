@@ -85,7 +85,7 @@ public class CloudTest {
 
     @Test
     public void shouldSendPresenceMessageWhenAgentJoins() throws Exception {
-        Agent smith = new Agent(UUID.randomUUID());
+        LocalAgent smith = new LocalAgent(UUID.randomUUID());
 
         smith.join(thisCloud);
 
@@ -100,7 +100,7 @@ public class CloudTest {
 
     @Test
     public void shouldSendDiscoveryMessageWhenAgentJoins() throws Exception {
-        Agent smith = new Agent(UUID.randomUUID());
+        LocalAgent smith = new LocalAgent(UUID.randomUUID());
 
         smith.join(thisCloud);
 
@@ -114,7 +114,7 @@ public class CloudTest {
 
     @Test
     public void shouldUpdateAgentsListWhenAgentJoins() throws Exception {
-        Agent smith = new Agent(UUID.randomUUID());
+        LocalAgent smith = new LocalAgent(UUID.randomUUID());
 
         smith.join(thisCloud);
 
@@ -125,7 +125,7 @@ public class CloudTest {
     public void shouldUpdateAgentsListWhenAgentPongs() throws Exception {
         UUID uuid = UUID.randomUUID();
         RemoteAgent smithRemote = new RemoteAgent(uuid);
-        Agent smith = new Agent(uuid);
+        LocalAgent smith = new LocalAgent(uuid);
 
         simulateMessageFromNetwork(Messages.pong(smith, thisCloud));
 
@@ -134,7 +134,7 @@ public class CloudTest {
 
     @Test
     public void shouldRemoveAgentFromAgentsOnLeave() throws Exception {
-        Agent jeff = new Agent(UUID.randomUUID());
+        LocalAgent jeff = new LocalAgent(UUID.randomUUID());
 
         jeff.join(thisCloud);
 
@@ -151,7 +151,7 @@ public class CloudTest {
     public void shouldSendAbsenceWhenLeavingCloud() throws Exception {
         Presence data = new Presence(false);
 
-        Agent karl = new Agent(UUID.randomUUID());
+        LocalAgent karl = new LocalAgent(UUID.randomUUID());
 
         karl.leave(thisCloud);
 
@@ -165,7 +165,7 @@ public class CloudTest {
 
     @Test
     public void shouldNOTUpdateAgentsListWhenAgentJoinsTroughGatewayToAnotherCloud() throws Exception {
-        Agent frank = new Agent(UUID.randomUUID());
+        LocalAgent frank = new LocalAgent(UUID.randomUUID());
 
         simulateAgentJoiningCloud(frank, otherCloud);
 
@@ -180,7 +180,7 @@ public class CloudTest {
 
     @Test
     public void shouldForwardAnyNonCoreMessageSentToAnAgentOfTheCloud() throws Exception {
-        Agent smith = new Agent(UUID.randomUUID());
+        LocalAgent smith = new LocalAgent(UUID.randomUUID());
         smith.join(thisCloud);
 
         simulateMessageFromNetwork(newMessage(APP, SOMEONE, smith.getIden()));
@@ -189,7 +189,7 @@ public class CloudTest {
 
     @Test
     public void shouldNOTForwardAnyNonCoreMessageSentToAnAgentOfAnotherCloud() throws Exception {
-        Agent smith = new Agent(UUID.randomUUID());
+        LocalAgent smith = new LocalAgent(UUID.randomUUID());
         smith.join(otherCloud);
 
         simulateMessageFromNetwork(newMessage(APP, SOMEONE, smith.getIden()));
@@ -237,7 +237,7 @@ public class CloudTest {
 
     @Test
     public void shouldUpdateRemoteAgentAccessTimeOnPresenceReceived() throws Exception {
-        Agent remoteAgent = new Agent(UUID.randomUUID());
+        LocalAgent remoteAgent = new LocalAgent(UUID.randomUUID());
 
         fakeSystemTime(12345L);
         simulateMessageFromNetwork(Messages.presence(remoteAgent, thisCloud));
@@ -248,7 +248,7 @@ public class CloudTest {
 
     @Test
     public void shouldUpdateRemoteAgentAccessTimeOnMessageReceived() throws Exception {
-        Agent remoteAgent = new Agent(UUID.randomUUID());
+        LocalAgent remoteAgent = new LocalAgent(UUID.randomUUID());
         simulateAgentJoiningCloud(remoteAgent, thisCloud);
 
         fakeSystemTime(12345L);
@@ -261,7 +261,7 @@ public class CloudTest {
     @Test
     public void shouldPingAgentsWhenAccessTimeIsTooOld() throws Exception {
         fakeSystemTime(12345L);
-        Agent remoteAgent = new Agent(UUID.randomUUID());
+        LocalAgent remoteAgent = new LocalAgent(UUID.randomUUID());
         simulateAgentJoiningCloud(remoteAgent, thisCloud);
 
         fakeSystemTime(99999L);
@@ -276,7 +276,7 @@ public class CloudTest {
     @Test
     public void shouldRemoveAgentsThatDoNOTRespondToPing() {
         fakeSystemTime(12345L);
-        Agent remoteAgent = new Agent(UUID.randomUUID());
+        LocalAgent remoteAgent = new LocalAgent(UUID.randomUUID());
         simulateAgentJoiningCloud(remoteAgent, thisCloud);
 
         fakeSystemTime(999999L);
@@ -288,7 +288,7 @@ public class CloudTest {
     @Test
     public void shouldSendFaultWhenAgentRemoved() throws Exception {
         fakeSystemTime(12345L);
-        Agent remoteAgent = new Agent(UUID.randomUUID());
+        LocalAgent remoteAgent = new LocalAgent(UUID.randomUUID());
         simulateAgentJoiningCloud(remoteAgent, thisCloud);
 
         fakeSystemTime(99999999L);
@@ -302,7 +302,7 @@ public class CloudTest {
 
     @Test
     public void shouldStoreHostInfoWhenRemoteAgentJoins() throws Exception {
-        Agent frank = new Agent(UUID.randomUUID());
+        LocalAgent frank = new LocalAgent(UUID.randomUUID());
         Presence presence = (Presence) simulateAgentJoiningCloud(frank, thisCloud).getData();
 
         RemoteAgent remoteFrank = getRemoteAgent(thisCloud, frank.getIden());
@@ -312,7 +312,7 @@ public class CloudTest {
 
     @Test
     public void shouldUpdateRemoteAgentsWhenARemoteJoins() throws Exception {
-        Agent frank = new Agent(UUID.randomUUID());
+        LocalAgent frank = new LocalAgent(UUID.randomUUID());
 
         simulateAgentJoiningCloud(frank, thisCloud);
 
@@ -337,7 +337,7 @@ public class CloudTest {
         return captor.getValue();
     }
 
-    private long getRemoteAgentAccessTime(Cloud cloud, Agent agent) {
+    private long getRemoteAgentAccessTime(Cloud cloud, LocalAgent agent) {
         Collection<RemoteAgent> agents = cloud.getRemoteAgents();
         for (RemoteAgent a : agents) {
             if (a.getIden().equals(agent.getIden()))
@@ -353,13 +353,13 @@ public class CloudTest {
         return value;
     }
 
-    private Message simulateAgentJoiningCloud(Agent agent, Cloud cloud) {
+    private Message simulateAgentJoiningCloud(LocalAgent agent, Cloud cloud) {
         Message message = (Messages.presence(agent, cloud));
         simulateMessageFromNetwork(message);
         return message;
     }
 
-    private void simulateAgentLeavingCloud(Agent agent, Cloud cloud) {
+    private void simulateAgentLeavingCloud(LocalAgent agent, Cloud cloud) {
         simulateMessageFromNetwork(new Message(PRS, agent.getIden(), cloud.getIden(), 2, false, new Presence(false)));
     }
 

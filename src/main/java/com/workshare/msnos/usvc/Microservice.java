@@ -1,7 +1,7 @@
 package com.workshare.msnos.usvc;
 
-import com.workshare.msnos.core.Agent;
 import com.workshare.msnos.core.Cloud;
+import com.workshare.msnos.core.LocalAgent;
 import com.workshare.msnos.core.Message;
 import com.workshare.msnos.core.RemoteAgent;
 import com.workshare.msnos.core.payloads.FltPayload;
@@ -17,20 +17,22 @@ public class Microservice {
     private static final Logger log = LoggerFactory.getLogger("STANDARD");
 
     private final String name;
-    private final List<RestApi> apis;
-    private final Agent agent;
-    private final List<RemoteMicroservice> microServices;
-    private final List<RemoteMicroservice> faultyMicroservices;
+    private final LocalAgent agent;
     private Cloud cloud;
 
+    private final List<RestApi> apis;
+    private final List<RestApi> faultyApis;
+    private final List<RemoteMicroservice> microServices;
+
+
     public Microservice(String name) {
+        agent = new LocalAgent(UUID.randomUUID());
         this.name = name;
-        this.apis = new ArrayList<RestApi>();
-        this.agent = new Agent(UUID.randomUUID());
         this.cloud = null;
 
+        apis = new ArrayList<RestApi>();
+        faultyApis = new ArrayList<RestApi>();
         microServices = new ArrayList<RemoteMicroservice>();
-        faultyMicroservices = new ArrayList<RemoteMicroservice>();
     }
 
     public String getName() {
@@ -41,7 +43,7 @@ public class Microservice {
         return new HashSet<RestApi>(apis);
     }
 
-    public Agent getAgent() {
+    public LocalAgent getAgent() {
         return agent;
     }
 
@@ -122,8 +124,11 @@ public class Microservice {
         synchronized (microServices) {
             for (RemoteMicroservice remote : microServices) {
                 for (RestApi rest : remote.getApis()) {
-                    if (rest.isFaulty()) faultyMicroservices.add(remote);
-                    if (remote.getName().contains(name) && rest.getPath().contains(endpoint) && !faultyMicroservices.contains(remote))
+                    if (rest.isFaulty() && !faultyApis.contains(rest)) {
+                        faultyApis.add(rest);
+                        break;
+                    }
+                    if (remote.getName().contains(name) && rest.getPath().contains(endpoint) && !faultyApis.contains(rest))
                         return rest;
                 }
             }
