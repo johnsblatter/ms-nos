@@ -17,6 +17,7 @@ import static com.workshare.msnos.core.Message.Type.PIN;
 public class LocalAgent implements Agent {
 
     private static Logger log = LoggerFactory.getLogger(LocalAgent.class);
+    private static Logger proto = LoggerFactory.getLogger("protocol");
 
     private final Iden iden;
 
@@ -84,6 +85,7 @@ public class LocalAgent implements Agent {
     }
 
     public Receipt send(Message message) throws IOException {
+        proto.info("TX: {} {} {}", message.getType(), message.getFrom(), message.getData());
         return cloud.send(message);
     }
 

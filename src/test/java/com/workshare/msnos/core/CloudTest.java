@@ -311,6 +311,16 @@ public class CloudTest {
         assertEquals(frank.getIden(), thisCloud.getRemoteAgents().iterator().next().getIden());
     }
 
+    @Test
+    public void shouldSkipMessagesFromLocalAgents() throws Exception {
+        LocalAgent local = new LocalAgent(UUID.randomUUID());
+        local.join(thisCloud);
+
+        simulateMessageFromNetwork(Messages.app(local, thisCloud, Collections.<String, Object>emptyMap()));
+
+        assertEquals(0, messages.size());
+    }
+
     private RemoteAgent getRemoteAgent(Cloud thisCloud, Iden iden) {
         for (RemoteAgent agent : thisCloud.getRemoteAgents()) {
             if (agent.getIden().equals(iden)) return agent;
