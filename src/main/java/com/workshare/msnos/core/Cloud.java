@@ -132,12 +132,12 @@ public class Cloud implements Identifiable {
     }
 
     void onJoin(LocalAgent agent) throws IOException {
-        send(Messages.presence(agent, this));
-        send(Messages.discovery(agent, this));
         synchronized (localAgents) {
             log.debug("Local agent joined: {}", agent);
             localAgents.put(agent.getIden(), agent);
         }
+        send(Messages.presence(agent, this));
+        send(Messages.discovery(agent, this));
     }
 
     void onLeave(LocalAgent agent) throws IOException {
@@ -158,8 +158,13 @@ public class Cloud implements Identifiable {
     }
 
     protected void process(Message message) {
-        if (isMessageAddressedHere(message)) {
-            log.debug("Skipped message sent to somebody else: {}", message);
+        if (!isForThisCloud(message)) {
+            log.debug("Skipped message sent to another cloud: {}", message);
+            return;
+        }
+
+        if (isFromALocalAgent(message)) {
+            log.debug("Skipped message sent from a local agent: {}", message);
             return;
         }
 
@@ -173,16 +178,12 @@ public class Cloud implements Identifiable {
         touchSourceAgent(message);
     }
 
-    private boolean isMessageAddressedHere(Message message) {
-        return !isLocalCloud(message.getTo()) && !isLocalAgent(message.getTo());
+    private boolean isFromALocalAgent(Message message) {
+        return localAgents.containsKey(message.getFrom());
     }
 
-    private boolean isLocalCloud(final Iden to) {
-        return iden.equals(to);
-    }
-
-    private boolean isLocalAgent(final Iden to) {
-        return localAgents.containsKey(to);
+    private boolean isForThisCloud(Message message) {
+        return iden.equals(message.getTo());
     }
 
     private void processPresence(Message message) {
