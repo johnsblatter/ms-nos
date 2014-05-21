@@ -42,7 +42,7 @@ public class Cloud implements Identifiable {
     }
 
     private final Iden iden;
-    private final Map<Iden, LocalAgent> agents;
+    private final Map<Iden, LocalAgent> localAgents;
     private final Map<Iden, RemoteAgent> remoteAgents;
 
     transient private final Set<Gateway> gates;
@@ -59,7 +59,7 @@ public class Cloud implements Identifiable {
 
     public Cloud(UUID uuid, Set<Gateway> gates, Multicaster multicaster, ScheduledExecutorService executor) {
         this.iden = new Iden(Iden.Type.CLD, uuid);
-        this.agents = new HashMap<Iden, LocalAgent>();
+        this.localAgents = new HashMap<Iden, LocalAgent>();
         this.remoteAgents = new HashMap<Iden, RemoteAgent>();
         this.caster = multicaster;
         this.gates = gates;
@@ -97,7 +97,7 @@ public class Cloud implements Identifiable {
     }
 
     public Collection<LocalAgent> getLocalAgents() {
-        return Collections.unmodifiableCollection(agents.values());
+        return Collections.unmodifiableCollection(localAgents.values());
     }
 
     public Set<Gateway> getGateways() {
@@ -113,7 +113,7 @@ public class Cloud implements Identifiable {
             }
             if (agent.getAccessTime() < SystemTime.asMillis() - (AGENT_TIMEOUT * AGENT_RETRIES)) {
                 log.debug("- remote agent removed due to inactivity: {}", agent);
-                agents.remove(agent.getIden());
+                localAgents.remove(agent.getIden());
                 caster.dispatch(Messages.fault(this, agent));
             }
         }
@@ -134,17 +134,17 @@ public class Cloud implements Identifiable {
     void onJoin(LocalAgent agent) throws IOException {
         send(Messages.presence(agent, this));
         send(Messages.discovery(agent, this));
-        synchronized (agents) {
+        synchronized (localAgents) {
             log.debug("Local agent joined: {}", agent);
-            agents.put(agent.getIden(), agent);
+            localAgents.put(agent.getIden(), agent);
         }
     }
 
     void onLeave(LocalAgent agent) throws IOException {
         send(Messages.absence(agent, this));
-        synchronized (agents) {
+        synchronized (localAgents) {
             log.debug("Local agent left: {}", agent);
-            agents.remove(agent.getIden());
+            localAgents.remove(agent.getIden());
         }
     }
 
@@ -158,8 +158,8 @@ public class Cloud implements Identifiable {
     }
 
     protected void process(Message message) {
-        if (!this.iden.equals(message.getTo()) && !agents.containsKey(message.getTo())) {
-            log.debug("Skipped message sent to another cloud: {}", message);
+        if (isMessageAddressedHere(message)) {
+            log.debug("Skipped message sent to somebody else: {}", message);
             return;
         }
 
@@ -173,11 +173,23 @@ public class Cloud implements Identifiable {
         touchSourceAgent(message);
     }
 
+    private boolean isMessageAddressedHere(Message message) {
+        return !isLocalCloud(message.getTo()) && !isLocalAgent(message.getTo());
+    }
+
+    private boolean isLocalCloud(final Iden to) {
+        return iden.equals(to);
+    }
+
+    private boolean isLocalAgent(final Iden to) {
+        return localAgents.containsKey(to);
+    }
+
     private void processPresence(Message message) {
         Iden from = message.getFrom();
         RemoteAgent agent = new RemoteAgent(from, this).withHosts(((Presence) message.getData()).getNetworks());
         synchronized (remoteAgents) {
-            if (!agents.containsKey(agent.getIden())) {
+            if (!localAgents.containsKey(agent.getIden())) {
                 log.debug("Discovered new agent from network: {}", agent.toString());
                 remoteAgents.put(agent.getIden(), agent);
             }
@@ -197,7 +209,7 @@ public class Cloud implements Identifiable {
         Iden from = message.getFrom();
         RemoteAgent agent = new RemoteAgent(from, this);
         synchronized (remoteAgents) {
-            if (!agents.containsKey(agent.getIden())) {
+            if (!localAgents.containsKey(agent.getIden())) {
                 log.debug("Ping from network agent, updating list with: {}", agent.toString());
                 remoteAgents.put(agent.getIden(), agent);
             }
