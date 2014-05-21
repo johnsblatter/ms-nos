@@ -20,7 +20,11 @@ class Messages {
     }
 
     public static Message discovery(Identifiable from, Identifiable to) {
-        return new Message(Message.Type.DSC, from.getIden(), to.getIden(), 2, false, null);
+        return discovery(from, to.getIden());
+    }
+
+    public static Message discovery(Identifiable from, final Iden to) {
+        return new Message(Message.Type.DSC, from.getIden(), to, 2, false, null);
     }
 
     public static Message ping(Identifiable from, Identifiable to) {

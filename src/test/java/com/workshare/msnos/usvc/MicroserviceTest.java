@@ -206,11 +206,11 @@ public class MicroserviceTest {
     }
 
     private RemoteAgent getRemoteAgentWithFakeHosts() {
-        return new RemoteAgent(UUID.randomUUID()).withHosts(new HashSet<Network>(Arrays.asList(new Network(new byte[]{10, 10, 10, 10}, (short) 15))));
+        return newRemoteAgent().withHosts(new HashSet<Network>(Arrays.asList(new Network(new byte[]{10, 10, 10, 10}, (short) 15))));
     }
 
     private void putRemoteAgentInCloudAgentsList(Agent agent) {
-        RemoteAgent remote = new RemoteAgent(agent.getIden(), cloud);
+        RemoteAgent remote = new RemoteAgent(agent.getIden().getUUID(), cloud);
         Mockito.when(cloud.getRemoteAgents()).thenReturn(new HashSet<RemoteAgent>(Arrays.asList(remote)));
     }
 
@@ -244,7 +244,7 @@ public class MicroserviceTest {
     }
 
     private RemoteMicroservice setupRemoteMicroserviceWithHost(String host, String name, String endpoint) {
-        RemoteAgent agent = new RemoteAgent(UUID.randomUUID());
+        RemoteAgent agent = newRemoteAgent();
         RestApi restApi = new RestApi(endpoint, 9999).host(host);
         RemoteMicroservice remote = new RemoteMicroservice(name, agent, toSet(restApi));
         simulateMessageFromCloud(new Message(Message.Type.QNE, remote.getAgent().getIden(), cloud.getIden(), 2, false, new QnePayload(name, restApi)));
@@ -252,7 +252,7 @@ public class MicroserviceTest {
     }
 
     private RemoteMicroservice setupRemoteMicroserviceWithMultipleRestAPIs(String host1, String host2, String name, String endpoint) throws IOException {
-        RemoteAgent agent = new RemoteAgent(UUID.randomUUID());
+        RemoteAgent agent = newRemoteAgent();
         RestApi restApi = new RestApi(endpoint, 9999).host(host1);
         RestApi restApi2 = new RestApi(endpoint, 9999).host(host2);
         RemoteMicroservice remote = new RemoteMicroservice(name, agent, toSet(restApi, restApi2));
@@ -261,7 +261,7 @@ public class MicroserviceTest {
     }
 
     private RemoteMicroservice setupRemoteMicroservice(String name, String endpoint) throws IOException {
-        RemoteAgent agent = new RemoteAgent(UUID.randomUUID());
+        RemoteAgent agent = newRemoteAgent();
         RestApi restApi = new RestApi(endpoint, 9999).host("10.10.10.10");
         RemoteMicroservice remote = new RemoteMicroservice(name, agent, toSet(restApi));
         simulateMessageFromCloud(new Message(Message.Type.QNE, remote.getAgent().getIden(), cloud.getIden(), 2, false, new QnePayload(name, restApi)));
@@ -309,4 +309,9 @@ public class MicroserviceTest {
             }
         });
     }
+    
+    private RemoteAgent newRemoteAgent() {
+        return new RemoteAgent(UUID.randomUUID(), cloud);
+    }
+
 }

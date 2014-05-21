@@ -72,7 +72,11 @@ public class LocalAgent implements Agent {
         return this;
     }
 
-    public void leave(Cloud cloud) throws IOException {
+    public void leave() throws IOException {
+        if (this.cloud == null) {
+            throw new IOException("Cannot leave a cloud I never joined!");
+        }
+        
         log.debug("Leaving cloud {}", cloud);
         cloud.onLeave(this);
         cloud.removeListener(listener);
