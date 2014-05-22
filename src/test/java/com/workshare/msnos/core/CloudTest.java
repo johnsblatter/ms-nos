@@ -6,6 +6,7 @@ import com.workshare.msnos.core.Message.Status;
 import com.workshare.msnos.core.Message.Type;
 import com.workshare.msnos.core.payloads.FltPayload;
 import com.workshare.msnos.core.payloads.Presence;
+import com.workshare.msnos.core.protocols.ip.Network;
 import com.workshare.msnos.core.protocols.ip.udp.UDPGateway;
 import com.workshare.msnos.soup.json.Json;
 import com.workshare.msnos.soup.time.SystemTime;
@@ -113,7 +114,7 @@ public class CloudTest {
 
     @Test
     public void shouldDoNothingWhenKnownAgentPongs() throws Exception {
-        RemoteAgent remote = new RemoteAgent(UUID.randomUUID(), thisCloud);
+        RemoteAgent remote = newRemoteAgent(thisCloud);
         simulateAgentJoiningCloud(remote, thisCloud);
         
         simulateMessageFromNetwork(Messages.pong(remote, thisCloud));
@@ -123,7 +124,7 @@ public class CloudTest {
     
     @Test
     public void shouldSendDiscoveryWhenUnknownAgentPongs() throws Exception {
-        RemoteAgent remote = new RemoteAgent(UUID.randomUUID(), thisCloud);
+        RemoteAgent remote = newRemoteAgent(thisCloud);
 
         simulateMessageFromNetwork(Messages.pong(remote, thisCloud));
 
@@ -143,7 +144,7 @@ public class CloudTest {
 
     @Test
     public void shouldRemoveRemoteAgentOnLeave() throws Exception {
-        RemoteAgent remote = new RemoteAgent(UUID.randomUUID(), thisCloud);
+        RemoteAgent remote = newRemoteAgent(thisCloud);
         simulateAgentJoiningCloud(remote, thisCloud);
         
         simulateAgentLeavingCloud(remote, thisCloud);
@@ -168,7 +169,7 @@ public class CloudTest {
 
     @Test
     public void shouldNOTUpdateAgentsListWhenAgentJoinsThroughGatewayToAnotherCloud() throws Exception {
-        RemoteAgent frank = new RemoteAgent(UUID.randomUUID(), otherCloud);
+        RemoteAgent frank = newRemoteAgent(otherCloud);
 
         simulateAgentJoiningCloud(frank, otherCloud);
 
@@ -193,6 +194,25 @@ public class CloudTest {
     @Test   
     public void shouldNOTForwardAnyNonCoreMessageSentToAnotherCloud() throws Exception {
         simulateMessageFromNetwork(newMessage(APP, SOMEONE, otherCloud.getIden()));
+        assertEquals(0, messages.size());
+    }
+
+    @Test   
+    public void shouldNOTForwardAnyMessageSentFromALocalAgent() throws Exception {
+        LocalAgent karl = new LocalAgent(UUID.randomUUID());
+        karl.join(thisCloud);
+        
+        simulateMessageFromNetwork(newMessage(APP, karl.getIden(), thisCloud.getIden()));
+        assertEquals(0, messages.size());
+    }
+
+    @Test   
+    public void shouldNOTForwardAnyMessageSentToARemoteAgent() throws Exception {
+        RemoteAgent remote = newRemoteAgent(thisCloud);
+        simulateAgentJoiningCloud(remote, thisCloud);
+        
+        messages.clear();
+        simulateMessageFromNetwork(newMessage(APP, thisCloud.getIden(), remote.getIden()));
         assertEquals(0, messages.size());
     }
 
@@ -230,7 +250,7 @@ public class CloudTest {
 
     @Test
     public void shouldUpdateRemoteAgentAccessTimeOnPresenceReceived() throws Exception {
-        RemoteAgent remoteAgent = new RemoteAgent(UUID.randomUUID(), thisCloud);
+        RemoteAgent remoteAgent = newRemoteAgent(thisCloud);
 
         fakeSystemTime(12345L);
         simulateMessageFromNetwork(Messages.presence(remoteAgent, thisCloud));
@@ -241,7 +261,7 @@ public class CloudTest {
 
     @Test
     public void shouldUpdateRemoteAgentAccessTimeOnMessageReceived() throws Exception {
-        RemoteAgent remoteAgent = new RemoteAgent(UUID.randomUUID(), thisCloud);
+        RemoteAgent remoteAgent = newRemoteAgent(thisCloud);
         simulateAgentJoiningCloud(remoteAgent, thisCloud);
 
         fakeSystemTime(12345L);
@@ -254,7 +274,7 @@ public class CloudTest {
     @Test
     public void shouldPingAgentsWhenAccessTimeIsTooOld() throws Exception {
         fakeSystemTime(12345L);
-        RemoteAgent remoteAgent = new RemoteAgent(UUID.randomUUID(), thisCloud);
+        RemoteAgent remoteAgent = newRemoteAgent(thisCloud);
         simulateAgentJoiningCloud(remoteAgent, thisCloud);
 
         fakeSystemTime(99999L);
@@ -269,7 +289,7 @@ public class CloudTest {
     @Test
     public void shouldRemoveAgentsThatDoNOTRespondToPing() {
         fakeSystemTime(0L);
-        RemoteAgent remoteAgent = new RemoteAgent(UUID.randomUUID(), thisCloud);
+        RemoteAgent remoteAgent = newRemoteAgent(thisCloud);
         simulateAgentJoiningCloud(remoteAgent, thisCloud);
 
         fakeSystemTime(Long.MAX_VALUE);
@@ -295,7 +315,7 @@ public class CloudTest {
 
     @Test
     public void shouldStoreHostInfoWhenRemoteAgentJoins() throws Exception {
-        RemoteAgent remoteFrank = new RemoteAgent(UUID.randomUUID(), thisCloud);
+        RemoteAgent remoteFrank = newRemoteAgent(thisCloud);
         Presence presence = (Presence) simulateAgentJoiningCloud(remoteFrank, thisCloud).getData();
 
         RemoteAgent recordedFrank = getRemoteAgent(thisCloud, remoteFrank.getIden());
@@ -304,7 +324,7 @@ public class CloudTest {
 
     @Test
     public void shouldUpdateRemoteAgentsWhenARemoteJoins() throws Exception {
-        RemoteAgent frank = new RemoteAgent(UUID.randomUUID(), thisCloud);
+        RemoteAgent frank = newRemoteAgent(thisCloud);
 
         simulateAgentJoiningCloud(frank, thisCloud);
 
@@ -445,4 +465,9 @@ public class CloudTest {
             }
         });
     }
+
+    private RemoteAgent newRemoteAgent(Cloud cloud) {
+        return new RemoteAgent(UUID.randomUUID(), cloud, Collections.<Network>emptySet());
+    }
+
 }
