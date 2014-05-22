@@ -1,42 +1,49 @@
 package com.workshare.msnos.usvc;
 
-import com.workshare.msnos.core.*;
-import com.workshare.msnos.core.payloads.FltPayload;
-import com.workshare.msnos.core.payloads.QnePayload;
-import com.workshare.msnos.core.protocols.ip.Network;
-import com.workshare.msnos.core.protocols.ip.udp.UDPGateway;
-import com.workshare.msnos.soup.time.SystemTime;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.verify;
+
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.UUID;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
-import java.io.IOException;
-import java.util.*;
-
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.atLeastOnce;
-import static org.mockito.Mockito.verify;
+import com.workshare.msnos.core.Agent;
+import com.workshare.msnos.core.Cloud;
+import com.workshare.msnos.core.Gateway;
+import com.workshare.msnos.core.Iden;
+import com.workshare.msnos.core.Identifiable;
+import com.workshare.msnos.core.LocalAgent;
+import com.workshare.msnos.core.Message;
+import com.workshare.msnos.core.RemoteAgent;
+import com.workshare.msnos.core.payloads.FltPayload;
+import com.workshare.msnos.core.payloads.QnePayload;
+import com.workshare.msnos.core.protocols.ip.Network;
+import com.workshare.msnos.soup.time.SystemTime;
 
 public class MicroserviceTest {
 
-    Cloud cloud;
-    Microservice otherMs;
-    UDPGateway gate1;
-    Microservice localMicroservice;
+    private Cloud cloud;
+    private Microservice otherMs;
+    private Microservice localMicroservice;
 
     @Before
     public void prepare() throws Exception {
         cloud = Mockito.mock(Cloud.class);
-        gate1 = Mockito.mock(UDPGateway.class);
-
-        LocalAgent remoteAgent = new LocalAgent(UUID.randomUUID());
-        Mockito.when(cloud.getLocalAgents()).thenReturn(new HashSet<LocalAgent>(Arrays.asList(remoteAgent)));
-
-        Iden iden = new Iden(Iden.Type.CLD, new UUID(111, 111));
-
-        Mockito.when(cloud.getIden()).thenReturn(iden);
+        Mockito.when(cloud.getLocalAgents()).thenReturn(new HashSet<LocalAgent>(Arrays.asList(new LocalAgent(UUID.randomUUID()))));
+        Mockito.when(cloud.getIden()).thenReturn(new Iden(Iden.Type.CLD, new UUID(111, 111)));
 
         otherMs = new Microservice("kiki");
 
@@ -180,7 +187,7 @@ public class MicroserviceTest {
 
     @Test
     public void shouldCreateBoundRestApisWhenRestApiNotBound() throws IOException {
-        RemoteAgent remoteAgent = getRemoteAgentWithFakeHosts();
+        RemoteAgent remoteAgent = newRemoteAgent(UUID.randomUUID(), new Network(new byte[]{10, 10, 10, 10}, (short) 15));
         Mockito.when(cloud.getRemoteAgents()).thenReturn(new HashSet<RemoteAgent>(Arrays.asList(remoteAgent)));
 
         RestApi unboundApi = new RestApi("/files", 9999);
@@ -205,12 +212,8 @@ public class MicroserviceTest {
         assertEquals("15.15.10.1", result3.getHost());
     }
 
-    private RemoteAgent getRemoteAgentWithFakeHosts() {
-        return newRemoteAgent().withHosts(new HashSet<Network>(Arrays.asList(new Network(new byte[]{10, 10, 10, 10}, (short) 15))));
-    }
-
     private void putRemoteAgentInCloudAgentsList(Agent agent) {
-        RemoteAgent remote = new RemoteAgent(agent.getIden().getUUID(), cloud);
+        RemoteAgent remote = newRemoteAgent(agent.getIden().getUUID());
         Mockito.when(cloud.getRemoteAgents()).thenReturn(new HashSet<RemoteAgent>(Arrays.asList(remote)));
     }
 
@@ -274,7 +277,6 @@ public class MicroserviceTest {
 
     private Message getENQMessage(Identifiable from, Identifiable to) {
         return new Message(Message.Type.ENQ, from.getIden(), to.getIden(), 2, false, null);
-
     }
 
     private Message getFaultMessage(Agent agent) {
@@ -309,9 +311,12 @@ public class MicroserviceTest {
             }
         });
     }
-    
+
     private RemoteAgent newRemoteAgent() {
-        return new RemoteAgent(UUID.randomUUID(), cloud);
+        return newRemoteAgent(UUID.randomUUID());
     }
 
+    private RemoteAgent newRemoteAgent(final UUID uuid, Network... hosts) {
+        return new RemoteAgent(uuid, cloud, new HashSet<Network>(Arrays.asList(hosts)));
+    }
 }

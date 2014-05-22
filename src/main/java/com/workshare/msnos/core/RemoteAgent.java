@@ -15,17 +15,12 @@ public class RemoteAgent implements Agent {
     private Set<Network> hosts;
     private long accessTime;
 
-    public RemoteAgent(UUID uuid, Cloud cloud) {
+    public RemoteAgent(UUID uuid, Cloud cloud, Set<Network> networks) {
         this.iden = new Iden(Iden.Type.AGT, uuid);
         this.cloud = cloud;
+        this.hosts = networks;
     }
-
-    public RemoteAgent withHosts(Set<Network> networks) {
-        final RemoteAgent remoteAgent = new RemoteAgent(iden.getUUID(), cloud);
-        remoteAgent.hosts = networks;
-        return remoteAgent;
-    }
-
+    
     @Override
     public Iden getIden() {
         return iden;
@@ -45,14 +40,6 @@ public class RemoteAgent implements Agent {
         return hosts;
     }
 
-    public void touch() {
-        setAccessTime(SystemTime.asMillis());
-    }
-
-    private void setAccessTime(long accessTime) {
-        this.accessTime = accessTime;
-    }
-
     @Override
     public String toString() {
         return Json.toJsonString(this);
@@ -70,6 +57,10 @@ public class RemoteAgent implements Agent {
     @Override
     public int hashCode() {
         return iden.hashCode();
+    }
+
+    void touch() {
+        this.accessTime = SystemTime.asMillis();
     }
 
 }
