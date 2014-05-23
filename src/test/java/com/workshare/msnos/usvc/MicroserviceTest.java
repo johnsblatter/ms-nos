@@ -16,6 +16,7 @@ import java.io.IOException;
 import java.util.*;
 
 import static org.junit.Assert.*;
+import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.*;
 
 @SuppressWarnings("unused")
@@ -52,7 +53,7 @@ public class MicroserviceTest {
     private Set<Gateway> mockGateways() throws IOException {
         Gateway gate = mock(Gateway.class);
         Receipt receipt = mock(Receipt.class);
-        when(gate.send(any(Message.class))).thenReturn(receipt );
+        when(gate.send(any(Cloud.class), any(Message.class))).thenReturn(receipt );
         return new HashSet<Gateway>(Arrays.asList(new Gateway[]{gate}));
     }
 

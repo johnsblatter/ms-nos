@@ -61,7 +61,7 @@ public class JoinSynchronizer  {
         
         public void sync() throws MsnosException {
             try {
-                latch.await(1, TimeUnit.SECONDS);
+                latch.await(3, TimeUnit.SECONDS);
             } catch (InterruptedException e) {
                 Thread.interrupted();
             }

@@ -1,5 +1,6 @@
 package com.workshare.msnos.core.protocols.ip.udp;
 
+import com.workshare.msnos.core.Cloud;
 import com.workshare.msnos.core.Gateway;
 import com.workshare.msnos.core.Message;
 import com.workshare.msnos.core.Message.Payload;
@@ -49,6 +50,11 @@ public class UDPGateway implements Gateway {
         startServer(server);
     }
 
+    @Override
+    public void close() throws IOException {
+        // TODO please fixme, I am unimplemented :)
+    }
+
     private void startServer(UDPServer server) {
         server.start(socket, packetSize);
         server.addListener(new Listener() {
@@ -83,7 +89,7 @@ public class UDPGateway implements Gateway {
     }
 
     @Override
-    public void addListener(Listener listener) {
+    public void addListener(Cloud cloud, Listener listener) {
         caster.addListener(listener);
     }
 
@@ -94,7 +100,7 @@ public class UDPGateway implements Gateway {
     }
 
     @Override
-    public Receipt send(Message message) throws IOException {
+    public Receipt send(Cloud cloud, Message message) throws IOException {
 
         logger.debug("send message {} ", message);
 

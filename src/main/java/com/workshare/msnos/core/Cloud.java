@@ -73,7 +73,7 @@ public class Cloud implements Identifiable {
         this.synchronizer = synchronizer;
         
         for (Gateway gate : gates) {
-            gate.addListener(new Gateway.Listener() {
+            gate.addListener(this, new Gateway.Listener() {
                 @Override
                 public void onMessage(Message message) {
                     process(message);
@@ -116,7 +116,7 @@ public class Cloud implements Identifiable {
         MultiGatewayReceipt res = new MultiGatewayReceipt(signed);
         for (Gateway gate : gates) {
             try {
-                res.add(gate.send(signed));
+                res.add(gate.send(this, signed));
             } catch (IOException ex) {
                 log.warn("Unable to send message "+message+" trough gateway "+gate, ex);
             }

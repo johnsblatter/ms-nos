@@ -81,9 +81,9 @@ public class CloudTest {
         when(unknownReceipt.getStatus()).thenReturn(Status.UNKNOWN);
 
         gate1 = mock(Gateway.class);
-        when(gate1.send(any(Message.class))).thenReturn(unknownReceipt);
+        when(gate1.send(any(Cloud.class), any(Message.class))).thenReturn(unknownReceipt);
         gate2 = mock(Gateway.class);
-        when(gate2.send(any(Message.class))).thenReturn(unknownReceipt);
+        when(gate2.send(any(Cloud.class), any(Message.class))).thenReturn(unknownReceipt);
         synchro = mock(JoinSynchronizer.class);
 
         keystore = mock(KeysStore.class);
@@ -251,8 +251,8 @@ public class CloudTest {
     public void shouldSendMessagesTroughGateways() throws Exception {
         Message message = newMessage(APP, SOMEONE, thisCloud.getIden());
         thisCloud.send(message);
-        verify(gate1).send(message);
-        verify(gate2).send(message);
+        verify(gate1).send(thisCloud, message);
+        verify(gate2).send(thisCloud, message);
     }
 
     @Test
@@ -265,10 +265,10 @@ public class CloudTest {
     @Test
     public void shouldSendReturnMultipleStatusWhenUsingMultipleGateways() throws Exception {
         Receipt value1 = createMockFuture(Status.UNKNOWN);
-        when(gate1.send(any(Message.class))).thenReturn(value1);
+        when(gate1.send(any(Cloud.class), any(Message.class))).thenReturn(value1);
 
         Receipt value2 = createMockFuture(Status.UNKNOWN);
-        when(gate2.send(any(Message.class))).thenReturn(value2);
+        when(gate2.send(any(Cloud.class), any(Message.class))).thenReturn(value2);
 
         Message message = newReliableMessage(APP, SOMEONE, SOMEONELSE);
         Receipt res = thisCloud.send(message);
@@ -281,8 +281,8 @@ public class CloudTest {
 
     @Test(expected = MsnosException.class)
     public void shouldThrowExceptionWhenSendFailedOnAllGateways() throws Exception {
-        when(gate1.send(any(Message.class))).thenThrow(new IOException("boom"));
-        when(gate2.send(any(Message.class))).thenThrow(new IOException("boom"));
+        when(gate1.send(any(Cloud.class), any(Message.class))).thenThrow(new IOException("boom"));
+        when(gate2.send(any(Cloud.class), any(Message.class))).thenThrow(new IOException("boom"));
 
         Message message = newMessage(APP, SOMEONE, SOMEONELSE);
         thisCloud.send(message);
@@ -291,9 +291,8 @@ public class CloudTest {
     @Test
     public void shouldNotThrowExceptionWhenSendFailedOnSomeGateways() throws Exception {
         Receipt value1 = createMockFuture(Status.UNKNOWN);
-        when(gate1.send(any(Message.class))).thenReturn(value1);
-
-        when(gate2.send(any(Message.class))).thenThrow(new IOException("boom"));
+        when(gate1.send(any(Cloud.class), any(Message.class))).thenReturn(value1);
+        when(gate2.send(any(Cloud.class), any(Message.class))).thenThrow(new IOException("boom"));
 
         Message message = newMessage(APP, SOMEONE, SOMEONELSE);
         Receipt res = thisCloud.send(message);
@@ -504,7 +503,7 @@ public class CloudTest {
 
     private void simulateMessageFromNetwork(final Message message) {
         ArgumentCaptor<Listener> gateListener = ArgumentCaptor.forClass(Listener.class);
-        verify(gate1).addListener(gateListener.capture());
+        verify(gate1).addListener(any(Cloud.class), gateListener.capture());
         gateListener.getValue().onMessage(message);
     }
 
@@ -514,14 +513,14 @@ public class CloudTest {
 
     private Message getLastMessageSentToNetwork() throws IOException {
         ArgumentCaptor<Message> captor = ArgumentCaptor.forClass(Message.class);
-        verify(gate1).send(captor.capture());
+        verify(gate1).send(any(Cloud.class), captor.capture());
         return captor.getValue();
     }
 
     private List<Message> getAllMessagesSent() throws IOException {
         try {
             ArgumentCaptor<Message> captor = ArgumentCaptor.forClass(Message.class);
-            verify(gate1, atLeastOnce()).send(captor.capture());
+            verify(gate1, atLeastOnce()).send(any(Cloud.class), captor.capture());
             return captor.getAllValues();
         }
         catch (Throwable any) {

@@ -8,16 +8,14 @@ import com.workshare.msnos.core.protocols.ip.Endpoint;
 public interface Gateway {
 
     public interface Listener {
-        public void onMessage(Message message)
-        ;
+        public void onMessage(Message message);
     }
 
-    public void addListener(Listener listener)
-    ;
+    public void addListener(Cloud cloud, Listener listener);
 
-    public Set<? extends Endpoint> endpoints()
-    ;
+    public Set<? extends Endpoint> endpoints();
 
-    public Receipt send(Message message) throws IOException
-    ;
+    public Receipt send(Cloud cloud, Message message) throws IOException;
+
+    public void close() throws IOException;
 }

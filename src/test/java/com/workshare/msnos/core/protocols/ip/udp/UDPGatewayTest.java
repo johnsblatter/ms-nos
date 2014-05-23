@@ -26,6 +26,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
+import com.workshare.msnos.core.Cloud;
 import com.workshare.msnos.core.Cloud.Internal;
 import com.workshare.msnos.core.Gateway.Listener;
 import com.workshare.msnos.core.Iden;
@@ -45,6 +46,7 @@ public class UDPGatewayTest {
     private MulticastSocket socket;
     private MulticastSocketFactory sockets;
     private List<Message> messages;
+    private Cloud cloud;
 
     @Before
     public void setup() throws Exception {
@@ -56,6 +58,10 @@ public class UDPGatewayTest {
         socket = mock(MulticastSocket.class);
         sockets = mock(MulticastSocketFactory.class);
         when(sockets.create()).thenReturn(socket);
+        
+        cloud = mock(Cloud.class);
+        when(cloud.getIden()).thenReturn(new Iden(Iden.Type.CLD, UUID.randomUUID()));
+
     }
 
     @Test
@@ -101,7 +107,7 @@ public class UDPGatewayTest {
     @Test
     public void shouldSendAMessageTroughTheSocket() throws Exception {
         Message message = UDPGatewayTest.newSampleMessage();
-        gate().send(message);
+        gate().send(cloud, message);
 
         List<DatagramPacket> packets = getSentPackets();
         assertPacketValid(message, packets.get(0));
@@ -114,7 +120,7 @@ public class UDPGatewayTest {
         System.setProperty(UDPGateway.SYSP_PORT_WIDTH, "3");
 
         Message message = UDPGatewayTest.newSampleMessage();
-        gate().send(message);
+        gate().send(cloud,message);
 
         List<DatagramPacket> packets = getSentPackets();
         assertEquals(3, packets.size());
@@ -148,7 +154,7 @@ public class UDPGatewayTest {
         System.setProperty(UDPGateway.SYSP_UDP_PACKET_SIZE, Integer.toString(333));
         Message message = getMessageWithPayload(new BigPayload(1000));
 
-        gate().send(message);
+        gate().send(cloud,message);
 
         List<DatagramPacket> packets = getSentPackets();
         for (DatagramPacket datagramPacket : packets) {
@@ -161,7 +167,7 @@ public class UDPGatewayTest {
         System.setProperty(UDPGateway.SYSP_UDP_PACKET_SIZE, Integer.toString(333));
         Message message = getMessageWithPayload(new BigPayload(1000).unsplittable());
 
-        gate().send(message);
+        gate().send(cloud,message);
     }
 
     private Message getMessageWithPayload(final BigPayload payload) {
@@ -199,7 +205,7 @@ public class UDPGatewayTest {
     }
 
     private void addListenerToGateway() throws IOException {
-        gate().addListener(new Listener() {
+        gate().addListener(null, new Listener() {
             @Override
             public void onMessage(Message message) {
                 messages.add(message);

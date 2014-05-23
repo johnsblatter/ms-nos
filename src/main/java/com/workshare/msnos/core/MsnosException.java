@@ -6,6 +6,7 @@ import java.io.IOException;
 public class MsnosException extends IOException {
 
     public enum Code {
+        UNRECOVERABLE_FAILURE, 
         TRANSPORT_ERROR, 
         NOT_CONNECTED, 
         JOIN_FAILED, 

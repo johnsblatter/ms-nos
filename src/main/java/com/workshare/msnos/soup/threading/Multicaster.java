@@ -20,11 +20,13 @@ import java.util.concurrent.Executor;
  */
 public abstract class Multicaster<L,M> {
 	
+    public static final Executor THREADPOOL = ExecutorServices.newFixedDaemonThreadPool(Integer.getInteger("msnos.multicaster.threads.num", 5));
+            
 	private Set<L> listeners = new HashSet<L>();
 	private Executor executor;
 
 	public Multicaster() {
-		this(ExecutorServices.newFixedDaemonThreadPool(numberOfThreads()));
+		this(THREADPOOL);
 	}
 
 	public Multicaster(Executor executor) {
@@ -60,7 +62,4 @@ public abstract class Multicaster<L,M> {
 	protected abstract void dispatch(L listener, M message)
 	;
 	
-	private static int numberOfThreads() {
-		return Integer.getInteger("msnos.multicaster.threads.num", 5);
-	}
 }
