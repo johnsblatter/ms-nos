@@ -71,7 +71,7 @@ public class Cloud implements Identifiable {
         this.scheduler = executor;
 
         for (Gateway gate : gates) {
-            gate.addListener(new Gateway.Listener() {
+            gate.addListener(this, new Gateway.Listener() {
                 @Override
                 public void onMessage(Message message) {
                     process(message);

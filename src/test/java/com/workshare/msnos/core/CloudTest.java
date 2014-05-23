@@ -387,7 +387,7 @@ public class CloudTest {
 
     private void simulateMessageFromNetwork(final Message message) {
         ArgumentCaptor<Listener> gateListener = ArgumentCaptor.forClass(Listener.class);
-        verify(gate1).addListener(gateListener.capture());
+        verify(gate1).addListener(any(Cloud.class), gateListener.capture());
         gateListener.getValue().onMessage(message);
     }
 

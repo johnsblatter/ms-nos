@@ -12,7 +12,7 @@ public interface Gateway {
         ;
     }
 
-    public void addListener(Listener listener)
+    public void addListener(Cloud cloud, Listener listener)
     ;
 
     public Set<? extends Endpoint> endpoints()

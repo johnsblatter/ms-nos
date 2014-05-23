@@ -200,7 +200,7 @@ public class UDPGatewayTest {
     }
 
     private void addListenerToGateway() throws IOException {
-        gate().addListener(new Listener() {
+        gate().addListener(null, new Listener() {
             @Override
             public void onMessage(Message message) {
                 messages.add(message);
