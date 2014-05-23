@@ -156,7 +156,7 @@ public class MicroserviceTest {
     }
 
     @Test
-    public void shouldFollowPreciseAlgorithmWhenRestApiMarkedAsFaulty() throws Exception {
+    public void shouldFollowSelectionAlgorithmWhenRestApiMarkedAsFaulty() throws Exception {
         setupRemoteMicroserviceWithMultipleRestAPIs("25.25.25.25", "15.15.10.1", "content", "/files");
         setupRemoteMicroserviceWithHost("10.10.10.10", "content", "/files");
 
