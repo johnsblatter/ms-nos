@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class Microservice {
 
@@ -20,27 +21,22 @@ public class Microservice {
     private final LocalAgent agent;
     private Cloud cloud;
 
-    private final List<RestApi> apis;
-    private final List<RestApi> faultyApis;
+    private final List<RestApi> localApis;
     private final List<RemoteMicroservice> microServices;
-
+    private final Map<String, ApiList> remoteApis;
 
     public Microservice(String name) {
         agent = new LocalAgent(UUID.randomUUID());
+        cloud = null;
         this.name = name;
-        this.cloud = null;
 
-        apis = new ArrayList<RestApi>();
-        faultyApis = new ArrayList<RestApi>();
+        localApis = new ArrayList<RestApi>();
         microServices = new ArrayList<RemoteMicroservice>();
+        remoteApis = new ConcurrentHashMap<String, ApiList>();
     }
 
-    public String getName() {
-        return name;
-    }
-
-    public Set<RestApi> getApis() {
-        return new HashSet<RestApi>(apis);
+    public Set<RestApi> getLocalApis() {
+        return new HashSet<RestApi>(localApis);
     }
 
     public LocalAgent getAgent() {
@@ -71,7 +67,7 @@ public class Microservice {
     public void publish(RestApi... api) throws IOException {
         Message message = new Message(Message.Type.QNE, agent.getIden(), cloud.getIden(), 2, false, new QnePayload(name, api));
         agent.send(message);
-        apis.addAll(Arrays.asList(api));
+        localApis.addAll(Arrays.asList(api));
     }
 
     private void process(Message message) throws IOException {
@@ -89,22 +85,36 @@ public class Microservice {
     }
 
     private void processENQ() throws IOException {
-        agent.send(new Message(Message.Type.QNE, agent.getIden(), cloud.getIden(), 2, false, new QnePayload(name, getApis())));
+        agent.send(new Message(Message.Type.QNE, agent.getIden(), cloud.getIden(), 2, false, new QnePayload(name, getLocalApis())));
     }
 
     private void processQNE(Message message) {
         synchronized (microServices) {
             QnePayload qnePayload = ((QnePayload) message.getData());
             String name = qnePayload.getName();
-            Set<RestApi> remoteApis = new HashSet<RestApi>(qnePayload.getApis());
+            Set<RestApi> apis = new HashSet<RestApi>(qnePayload.getApis());
             RemoteAgent remoteAgent = null;
             for (RemoteAgent agent : cloud.getRemoteAgents()) {
                 if (agent.getIden().equals(message.getFrom())) {
                     remoteAgent = agent;
                 }
             }
-            RemoteMicroservice remote = new RemoteMicroservice(name, remoteAgent, remoteApis);
+            RemoteMicroservice remote = new RemoteMicroservice(name, remoteAgent, apis);
             microServices.add(remote);
+            processRestApis(remote, apis);
+        }
+    }
+
+    private void processRestApis(RemoteMicroservice remote, Set<RestApi> apis) {
+        for (RestApi rest : apis) {
+            String key = rest.getName() + rest.getPath();
+            if (remoteApis.containsKey(key)) {
+                remoteApis.get(key).add(remote, rest);
+            } else {
+                ApiList apiList = new ApiList();
+                apiList.add(remote, rest);
+                remoteApis.put(key, apiList);
+            }
         }
     }
 
@@ -114,26 +124,17 @@ public class Microservice {
             for (int i = 0; i < microServices.size(); i++) {
                 if (microServices.get(i).getAgent().getIden().equals(fault.getAbout())) {
                     microServices.remove(microServices.get(i));
+//             TODO Remove from RemoteApis
                     break;
                 }
             }
         }
     }
 
-    public RestApi searchApi(String name, String endpoint) throws Exception {
-        synchronized (microServices) {
-            for (RemoteMicroservice remote : microServices) {
-                for (RestApi rest : remote.getApis()) {
-                    if (rest.isFaulty() && !faultyApis.contains(rest)) {
-                        faultyApis.add(rest);
-                        break;
-                    }
-                    if (remote.getName().contains(name) && rest.getPath().contains(endpoint) && !faultyApis.contains(rest))
-                        return rest;
-                }
-            }
-        }
-        return null;
+    public RestApi searchApi(String name, String path) throws Exception {
+        String key = name + path;
+        ApiList apiList = remoteApis.get(key);
+        return apiList.get();
     }
 
     @Override
@@ -147,7 +148,7 @@ public class Microservice {
     @Override
     public int hashCode() {
         int result = name.hashCode();
-        result = 31 * result + apis.hashCode();
+        result = 31 * result + localApis.hashCode();
         result = 31 * result + agent.hashCode();
         result = 31 * result + cloud.hashCode();
         return result;

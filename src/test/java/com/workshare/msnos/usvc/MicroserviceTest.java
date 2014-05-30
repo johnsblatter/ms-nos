@@ -50,7 +50,7 @@ public class MicroserviceTest {
 
     @Test
     public void shouldSendQNEwhenPublishApi() throws Exception {
-        RestApi api = new RestApi("/foo", 8080);
+        RestApi api = new RestApi("test", "/foo", 8080);
         localMicroservice.publish(api);
 
         Message msg = getLastMessageSent();
@@ -102,7 +102,8 @@ public class MicroserviceTest {
     public void shouldReturnCorrectRestApi() throws Exception {
         String endpoint = "/files";
 
-        setUpFourRemoteMicroservicesTwoWithSpecifiedEndpoint(endpoint);
+        setupRemoteMicroservice("content", endpoint);
+        setupRemoteMicroservice("content", "/folders");
 
         RestApi result = localMicroservice.searchApi("content", endpoint);
 
@@ -113,10 +114,12 @@ public class MicroserviceTest {
     @Test
     public void shouldBeAbleToMarkRestApiAsFaulty() throws Exception {
         String endpoint = "/files";
-        setUpFourRemoteMicroservicesTwoWithSpecifiedEndpoint(endpoint);
+
+        setupRemoteMicroservice("content", endpoint);
+        setupRemoteMicroservice("content", endpoint);
 
         RestApi result1 = localMicroservice.searchApi("content", endpoint);
-        result1.markAsFaulty();
+        result1.markFaulty();
 
         RestApi result2 = localMicroservice.searchApi("content", endpoint);
         assertFalse(result2.equals(result1));
@@ -129,7 +132,7 @@ public class MicroserviceTest {
         setupRemoteMicroservice(name, endpoint);
 
         RestApi result1 = localMicroservice.searchApi(name, endpoint);
-        result1.markAsFaulty();
+        result1.markFaulty();
 
         RestApi result2 = localMicroservice.searchApi(name, endpoint);
         assertNull(result2);
@@ -148,7 +151,7 @@ public class MicroserviceTest {
     public void shouldCreateBoundRestApisWhenRestApiNotBound() throws Exception {
         RemoteAgent remoteAgent = newRemoteAgentWithFakeHosts("10.10.10.10", (short) 15);
 
-        RestApi unboundApi = new RestApi("/files", 9999);
+        RestApi unboundApi = new RestApi("test", "/test", 9999);
         simulateMessageFromCloud(newQNEMessage(remoteAgent.getIden(), unboundApi));
 
         RestApi api = getRestApi();
@@ -161,7 +164,7 @@ public class MicroserviceTest {
         setupRemoteMicroserviceWithHost("10.10.10.10", "content", "/files");
 
         RestApi result1 = localMicroservice.searchApi("content", "/files");
-        result1.markAsFaulty();
+        result1.markFaulty();
 
         RestApi result2 = localMicroservice.searchApi("content", "/files");
         assertEquals("10.10.10.10", result2.getHost());
@@ -170,11 +173,55 @@ public class MicroserviceTest {
         assertEquals("15.15.10.1", result3.getHost());
     }
 
-    private void setUpFourRemoteMicroservicesTwoWithSpecifiedEndpoint(String endpoint) throws IOException {
-        setupRemoteMicroservice("content", endpoint);
-        setupRemoteMicroservice("content", endpoint);
-        setupRemoteMicroservice("peoples", "/users");
-        setupRemoteMicroservice("content", "/folders");
+    @Test
+    public void shouldRoundRobinWhenSessionAffinityNotEnabled() throws Exception {
+        RestApi api1 = getRestApis(setupRemoteMicroservice("24.24.24.24", "content", "/files"))[0];
+        RestApi api2 = getRestApis(setupRemoteMicroservice("11.11.11.11", "content", "/folders"))[0];
+        RestApi api3 = getRestApis(setupRemoteMicroservice("23.23.23.23", "content", "/files"))[0];
+        RestApi api4 = getRestApis(setupRemoteMicroservice("25.22.22.22", "content", "/files"))[0];
+
+        assertEquals(api1, localMicroservice.searchApi("content", "/files"));
+        assertEquals(api3, localMicroservice.searchApi("content", "/files"));
+        assertEquals(api4, localMicroservice.searchApi("content", "/files"));
+    }
+
+    @Test
+    public void shouldRespondWithSameRemoteWhenSessionAffinityEnabled() throws Exception {
+        setupRemoteMicroserviceWithSessionAffinity("11.11.11.11", "users", "/peoples");
+        RestApi api1 = getRestApis(setupRemoteMicroserviceWithSessionAffinity("24.24.24.24", "content", "/files"))[0];
+        setupRemoteMicroservice("23.23.23.23", "content", "/files");
+
+        assertEquals(api1, localMicroservice.searchApi("content", "/files"));
+        assertEquals(api1, localMicroservice.searchApi("content", "/files"));
+    }
+
+    @Test
+    public void shouldNOTReturnFaultyApisWhenSessionAffinityEnabled() throws Exception {
+        RestApi api1 = getRestApis(setupRemoteMicroserviceWithSessionAffinity("24.24.24.24", "content", "/files"))[0];
+        setupRemoteMicroservice("25.25.25.25", "content", "/files");
+
+        api1.markFaulty();
+
+        assertFalse(api1.equals(localMicroservice.searchApi("content", "/files")));
+    }
+
+    @Test
+    public void shouldMapNewAffinityWhenOriginalFaulty() throws Exception {
+        RestApi api1 = getRestApis(setupRemoteMicroserviceWithSessionAffinity("24.24.24.24", "content", "/files"))[0];
+        RestApi api2 = getRestApis(setupRemoteMicroserviceWithSessionAffinity("25.25.25.25", "content", "/files"))[0];
+
+        assertEquals(api1, localMicroservice.searchApi("content", "/files"));
+
+        api1.markFaulty();
+        assertEquals(api2, localMicroservice.searchApi("content", "/files"));
+
+        api1.markWorking();
+        assertEquals(api2, localMicroservice.searchApi("content", "/files"));
+    }
+
+    private RestApi[] getRestApis(RemoteMicroservice ms1) {
+        Set<RestApi> apiSet = ms1.getApis();
+        return apiSet.toArray(new RestApi[apiSet.size()]);
     }
 
     private void putRemoteAgentInCloudAgentsList(RemoteAgent agent) {
@@ -202,26 +249,34 @@ public class MicroserviceTest {
     }
 
     private RemoteMicroservice setupRemoteMicroserviceWithHost(String host, String name, String endpoint) {
-        return getRemoteMicroservice(host, name, endpoint);
+        return setupRemoteMicroservice(host, name, endpoint);
     }
 
     private RemoteMicroservice setupRemoteMicroservice(String name, String endpoint) throws IOException {
-        return getRemoteMicroservice("10.10.10.10", name, endpoint);
+        return setupRemoteMicroservice("10.10.10.10", name, endpoint);
     }
 
-    private RemoteMicroservice getRemoteMicroservice(String host, String name, String endpoint) {
+    private RemoteMicroservice setupRemoteMicroserviceWithSessionAffinity(String host, String name, String endpoint) throws Exception {
         RemoteAgent agent = newRemoteAgent();
-        RestApi restApi = new RestApi(endpoint, 9999).host(host);
+        RestApi restApi = new RestApi(name, endpoint, 9999).host(host).withAffinity();
         RemoteMicroservice remote = new RemoteMicroservice(name, agent, toSet(restApi));
         return addRemoteAgentToCloudListAndMicroserviceToLocalList(name, remote, restApi);
     }
 
+    private RemoteMicroservice setupRemoteMicroservice(String host, String name, String endpoint) {
+        RemoteAgent agent = newRemoteAgent();
+        RestApi restApi = new RestApi(name, endpoint, 9999).host(host);
+        RemoteMicroservice remote = new RemoteMicroservice(name, agent, toSet(restApi));
+        return addRemoteAgentToCloudListAndMicroserviceToLocalList(name, remote, restApi);
+
+    }
+
     private RemoteMicroservice setupRemoteMicroserviceWithMultipleRestAPIs(String host1, String host2, String name, String endpoint) throws IOException {
         RemoteAgent agent = newRemoteAgent();
-        RestApi restApi = new RestApi(endpoint, 9999).host(host1);
-        RestApi restApi2 = new RestApi(endpoint, 9999).host(host2);
-        RemoteMicroservice remote = new RemoteMicroservice(name, agent, toSet(restApi, restApi2));
-        return addRemoteAgentToCloudListAndMicroserviceToLocalList(name, remote, restApi, restApi2);
+        RestApi alfa = new RestApi(name, endpoint, 9999).host(host1);
+        RestApi beta = new RestApi(name, endpoint, 9999).host(host2);
+        RemoteMicroservice remote = new RemoteMicroservice(name, agent, toSet(alfa, beta));
+        return addRemoteAgentToCloudListAndMicroserviceToLocalList(name, remote, alfa, beta);
     }
 
     private RemoteMicroservice addRemoteAgentToCloudListAndMicroserviceToLocalList(String name, RemoteMicroservice remote, RestApi... restApi) {

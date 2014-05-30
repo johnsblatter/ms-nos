@@ -30,7 +30,6 @@ public class RemoteMicroservice {
                 result.add(api);
             }
         }
-
         return result;
     }
 
@@ -44,5 +43,21 @@ public class RemoteMicroservice {
 
     public RemoteAgent getAgent() {
         return agent;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        RemoteMicroservice that = (RemoteMicroservice) o;
+        return this.hashCode() == that.hashCode() && name.equals(that.name);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = name.hashCode();
+        result = 31 * result + apis.hashCode();
+        result = 31 * result + agent.hashCode();
+        return result;
     }
 }

@@ -81,7 +81,7 @@ public class WireJsonSerializerTest {
 
     @Test
     public void shouldBeAbleToEncodeAndDecodeQNE() throws Exception {
-        Message source = new Message(Message.Type.QNE, AGENT_IDEN, CLOUD_IDEN, 2, false, new QnePayload("test", new RestApi("/test", 7070)));
+        Message source = new Message(Message.Type.QNE, AGENT_IDEN, CLOUD_IDEN, 2, false, new QnePayload("test", new RestApi("test", "/test", 7070)));
 
         byte[] data = sz.toBytes(source);
         Message decoded = sz.fromBytes(data, Message.class);
@@ -100,7 +100,7 @@ public class WireJsonSerializerTest {
     @Test
     public void shouldSerializeUUIDObject() throws Exception {
         UUID uuid = UUID.randomUUID();
-        String expected = "\""+toShortString(uuid).replace("-",  "")+"\"";
+        String expected = "\"" + toShortString(uuid).replace("-", "") + "\"";
         String current = sz.toText(uuid);
 
         assertEquals(expected, current);
@@ -109,7 +109,7 @@ public class WireJsonSerializerTest {
     @Test
     public void shouldDeserializeUUIDObject() throws Exception {
         UUID expected = UUID.randomUUID();
-        String text = "\""+toShortString(expected).replace("-",  "")+"\"";
+        String text = "\"" + toShortString(expected).replace("-", "") + "\"";
         UUID current = sz.fromText(text, UUID.class);
 
         assertEquals(expected, current);
