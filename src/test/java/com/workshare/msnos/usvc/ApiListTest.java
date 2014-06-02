@@ -59,11 +59,14 @@ public class ApiListTest {
         RestApi alfa = newRestApi("alfa");
         RestApi beta = newRestApiWithAffinity("beta");
         RestApi thre = newRestApi("thre");
-        RemoteMicroservice remote = getRemoteMicroservice();
+        RemoteMicroservice remoteAlfa = getRemoteMicroservice();
+        RemoteMicroservice remoteBeta = getRemoteMicroservice();
+        RemoteMicroservice remoteThre = getRemoteMicroservice();
 
-        apiList.add(remote, alfa);
-        apiList.add(remote, beta);
-        apiList.add(remote, thre);
+
+        apiList.add(remoteAlfa, alfa);
+        apiList.add(remoteBeta, beta);
+        apiList.add(remoteThre, thre);
 
         markAsFaulty(beta);
 

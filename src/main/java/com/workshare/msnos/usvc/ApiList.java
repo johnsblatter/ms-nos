@@ -23,6 +23,10 @@ public class ApiList {
     public RestApi get() {
         if (affinite != null && !affinite.isFaulty()) return affinite;
 
+//        TODO Write a test with multiple faulty services, make sure that there is an effective way of keeping a reference to each
+//        TODO and adhering to correct selection algorithm.
+        for (Api fault : apis) if (fault.rest().isFaulty()) faultyService = fault.remote();
+
         RestApi result = getWithRoundRobinNotFaulty();
         if (result != null && result.hasAffinity()) affinite = result;
 
@@ -32,7 +36,10 @@ public class ApiList {
     private RestApi getWithRoundRobinNotFaulty() {
         Api api = getWithRoundRobin();
         if (api.rest().isFaulty() && apis.size() == 1) return null;
-        else if (api.rest().isFaulty()) api = getWithRoundRobin();
+        if (api.rest().isFaulty() || api.remote().equals(faultyService)) {
+            api = getWithRoundRobin();
+            faultyService = null;
+        }
         return api.rest();
     }
 

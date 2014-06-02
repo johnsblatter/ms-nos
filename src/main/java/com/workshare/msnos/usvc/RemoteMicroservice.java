@@ -50,7 +50,7 @@ public class RemoteMicroservice {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         RemoteMicroservice that = (RemoteMicroservice) o;
-        return this.hashCode() == that.hashCode() && name.equals(that.name);
+        return this.hashCode() == that.hashCode();
     }
 
     @Override
@@ -58,6 +58,7 @@ public class RemoteMicroservice {
         int result = name.hashCode();
         result = 31 * result + apis.hashCode();
         result = 31 * result + agent.hashCode();
+        result = 31 * result + name.hashCode();
         return result;
     }
 }
