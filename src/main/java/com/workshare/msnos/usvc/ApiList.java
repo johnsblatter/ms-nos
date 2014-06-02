@@ -20,11 +20,17 @@ public class ApiList {
         apis.add(new Api(remote, rest));
     }
 
+    public void remove(RemoteMicroservice toRemove) {
+        for (int i = 0; i < apis.size(); i++) {
+            if (apis.get(i).remote().equals(toRemove)) apis.remove(i);
+            break;
+        }
+    }
+
     public RestApi get() {
+        if (apis.size() == 0) return null;
         if (affinite != null && !affinite.isFaulty()) return affinite;
 
-//        TODO Write a test with multiple faulty services, make sure that there is an effective way of keeping a reference to each
-//        TODO and adhering to correct selection algorithm.
         for (Api fault : apis) if (fault.rest().isFaulty()) faultyService = fault.remote();
 
         RestApi result = getWithRoundRobinNotFaulty();
@@ -36,7 +42,8 @@ public class ApiList {
     private RestApi getWithRoundRobinNotFaulty() {
         Api api = getWithRoundRobin();
         if (api.rest().isFaulty() && apis.size() == 1) return null;
-        if (api.rest().isFaulty() || api.remote().equals(faultyService)) {
+        else if (api.rest().isFaulty()) api = getWithRoundRobin();
+        else if (api.remote().equals(faultyService)) {
             api = getWithRoundRobin();
             faultyService = null;
         }

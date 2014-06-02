@@ -123,10 +123,21 @@ public class Microservice {
         synchronized (microServices) {
             for (int i = 0; i < microServices.size(); i++) {
                 if (microServices.get(i).getAgent().getIden().equals(fault.getAbout())) {
-                    microServices.remove(microServices.get(i));
-//             TODO Remove from RemoteApis
+                    RemoteMicroservice faulty = microServices.get(i);
+                    microServices.remove(faulty);
+                    removeRestApis(faulty, faulty.getApis());
                     break;
                 }
+            }
+        }
+    }
+
+    private void removeRestApis(RemoteMicroservice faulty, Set<RestApi> apis) {
+        for (RestApi rest : apis) {
+            String key = rest.getName() + rest.getPath();
+            if(remoteApis.containsKey(key)){
+                ApiList apiList = remoteApis.get(key);
+                apiList.remove(faulty);
             }
         }
     }
@@ -142,7 +153,7 @@ public class Microservice {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Microservice that = (Microservice) o;
-        return this.hashCode() == that.hashCode() && name.equals(that.name);
+        return this.hashCode() == that.hashCode();
     }
 
     @Override

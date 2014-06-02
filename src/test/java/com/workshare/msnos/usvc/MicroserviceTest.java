@@ -219,6 +219,18 @@ public class MicroserviceTest {
         assertEquals(api2, localMicroservice.searchApi("content", "/files"));
     }
 
+    @Test
+    public void shouldRemoveRemoteApisWhenRemoteMicroserviceIsRemoved() throws Exception {
+        RemoteMicroservice remote = setupRemoteMicroservice("24.24.24.24", "content", "/files");
+        RestApi api1 = getRestApis(remote)[0];
+
+        assertEquals(api1, localMicroservice.searchApi("content", "/files"));
+
+        simulateMessageFromCloud(getFaultMessage(remote.getAgent()));
+
+        assertNull(localMicroservice.searchApi("content", "/files"));
+    }
+
     private RestApi[] getRestApis(RemoteMicroservice ms1) {
         Set<RestApi> apiSet = ms1.getApis();
         return apiSet.toArray(new RestApi[apiSet.size()]);
