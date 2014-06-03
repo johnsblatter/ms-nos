@@ -21,19 +21,24 @@ public class ApiList {
     }
 
     public void remove(RemoteMicroservice toRemove) {
-        for (int i = 0; i < apis.size(); i++) {
-            if (apis.get(i).remote().equals(toRemove)) apis.remove(i);
-            break;
-        }
+        for (int i = 0; i < apis.size(); i++)
+            if (apis.get(i).remote().equals(toRemove)) {
+                apis.remove(i);
+                break;
+            }
     }
 
     public RestApi get() {
         if (apis.size() == 0) return null;
         if (affinite != null && !affinite.isFaulty()) return affinite;
 
-        for (Api fault : apis) if (fault.rest().isFaulty()) faultyService = fault.remote();
+        for (Api checkFaults : apis)
+            if (checkFaults.rest().isFaulty()) {
+                faultyService = checkFaults.remote();
+            }
 
         RestApi result = getWithRoundRobinNotFaulty();
+
         if (result != null && result.hasAffinity()) affinite = result;
 
         return result;
@@ -41,12 +46,14 @@ public class ApiList {
 
     private RestApi getWithRoundRobinNotFaulty() {
         Api api = getWithRoundRobin();
+
         if (api.rest().isFaulty() && apis.size() == 1) return null;
         else if (api.rest().isFaulty()) api = getWithRoundRobin();
         else if (api.remote().equals(faultyService)) {
             api = getWithRoundRobin();
             faultyService = null;
         }
+
         return api.rest();
     }
 

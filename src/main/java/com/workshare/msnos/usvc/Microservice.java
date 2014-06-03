@@ -101,7 +101,7 @@ public class Microservice {
             }
             RemoteMicroservice remote = new RemoteMicroservice(name, remoteAgent, apis);
             microServices.add(remote);
-            processRestApis(remote, apis);
+            processRestApis(remote, remote.getApis());
         }
     }
 
@@ -135,9 +135,10 @@ public class Microservice {
     private void removeRestApis(RemoteMicroservice faulty, Set<RestApi> apis) {
         for (RestApi rest : apis) {
             String key = rest.getName() + rest.getPath();
-            if(remoteApis.containsKey(key)){
+            if (remoteApis.containsKey(key)) {
                 ApiList apiList = remoteApis.get(key);
                 apiList.remove(faulty);
+                break;
             }
         }
     }

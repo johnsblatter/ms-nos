@@ -67,6 +67,10 @@ public class RestApi {
         return host;
     }
 
+    public int getPort() {
+        return port;
+    }
+
     @Override
     public int hashCode() {
         final int prime = 31;
