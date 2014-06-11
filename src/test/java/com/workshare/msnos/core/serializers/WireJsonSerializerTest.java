@@ -6,6 +6,7 @@ import com.workshare.msnos.core.payloads.QnePayload;
 import com.workshare.msnos.usvc.RestApi;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import java.util.Arrays;
 import java.util.HashSet;
@@ -27,7 +28,7 @@ public class WireJsonSerializerTest {
 
     @Before
     public void before() throws Exception {
-        cloud = new Cloud(CLOUD_UUID, new HashSet<Gateway>(Arrays.asList(new NoopGateway())));
+        cloud = new Cloud(CLOUD_UUID, new HashSet<Gateway>(Arrays.asList(new NoopGateway())), Mockito.mock(JoinSynchronizer.class));
 
         agent = new LocalAgent(AGENT_UUID);
         agent.join(cloud);

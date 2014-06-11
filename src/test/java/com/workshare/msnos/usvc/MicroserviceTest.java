@@ -41,7 +41,7 @@ public class MicroserviceTest {
     @Test
     public void shouldInternalAgentJoinTheCloudOnJoin() throws Exception {
         localMicroservice = new Microservice("jeff");
-        cloud = new Cloud(UUID.randomUUID(), Collections.<Gateway>emptySet());
+        cloud = new Cloud(UUID.randomUUID(), Collections.<Gateway>emptySet(), Mockito.mock(JoinSynchronizer.class));
 
         localMicroservice.join(cloud);
 

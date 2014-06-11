@@ -56,7 +56,9 @@ public class CloudTest {
         gate2 = mock(Gateway.class);
         when(gate2.send(any(Message.class))).thenReturn(unknownReceipt);
 
-        thisCloud = new Cloud(MY_CLOUD.getUUID(), new HashSet<Gateway>(Arrays.asList(gate1, gate2)), synchronousMulticaster(), scheduler);
+        JoinSynchronizer synchro = mock(JoinSynchronizer.class);
+
+        thisCloud = new Cloud(MY_CLOUD.getUUID(), new HashSet<Gateway>(Arrays.asList(gate1, gate2)), synchro, synchronousMulticaster(), scheduler);
         thisCloud.addListener(new Cloud.Listener() {
             @Override
             public void onMessage(Message message) {
@@ -66,7 +68,7 @@ public class CloudTest {
 
         messages = new ArrayList<Message>();
 
-        otherCloud = new Cloud(UUID.randomUUID(), Collections.<Gateway>emptySet());
+        otherCloud = new Cloud(UUID.randomUUID(), Collections.<Gateway>emptySet(), synchro);
     }
 
     @After

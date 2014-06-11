@@ -7,6 +7,7 @@ import com.workshare.msnos.core.payloads.Presence;
 import com.workshare.msnos.core.payloads.QnePayload;
 import com.workshare.msnos.soup.json.Json;
 import com.workshare.msnos.soup.json.ThreadSafeGson;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -94,7 +95,7 @@ public class WireJsonSerializer implements WireSerializer {
                 Iden iden = deserializeIden(json);
                 if (iden.getType() != Iden.Type.CLD)
                     throw new IllegalArgumentException("Unexpected type when converting cloud!");
-                return new Cloud(iden.getUUID(), Collections.<Gateway>emptySet());
+                return new Cloud(iden.getUUID(), Collections.<Gateway>emptySet(), null);
             } catch (Exception any) {
                 throw new JsonParseException(any);
             }

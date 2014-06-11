@@ -1,14 +1,24 @@
 package com.workshare.msnos.core;
 
-import com.workshare.msnos.core.payloads.Presence;
-import com.workshare.msnos.soup.json.Json;
-import com.workshare.msnos.soup.time.SystemTime;
+import java.io.IOException;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.util.*;
-import java.util.concurrent.*;
+import com.workshare.msnos.core.JoinSynchronizer.Status;
+import com.workshare.msnos.core.payloads.Presence;
+import com.workshare.msnos.soup.json.Json;
+import com.workshare.msnos.soup.time.SystemTime;
 
 public class Cloud implements Identifiable {
 
@@ -44,22 +54,24 @@ public class Cloud implements Identifiable {
     transient private final Set<Gateway> gates;
     transient private final Multicaster caster;
     transient private final ScheduledExecutorService scheduler;
+    transient private final JoinSynchronizer synchronizer;
 
     public Cloud(UUID uuid) throws IOException {
-        this(uuid, Gateways.all());
+        this(uuid, Gateways.all(), new JoinSynchronizer());
     }
 
-    public Cloud(UUID uuid, Set<Gateway> gates) throws IOException {
-        this(uuid, gates, new Multicaster(), Executors.newSingleThreadScheduledExecutor());
+    public Cloud(UUID uuid, Set<Gateway> gates, JoinSynchronizer synchronizer) throws IOException {
+        this(uuid, gates, synchronizer, new Multicaster(), Executors.newSingleThreadScheduledExecutor());
     }
 
-    public Cloud(UUID uuid, Set<Gateway> gates, Multicaster multicaster, ScheduledExecutorService executor) {
+    public Cloud(UUID uuid, Set<Gateway> gates, JoinSynchronizer synchronizer, Multicaster multicaster, ScheduledExecutorService executor) {
         this.iden = new Iden(Iden.Type.CLD, uuid);
         this.localAgents = new ConcurrentHashMap<Iden, LocalAgent>();
         this.remoteAgents = new ConcurrentHashMap<Iden, RemoteAgent>();
         this.caster = multicaster;
         this.gates = gates;
         this.scheduler = executor;
+        this.synchronizer = synchronizer;
 
         for (Gateway gate : gates) {
             gate.addListener(new Gateway.Listener() {
@@ -136,8 +148,14 @@ public class Cloud implements Identifiable {
         log.debug("Local agent joined: {}", agent);
         localAgents.put(agent.getIden(), agent);
 
-        send(Messages.presence(agent, this));
-        send(Messages.discovery(agent, this));
+        final Status status = synchronizer.start(agent);
+        try {
+            send(Messages.presence(agent, this));
+            send(Messages.discovery(agent, this));
+            synchronizer.wait(status);
+        } finally {
+            synchronizer.remove(status);
+        }
     }
 
     void onLeave(LocalAgent agent) throws IOException {
@@ -156,6 +174,9 @@ public class Cloud implements Identifiable {
     }
 
     private void process(Message message) {
+
+        synchronizer.process(message);
+
         if (isProcessable(message)) {
             proto.info("RX: {} {} {} {}", message.getType(), message.getFrom(), message.getTo(), message.getData());
 
@@ -176,6 +197,7 @@ public class Cloud implements Identifiable {
 
     private boolean isProcessable(Message message) {
         if (isComingFromALocalAgent(message)) {
+
             log.debug("Skipped message sent from a local agent: {}", message);
             return false;
         }
