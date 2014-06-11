@@ -231,6 +231,19 @@ public class MicroserviceTest {
         assertNull(localMicroservice.searchApi("content", "/files"));
     }
 
+    @Test
+    public void shouldReturnCorrectApiWhenSearchingById() throws Exception {
+        RestApi api1 = getRestApis(setupRemoteMicroservice("24.24.24.24/25", "content", "/files"))[0];
+        RestApi api2 = getRestApis(setupRemoteMicroservice("11.11.11.11/24", "content", "/folders"))[0];
+        RestApi api3 = getRestApis(setupRemoteMicroservice("23.23.23.23/15", "content", "/files"))[0];
+        RestApi api4 = getRestApis(setupRemoteMicroservice("25.22.22.22/42", "content", "/files"))[0];
+
+        assertEquals(api1, localMicroservice.searchById(api1.getId()));
+        assertEquals(api2, localMicroservice.searchById(api2.getId()));
+        assertEquals(api4, localMicroservice.searchById(api4.getId()));
+    }
+
+
     private RestApi[] getRestApis(RemoteMicroservice ms1) {
         Set<RestApi> apiSet = ms1.getApis();
         return apiSet.toArray(new RestApi[apiSet.size()]);
@@ -270,14 +283,14 @@ public class MicroserviceTest {
 
     private RemoteMicroservice setupRemoteMicroserviceWithSessionAffinity(String host, String name, String endpoint) throws Exception {
         RemoteAgent agent = newRemoteAgent();
-        RestApi restApi = new RestApi(name, endpoint, 9999).host(host).withAffinity();
+        RestApi restApi = new RestApi(name, endpoint, 9999).onHost(host).withAffinity();
         RemoteMicroservice remote = new RemoteMicroservice(name, agent, toSet(restApi));
         return addRemoteAgentToCloudListAndMicroserviceToLocalList(name, remote, restApi);
     }
 
     private RemoteMicroservice setupRemoteMicroservice(String host, String name, String endpoint) {
         RemoteAgent agent = newRemoteAgent();
-        RestApi restApi = new RestApi(name, endpoint, 9999).host(host);
+        RestApi restApi = new RestApi(name, endpoint, 9999).onHost(host);
         RemoteMicroservice remote = new RemoteMicroservice(name, agent, toSet(restApi));
         return addRemoteAgentToCloudListAndMicroserviceToLocalList(name, remote, restApi);
 
@@ -285,8 +298,8 @@ public class MicroserviceTest {
 
     private RemoteMicroservice setupRemoteMicroserviceWithMultipleRestAPIs(String host1, String host2, String name, String endpoint) throws IOException {
         RemoteAgent agent = newRemoteAgent();
-        RestApi alfa = new RestApi(name, endpoint, 9999).host(host1);
-        RestApi beta = new RestApi(name, endpoint, 9999).host(host2);
+        RestApi alfa = new RestApi(name, endpoint, 9999).onHost(host1);
+        RestApi beta = new RestApi(name, endpoint, 9999).onHost(host2);
         RemoteMicroservice remote = new RemoteMicroservice(name, agent, toSet(alfa, beta));
         return addRemoteAgentToCloudListAndMicroserviceToLocalList(name, remote, alfa, beta);
     }

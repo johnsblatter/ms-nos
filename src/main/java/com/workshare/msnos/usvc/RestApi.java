@@ -2,12 +2,18 @@ package com.workshare.msnos.usvc;
 
 import com.workshare.msnos.soup.json.Json;
 
+import java.util.concurrent.atomic.AtomicLong;
+
 public class RestApi {
 
+    private static final AtomicLong NEXT_ID = new AtomicLong(0);
+    private final long id;
+
+    private int port;
     private String name;
     private String path;
-    private int port;
     private String host;
+
     private transient boolean faulty;
     private boolean sessionAffinity;
 
@@ -29,10 +35,11 @@ public class RestApi {
         this.path = path;
         this.port = port;
         this.host = host;
+        this.id = NEXT_ID.getAndIncrement();
     }
 
-    public RestApi host(String host) {
-        return new RestApi(name, path, port, host);
+    public RestApi onHost(String host) {
+        return new RestApi(name, path, port, host, sessionAffinity);
     }
 
     public RestApi withAffinity() {
@@ -69,6 +76,14 @@ public class RestApi {
 
     public int getPort() {
         return port;
+    }
+
+    public String getUrl() {
+        return String.format("http://%s:%d/%s/%s/", getHost().substring(0, getHost().indexOf("/")), getPort(), getName(), getPath());
+    }
+
+    public long getId() {
+        return id;
     }
 
     @Override

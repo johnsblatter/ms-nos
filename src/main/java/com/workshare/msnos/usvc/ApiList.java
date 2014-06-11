@@ -28,6 +28,14 @@ public class ApiList {
             }
     }
 
+    public List<RestApi> getAll() {
+        List<RestApi> result = new ArrayList<RestApi>();
+        for (Api api : apis) {
+            result.add(api.rest());
+        }
+        return result;
+    }
+
     public RestApi get() {
         if (apis.size() == 0) return null;
         if (affinite != null && !affinite.isFaulty()) return affinite;

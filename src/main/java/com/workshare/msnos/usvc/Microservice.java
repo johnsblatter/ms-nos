@@ -19,11 +19,11 @@ public class Microservice {
 
     private final String name;
     private final LocalAgent agent;
-    private Cloud cloud;
-
     private final List<RestApi> localApis;
     private final List<RemoteMicroservice> microServices;
     private final Map<String, ApiList> remoteApis;
+
+    private Cloud cloud;
 
     public Microservice(String name) {
         agent = new LocalAgent(UUID.randomUUID());
@@ -97,6 +97,7 @@ public class Microservice {
             for (RemoteAgent agent : cloud.getRemoteAgents()) {
                 if (agent.getIden().equals(message.getFrom())) {
                     remoteAgent = agent;
+                    break;
                 }
             }
             RemoteMicroservice remote = new RemoteMicroservice(name, remoteAgent, apis);
@@ -141,6 +142,21 @@ public class Microservice {
                 break;
             }
         }
+    }
+
+    public RestApi searchById(long id) throws Exception {
+        Collection<ApiList> apiListCol = remoteApis.values();
+        RestApi result = null;
+        for (ApiList apiList : apiListCol) {
+            for (RestApi rest : apiList.getAll()) {
+                if (rest.getId() == id) {
+                    result = rest;
+                    break;
+                }
+            }
+            if (result != null) break;
+        }
+        return result;
     }
 
     public RestApi searchApi(String name, String path) throws Exception {
