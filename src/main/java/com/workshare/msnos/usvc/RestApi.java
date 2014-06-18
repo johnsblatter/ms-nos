@@ -2,20 +2,23 @@ package com.workshare.msnos.usvc;
 
 import com.workshare.msnos.soup.json.Json;
 
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class RestApi {
 
     private static final AtomicLong NEXT_ID = new AtomicLong(0);
-    private final long id;
 
-    private int port;
-    private String name;
-    private String path;
-    private String host;
+    private final int port;
+    private final String name;
+    private final String path;
+    private final String host;
+    private final boolean sessionAffinity;
 
+    private final transient AtomicInteger tempFaults;
+
+    private transient final long id;
     private transient boolean faulty;
-    private boolean sessionAffinity;
 
     public RestApi(String name, String path, int port) {
         this(name, path, port, null);
@@ -36,6 +39,7 @@ public class RestApi {
         this.port = port;
         this.host = host;
         this.id = NEXT_ID.getAndIncrement();
+        tempFaults = new AtomicInteger();
     }
 
     public RestApi onHost(String host) {
@@ -60,6 +64,14 @@ public class RestApi {
 
     public void markWorking() {
         faulty = false;
+    }
+
+    public void markTempFault() {
+        tempFaults.incrementAndGet();
+    }
+
+    public int getTempFaults() {
+        return tempFaults.get();
     }
 
     public String getName() {

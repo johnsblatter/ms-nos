@@ -238,11 +238,16 @@ public class MicroserviceTest {
         RestApi api3 = getRestApis(setupRemoteMicroservice("23.23.23.23/15", "content", "/files"))[0];
         RestApi api4 = getRestApis(setupRemoteMicroservice("25.22.22.22/42", "content", "/files"))[0];
 
-        assertEquals(api1, localMicroservice.searchById(api1.getId()));
-        assertEquals(api2, localMicroservice.searchById(api2.getId()));
-        assertEquals(api4, localMicroservice.searchById(api4.getId()));
+        assertEquals(api1, localMicroservice.searchApiById(api1.getId()));
+        assertEquals(api2, localMicroservice.searchApiById(api2.getId()));
+        assertEquals(api4, localMicroservice.searchApiById(api4.getId()));
     }
 
+    @Test
+    public void shouldReturnNullIfApiListIsEmpty() throws Exception {
+        assertNull(localMicroservice.searchApi("something", "don't care"));
+        assertNull(localMicroservice.searchApiById(1033l));
+    }
 
     private RestApi[] getRestApis(RemoteMicroservice ms1) {
         Set<RestApi> apiSet = ms1.getApis();

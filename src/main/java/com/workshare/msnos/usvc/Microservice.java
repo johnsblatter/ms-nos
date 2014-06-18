@@ -144,25 +144,22 @@ public class Microservice {
         }
     }
 
-    public RestApi searchById(long id) throws Exception {
+    public RestApi searchApiById(long id) throws Exception {
         Collection<ApiList> apiListCol = remoteApis.values();
-        RestApi result = null;
         for (ApiList apiList : apiListCol) {
             for (RestApi rest : apiList.getAll()) {
                 if (rest.getId() == id) {
-                    result = rest;
-                    break;
+                    return rest;
                 }
             }
-            if (result != null) break;
         }
-        return result;
+        return null;
     }
 
     public RestApi searchApi(String name, String path) throws Exception {
         String key = name + path;
         ApiList apiList = remoteApis.get(key);
-        return apiList.get();
+        return apiList == null ? null : apiList.get();
     }
 
     @Override
