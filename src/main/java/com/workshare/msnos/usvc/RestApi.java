@@ -14,6 +14,7 @@ public class RestApi {
     private final String path;
     private final String host;
     private final boolean sessionAffinity;
+    private final boolean healthCheck;
 
     private final transient AtomicInteger tempFaults;
 
@@ -29,29 +30,42 @@ public class RestApi {
     }
 
     public RestApi(String name, String path, int port, String host, boolean sessionAffinity) {
+        this(name, path, port, host, sessionAffinity, false);
+    }
+
+    public RestApi(String name, String path, int port, String host, boolean sessionAffinity, boolean healthCheck) {
         if (path == null) {
             throw new IllegalArgumentException("path cannot be null");
         }
         this.faulty = false;
-        this.sessionAffinity = sessionAffinity;
         this.name = name;
         this.path = path;
         this.port = port;
         this.host = host;
+        this.sessionAffinity = sessionAffinity;
+        this.healthCheck = healthCheck;
         this.id = NEXT_ID.getAndIncrement();
         tempFaults = new AtomicInteger();
     }
 
+    public RestApi asHealthCheck() {
+        return new RestApi(name, path, port, host, sessionAffinity, true);
+    }
+
     public RestApi onHost(String host) {
-        return new RestApi(name, path, port, host, sessionAffinity);
+        return new RestApi(name, path, port, host, sessionAffinity, healthCheck);
     }
 
     public RestApi withAffinity() {
-        return new RestApi(name, path, port, host, true);
+        return new RestApi(name, path, port, host, true, healthCheck);
     }
 
     public boolean hasAffinity() {
         return sessionAffinity;
+    }
+
+    public boolean isHealthCheck() {
+        return healthCheck;
     }
 
     public boolean isFaulty() {
@@ -63,6 +77,7 @@ public class RestApi {
     }
 
     public void markWorking() {
+        tempFaults.set(0);
         faulty = false;
     }
 
