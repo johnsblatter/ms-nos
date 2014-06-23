@@ -12,6 +12,8 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 
 public class Microservice {
 
@@ -19,6 +21,7 @@ public class Microservice {
 
     private final String name;
     private final LocalAgent agent;
+    private final Healthchecker healthcheck;
     private final List<RestApi> localApis;
     private final List<RemoteMicroservice> microServices;
     private final Map<String, ApiList> remoteApis;
@@ -26,6 +29,10 @@ public class Microservice {
     private Cloud cloud;
 
     public Microservice(String name) {
+        this(name, Executors.newSingleThreadScheduledExecutor());
+    }
+
+    public Microservice(String name, ScheduledExecutorService executor) {
         agent = new LocalAgent(UUID.randomUUID());
         cloud = null;
         this.name = name;
@@ -33,10 +40,7 @@ public class Microservice {
         localApis = new ArrayList<RestApi>();
         microServices = new ArrayList<RemoteMicroservice>();
         remoteApis = new ConcurrentHashMap<String, ApiList>();
-    }
-
-    public Set<RestApi> getLocalApis() {
-        return new HashSet<RestApi>(localApis);
+        healthcheck = new Healthchecker(this, executor);
     }
 
     public LocalAgent getAgent() {
@@ -45,6 +49,14 @@ public class Microservice {
 
     public List<RemoteMicroservice> getMicroServices() {
         return Collections.unmodifiableList(microServices);
+    }
+
+    public List<RestApi> getAllRemoteRestApis() {
+        List<RestApi> result = new ArrayList<RestApi>();
+        for (ApiList api : remoteApis.values()) {
+            result.addAll(api.getAll());
+        }
+        return Collections.unmodifiableList(result);
     }
 
     public void join(Cloud nimbus) throws IOException {
@@ -62,6 +74,7 @@ public class Microservice {
         });
         Message message = new Message(Message.Type.ENQ, agent.getIden(), cloud.getIden(), 2, false, null);
         agent.send(message);
+        healthcheck.run();
     }
 
     public void publish(RestApi... api) throws IOException {
@@ -85,7 +98,7 @@ public class Microservice {
     }
 
     private void processENQ() throws IOException {
-        agent.send(new Message(Message.Type.QNE, agent.getIden(), cloud.getIden(), 2, false, new QnePayload(name, getLocalApis())));
+        agent.send(new Message(Message.Type.QNE, agent.getIden(), cloud.getIden(), 2, false, new QnePayload(name, new HashSet<RestApi>(localApis))));
     }
 
     private void processQNE(Message message) {
