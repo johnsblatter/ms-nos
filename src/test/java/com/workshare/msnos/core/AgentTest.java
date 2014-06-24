@@ -30,7 +30,8 @@ public class AgentTest {
     @Before
     public void before() throws Exception {
         cloud = mock(Cloud.class);
-
+        when(cloud.getIden()).thenReturn(new Iden(Iden.Type.CLD, UUID.randomUUID()));
+        
         karl = new LocalAgent(UUID.randomUUID());
         karl.join(cloud);
 
@@ -50,7 +51,7 @@ public class AgentTest {
 
     @Test
     public void shouldSendPresenceWhenDiscoveryIsReceived() throws IOException {
-        simulateMessageFromCloud(Messages.discovery(cloud, smith));
+        simulateMessageFromCloud(new MessageBuilder(Message.Type.DSC, cloud.getIden(), smith.getIden()).make());
         Message message = getLastMessageToCloud();
 
         assertNotNull(message);
@@ -60,7 +61,7 @@ public class AgentTest {
 
     @Test
     public void shouldSendPongWhenPingIsReceived() throws IOException {
-        simulateMessageFromCloud(Messages.ping(cloud, smith));
+        simulateMessageFromCloud(new MessageBuilder(Message.Type.PIN, cloud, smith).make());
         Message message = getLastMessageToCloud();
 
         assertNotNull(message);
@@ -71,7 +72,7 @@ public class AgentTest {
     @Test
     public void shouldSendUnreliableMessageThroughCloud() throws Exception {
 
-        smith.send(Messages.ping(smith, karl));
+        smith.send(new MessageBuilder(Message.Type.PIN, smith, karl).make());
 
         Message message = getLastMessageToCloud();
         assertNotNull(message);
@@ -84,7 +85,7 @@ public class AgentTest {
     @Test
     public void shouldSendReliableMessageThroughCloud() throws Exception {
 
-        smith.send(Messages.ping(smith, karl).reliable());
+        smith.send(new MessageBuilder(Message.Type.PIN, smith, karl).make().reliable());
 
         Message message = getLastMessageToCloud();
         assertNotNull(message);
@@ -96,7 +97,7 @@ public class AgentTest {
 
     @Test
     public void presenceMessageShouldContainNetworkInfo() throws Exception {
-        smith.send(Messages.presence(smith, cloud));
+        smith.send(new MessageBuilder(Message.Type.PRS, smith, cloud).with(new Presence(true)).make());
 
         Message message = getLastMessageToCloud();
 
@@ -122,7 +123,7 @@ public class AgentTest {
     public void shouldUpdateAccessTimeWhenMessageIsReceived() {
         fakeSystemTime(123456790L);
 
-        Message message = Messages.ping(cloud, smith);
+        Message message = new MessageBuilder(Message.Type.PIN, cloud, smith).make();
         simulateMessageFromCloud(message);
 
         assertEquals(123456790L, smith.getAccessTime());

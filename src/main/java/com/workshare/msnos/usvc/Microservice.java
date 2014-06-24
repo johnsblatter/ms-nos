@@ -3,6 +3,7 @@ package com.workshare.msnos.usvc;
 import com.workshare.msnos.core.Cloud;
 import com.workshare.msnos.core.LocalAgent;
 import com.workshare.msnos.core.Message;
+import com.workshare.msnos.core.MessageBuilder;
 import com.workshare.msnos.core.RemoteAgent;
 import com.workshare.msnos.core.payloads.FltPayload;
 import com.workshare.msnos.core.payloads.QnePayload;
@@ -72,13 +73,13 @@ public class Microservice {
                 }
             }
         });
-        Message message = new Message(Message.Type.ENQ, agent.getIden(), cloud.getIden(), 2, false, null);
+        Message message = new MessageBuilder(Message.Type.ENQ,agent,cloud).make();
         agent.send(message);
         healthcheck.run();
     }
 
     public void publish(RestApi... api) throws IOException {
-        Message message = new Message(Message.Type.QNE, agent.getIden(), cloud.getIden(), 2, false, new QnePayload(name, api));
+        Message message = new MessageBuilder(Message.Type.QNE,agent,cloud).with(new QnePayload(name, api)).make();
         agent.send(message);
         localApis.addAll(Arrays.asList(api));
     }
@@ -98,7 +99,8 @@ public class Microservice {
     }
 
     private void processENQ() throws IOException {
-        agent.send(new Message(Message.Type.QNE, agent.getIden(), cloud.getIden(), 2, false, new QnePayload(name, new HashSet<RestApi>(localApis))));
+        Message message = new MessageBuilder(Message.Type.QNE,agent,cloud).with(new QnePayload(name, new HashSet<RestApi>(localApis))).make();
+        agent.send(message);
     }
 
     private void processQNE(Message message) {

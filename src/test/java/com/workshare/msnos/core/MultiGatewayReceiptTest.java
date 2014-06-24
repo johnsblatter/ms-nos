@@ -12,7 +12,7 @@ import static org.mockito.Mockito.*;
 
 public class MultiGatewayReceiptTest {
 
-    private static final Message MESSAGE = Messages.ping(new LocalAgent(UUID.randomUUID()), new LocalAgent(UUID.randomUUID()));
+    private static final Message MESSAGE = new MessageBuilder(Message.Type.PIN, new LocalAgent(UUID.randomUUID()), new LocalAgent(UUID.randomUUID())).make();
 
     private MultiGatewayReceipt multi;
     private Receipt[] receipts = new Receipt[3];

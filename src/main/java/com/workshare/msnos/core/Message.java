@@ -30,15 +30,15 @@ public class Message {
     
     private static final SecureRandom random = new SecureRandom();    
     
-    public Message(Type type, Iden from, Iden to, int hops, boolean reliable, Payload data) {
+    Message(Type type, Iden from, Iden to, int hops, boolean reliable, Payload data) {
         this(type, from, to, hops, reliable, data, UUID.randomUUID(), null, null);
     }
 
-    public Message(Type type, Iden from, Iden to, int hops, boolean reliable, Payload data, UUID uuid) {
+    Message(Type type, Iden from, Iden to, int hops, boolean reliable, Payload data, UUID uuid) {
         this(type, from, to, hops, reliable, data, uuid, null, null);
     }
 
-    public Message(Type type, Iden from, Iden to, int hops, boolean reliable, Payload data, UUID uuid, String sig, String rnd) {
+    Message(Type type, Iden from, Iden to, int hops, boolean reliable, Payload data, UUID uuid, String sig, String rnd) {
         if (reliable && to.getType() == Iden.Type.CLD) {
             throw new IllegalArgumentException("Cannot create a reliable message to the whole cloud!");
         }

@@ -139,7 +139,7 @@ public class CloudTest {
         RemoteAgent remote = newRemoteAgent(thisCloud);
         simulateAgentJoiningCloud(remote, thisCloud);
         
-        simulateMessageFromNetwork(Messages.pong(remote, thisCloud));
+        simulateMessageFromNetwork(new MessageBuilder(Message.Type.PON, remote, thisCloud).make());
 
         assertNoMessagesSent();
     }
@@ -148,7 +148,7 @@ public class CloudTest {
     public void shouldSendDiscoveryWhenUnknownAgentPongs() throws Exception {
         RemoteAgent remote = newRemoteAgent(thisCloud);
 
-        simulateMessageFromNetwork(Messages.pong(remote, thisCloud));
+        simulateMessageFromNetwork(new MessageBuilder(Message.Type.PON, remote, thisCloud).make());
 
         assertMessageSent(Message.Type.DSC, thisCloud.getIden(), remote.getIden(), null);
     }
@@ -275,7 +275,7 @@ public class CloudTest {
         RemoteAgent remoteAgent = newRemoteAgent(thisCloud);
 
         fakeSystemTime(12345L);
-        simulateMessageFromNetwork(Messages.presence(remoteAgent, thisCloud));
+        simulateMessageFromNetwork(new MessageBuilder(Message.Type.PRS, remoteAgent, thisCloud).with(new Presence(true)).make());
 
         fakeSystemTime(99999L);
         assertEquals(12345L, getRemoteAgentAccessTime(thisCloud, remoteAgent));
@@ -287,7 +287,7 @@ public class CloudTest {
         simulateAgentJoiningCloud(remoteAgent, thisCloud);
 
         fakeSystemTime(12345L);
-        simulateMessageFromNetwork(Messages.ping(remoteAgent, thisCloud));
+        simulateMessageFromNetwork(new MessageBuilder(Message.Type.PIN, remoteAgent, thisCloud).make());
 
         fakeSystemTime(99999L);
         assertEquals(12345L, getRemoteAgentAccessTime(thisCloud, remoteAgent));
@@ -358,7 +358,7 @@ public class CloudTest {
         LocalAgent local = new LocalAgent(UUID.randomUUID());
         local.join(thisCloud);
 
-        simulateMessageFromNetwork(Messages.app(local, thisCloud, Collections.<String, Object>emptyMap()));
+        simulateMessageFromNetwork(new MessageBuilder(Message.Type.APP, local, thisCloud).make());
 
         assertEquals(0, messages.size());
     }
@@ -440,7 +440,7 @@ public class CloudTest {
     }
 
     private Message simulateAgentJoiningCloud(Agent agent, Cloud cloud) {
-        Message message = (Messages.presence(agent, cloud));
+        Message message = (new MessageBuilder(Message.Type.PRS, agent, cloud).with(new Presence(true)).make());
         simulateMessageFromNetwork(message);
         return message;
     }

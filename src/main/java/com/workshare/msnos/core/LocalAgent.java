@@ -1,6 +1,7 @@
 package com.workshare.msnos.core;
 
 import com.workshare.msnos.core.Cloud.Listener;
+import com.workshare.msnos.core.payloads.Presence;
 import com.workshare.msnos.core.protocols.ip.Network;
 import com.workshare.msnos.soup.json.Json;
 import com.workshare.msnos.soup.time.SystemTime;
@@ -95,7 +96,7 @@ public class LocalAgent implements Agent {
     private void processDiscovery(Message message) {
         log.debug("Processing discovery: {}", message);
         try {
-            send(Messages.presence(this, cloud));
+            send(new MessageBuilder(Message.Type.PRS, this, cloud).with(new Presence(true)).make());
         } catch (IOException e) {
             log.warn("Could not send message. ", e);
         }
@@ -104,7 +105,7 @@ public class LocalAgent implements Agent {
     private void processPing(Message message) {
         log.debug("Processing ping: {} ", message);
         try {
-            send(Messages.pong(this, cloud));
+            send(new MessageBuilder(Message.Type.PON, this, cloud).make());
         } catch (IOException e) {
             log.warn("Could not send message. ", e);
         }

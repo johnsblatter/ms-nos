@@ -18,6 +18,7 @@ import static org.junit.Assert.*;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.verify;
 
+@SuppressWarnings("unused")
 public class MicroserviceTest {
 
     private Cloud cloud;
@@ -73,7 +74,7 @@ public class MicroserviceTest {
     public void shouldBeRemovedWhenUnderlyingAgentDies() throws Exception {
         RemoteMicroservice remoteMicroservice = setupRemoteMicroservice("remote", "/endpoint");
 
-        simulateMessageFromCloud(getFaultMessage(remoteMicroservice.getAgent()));
+        simulateMessageFromCloud(newFaultMessage(remoteMicroservice.getAgent()));
 
         assertFalse(localMicroservice.getMicroServices().contains(remoteMicroservice));
     }
@@ -82,7 +83,7 @@ public class MicroserviceTest {
     public void shouldSendQNEOnEnquiry() throws Exception {
         RemoteMicroservice remoteMicroservice = setupRemoteMicroservice("remote", "/endpoint");
 
-        simulateMessageFromCloud(getENQMessage(remoteMicroservice.getAgent(), localMicroservice.getAgent()));
+        simulateMessageFromCloud(newENQMessage(remoteMicroservice.getAgent(), localMicroservice.getAgent()));
         Message msg = getLastMessageSent();
 
         assertEquals(Message.Type.QNE, msg.getType());
@@ -91,7 +92,7 @@ public class MicroserviceTest {
 
     @Test
     public void shouldNotProcessMessagesFromSelf() throws Exception {
-        simulateMessageFromCloud(getENQMessage(localMicroservice.getAgent(), localMicroservice.getAgent()));
+        simulateMessageFromCloud(newENQMessage(localMicroservice.getAgent(), localMicroservice.getAgent()));
 
         Message msg = getLastMessageSent();
 
@@ -142,7 +143,7 @@ public class MicroserviceTest {
     public void shouldCreateRemoteMicroserviceOnQNE() throws IOException {
         RemoteAgent remoteAgent = newRemoteAgent();
 
-        simulateMessageFromCloud(newQNEMessage(remoteAgent.getIden()));
+        simulateMessageFromCloud(newQNEMessage(remoteAgent, "content"));
 
         assertAgentInMicroserviceList(remoteAgent);
     }
@@ -152,7 +153,7 @@ public class MicroserviceTest {
         RemoteAgent remoteAgent = newRemoteAgentWithFakeHosts("10.10.10.10", (short) 15);
 
         RestApi unboundApi = new RestApi("test", "/test", 9999);
-        simulateMessageFromCloud(newQNEMessage(remoteAgent.getIden(), unboundApi));
+        simulateMessageFromCloud(newQNEMessage(remoteAgent, "content", unboundApi));
 
         RestApi api = getRestApi();
         assertEquals(api.getHost(), "10.10.10.10/15");
@@ -226,7 +227,7 @@ public class MicroserviceTest {
 
         assertEquals(api1, localMicroservice.searchApi("content", "/files"));
 
-        simulateMessageFromCloud(getFaultMessage(remote.getAgent()));
+        simulateMessageFromCloud(newFaultMessage(remote.getAgent()));
 
         assertNull(localMicroservice.searchApi("content", "/files"));
     }
@@ -268,10 +269,6 @@ public class MicroserviceTest {
         assertEquals(remoteAgent, localMicroservice.getMicroServices().iterator().next().getAgent());
     }
 
-    private Message newQNEMessage(Iden iden, RestApi... apis) {
-        return new Message(Message.Type.QNE, iden, cloud.getIden(), 2, false, new QnePayload("content", apis));
-    }
-
     private Microservice getLocalMicroservice() throws IOException {
         Microservice uService1 = new Microservice("fluffy");
         uService1.join(cloud);
@@ -311,7 +308,7 @@ public class MicroserviceTest {
 
     private RemoteMicroservice addRemoteAgentToCloudListAndMicroserviceToLocalList(String name, RemoteMicroservice remote, RestApi... restApi) {
         putRemoteAgentInCloudAgentsList(remote.getAgent());
-        simulateMessageFromCloud(new Message(Message.Type.QNE, remote.getAgent().getIden(), cloud.getIden(), 2, false, new QnePayload(name, restApi)));
+        simulateMessageFromCloud(newQNEMessage(remote.getAgent(), name, restApi));
         return remote;
     }
 
@@ -319,12 +316,16 @@ public class MicroserviceTest {
         return new HashSet<RestApi>(Arrays.asList(restApi));
     }
 
-    private Message getENQMessage(Identifiable from, Identifiable to) {
-        return new Message(Message.Type.ENQ, from.getIden(), to.getIden(), 2, false, null);
+    private Message newENQMessage(Identifiable from, Identifiable to) {
+        return new MessageBuilder(Message.Type.ENQ, from.getIden(), to.getIden()).make();
     }
 
-    private Message getFaultMessage(Agent agent) {
-        return new Message(Message.Type.FLT, cloud.getIden(), cloud.getIden(), 2, false, new FltPayload(agent.getIden()));
+    private Message newQNEMessage(RemoteAgent from, String name, RestApi... apis) {
+        return new MessageBuilder(Message.Type.QNE, from, cloud).with(new QnePayload("content", apis)).make();
+    }
+
+    private Message newFaultMessage(Agent agent) {
+        return new MessageBuilder(Message.Type.FLT, cloud, cloud).with(new FltPayload(agent.getIden())).make();
     }
 
     private Message getLastMessageSent() throws IOException {

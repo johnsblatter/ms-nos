@@ -16,6 +16,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.workshare.msnos.core.JoinSynchronizer.Status;
+import com.workshare.msnos.core.payloads.FltPayload;
 import com.workshare.msnos.core.payloads.Presence;
 import com.workshare.msnos.soup.json.Json;
 import com.workshare.msnos.soup.time.SystemTime;
@@ -114,7 +115,7 @@ public class Cloud implements Identifiable {
             if (agent.getAccessTime() < SystemTime.asMillis() - AGENT_TIMEOUT) {
                 log.debug("- sending ping to {}", agent.toString());
                 try {
-                    send(Messages.ping(this, agent));
+                    send(new MessageBuilder(Message.Type.PIN, this, agent).make());
                 } catch (IOException e) {
                     log.debug("Unexpected exception pinging agent " + agent, e);
                 }
@@ -130,7 +131,7 @@ public class Cloud implements Identifiable {
     private void removeFaultyAgent(RemoteAgent agent) {
         RemoteAgent result = remoteAgents.remove(agent.getIden());
         if (result != null)
-            caster.dispatch(Messages.fault(this, agent));
+            caster.dispatch(new MessageBuilder(Message.Type.FLT, this, this).with(new FltPayload(agent.getIden())).make());
     }
 
     public Receipt send(Message message) throws IOException {
@@ -150,8 +151,8 @@ public class Cloud implements Identifiable {
 
         final Status status = synchronizer.start(agent);
         try {
-            send(Messages.presence(agent, this));
-            send(Messages.discovery(agent, this));
+            send(new MessageBuilder(Message.Type.PRS, agent, this).with(new Presence(true)).make());
+            send(new MessageBuilder(Message.Type.DSC, agent.getIden(), this.getIden()).make());
             synchronizer.wait(status);
         } finally {
             synchronizer.remove(status);
@@ -159,7 +160,7 @@ public class Cloud implements Identifiable {
     }
 
     void onLeave(LocalAgent agent) throws IOException {
-        send(Messages.absence(agent, this));
+        send(new MessageBuilder(Message.Type.PRS, agent, this).with(new Presence(false)).make());
         log.debug("Local agent left: {}", agent);
         localAgents.remove(agent.getIden());
     }
@@ -244,7 +245,7 @@ public class Cloud implements Identifiable {
     private void processPong(Message message) {
         if (!remoteAgents.containsKey(message.getFrom()))
             try {
-                send(Messages.discovery(this, message.getFrom()));
+                send(new MessageBuilder(Message.Type.DSC, this.getIden(), message.getFrom()).make());
             } catch (IOException e) {
                 log.error("Unexpected exception sending message " + message, e);
             }

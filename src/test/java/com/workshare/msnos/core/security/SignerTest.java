@@ -18,6 +18,7 @@ import org.junit.Test;
 import com.workshare.msnos.core.Iden;
 import com.workshare.msnos.core.Message;
 import com.workshare.msnos.core.Message.Type;
+import com.workshare.msnos.core.MessageBuilder;
 import com.workshare.msnos.core.serializers.WireSerializer;
 
 public class SignerTest {
@@ -40,7 +41,7 @@ public class SignerTest {
         
         final Iden src = new Iden(Iden.Type.CLD, UUID.randomUUID());
         final Iden dst = new Iden(Iden.Type.AGT, UUID.randomUUID());
-        message = new Message(Type.PIN, src, dst, 5, false, null);        
+        message = new MessageBuilder(Type.PIN, src, dst).make();        
 
         signer = new Signer(serializer, keys);
     }

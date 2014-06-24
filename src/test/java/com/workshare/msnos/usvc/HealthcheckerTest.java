@@ -5,7 +5,9 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 import com.workshare.msnos.core.Cloud;
+import com.workshare.msnos.core.Iden;
 import com.workshare.msnos.core.Message;
+import com.workshare.msnos.core.MessageBuilder;
 import com.workshare.msnos.core.RemoteAgent;
 import com.workshare.msnos.core.payloads.QnePayload;
 import com.workshare.msnos.core.protocols.ip.Network;
@@ -39,6 +41,8 @@ public class HealthcheckerTest {
     @Before
     public void setUp() throws Exception {
         cloud = mock(Cloud.class);
+        when(cloud.getIden()).thenReturn(new Iden(Iden.Type.CLD, UUID.randomUUID()));
+        
         scheduler = mock(ScheduledExecutorService.class);
         Microservice microservice = getLocalMicroservice();
         healthchecker = new Healthchecker(microservice, scheduler);
@@ -139,7 +143,8 @@ public class HealthcheckerTest {
 
     private RemoteMicroservice addRemoteAgentToCloudListAndMicroserviceToLocalList(String name, RemoteMicroservice remote, RestApi... restApi) {
         putRemoteAgentInCloudAgentsList(remote.getAgent());
-        simulateMessageFromCloud(new Message(Message.Type.QNE, remote.getAgent().getIden(), cloud.getIden(), 2, false, new QnePayload(name, restApi)));
+        final Message message = new MessageBuilder(Message.Type.QNE, remote.getAgent(), cloud).with(new QnePayload(name, restApi)).make();
+        simulateMessageFromCloud(message);
         return remote;
     }
 

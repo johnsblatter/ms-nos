@@ -72,7 +72,7 @@ public class WireJsonSerializerTest {
 
     @Test
     public void shouldBeAbleToEncodeAndDecodeMessage() throws Exception {
-        Message source = new Message(Message.Type.PRS, AGENT_IDEN, CLOUD_IDEN, 2, false, new Presence(true));
+        Message source = new MessageBuilder(Message.Type.PRS, AGENT_IDEN, CLOUD_IDEN).with(new Presence(true)).make();
 
         byte[] data = sz.toBytes(source);
         Message decoded = sz.fromBytes(data, Message.class);
@@ -82,7 +82,7 @@ public class WireJsonSerializerTest {
 
     @Test
     public void shouldBeAbleToEncodeAndDecodeQNE() throws Exception {
-        Message source = new Message(Message.Type.QNE, AGENT_IDEN, CLOUD_IDEN, 2, false, new QnePayload("test", new RestApi("test", "/test", 7070)));
+        Message source = new MessageBuilder(Message.Type.QNE, AGENT_IDEN, CLOUD_IDEN).with(new QnePayload("test", new RestApi("test", "/test", 7070))).make();
 
         byte[] data = sz.toBytes(source);
         Message decoded = sz.fromBytes(data, Message.class);

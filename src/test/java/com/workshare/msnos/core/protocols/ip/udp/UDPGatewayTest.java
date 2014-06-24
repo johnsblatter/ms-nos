@@ -29,6 +29,7 @@ import org.mockito.ArgumentCaptor;
 import com.workshare.msnos.core.Gateway.Listener;
 import com.workshare.msnos.core.Iden;
 import com.workshare.msnos.core.Message;
+import com.workshare.msnos.core.MessageBuilder;
 import com.workshare.msnos.core.protocols.ip.MulticastSocketFactory;
 import com.workshare.msnos.core.serializers.WireJsonSerializer;
 import com.workshare.msnos.soup.threading.Multicaster;
@@ -163,7 +164,7 @@ public class UDPGatewayTest {
     }
 
     private Message getMessageWithPayload(final BigPayload payload) {
-        return new Message(Message.Type.PRS, SOMEONE, ME, 1, false, payload);
+        return new MessageBuilder(Message.Type.PRS, SOMEONE, ME).with(payload).make();
     }
 
     private void simulateMessageFromNetwork(Message message) {
@@ -229,7 +230,7 @@ public class UDPGatewayTest {
     }
 
     private static Message newSampleMessage(final Iden src, final Iden dst) {
-        return new Message(Message.Type.APP, src, dst, 1, false, null);
+        return new MessageBuilder(Message.Type.APP, src, dst).make();
     }
 
     static class BigPayload implements Message.Payload {

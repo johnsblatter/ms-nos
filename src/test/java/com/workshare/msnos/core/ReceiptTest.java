@@ -11,7 +11,7 @@ import com.workshare.msnos.core.Message.Status;
 
 public class ReceiptTest {
 
-    private static final Message MESSAGE = Messages.ping(new LocalAgent(UUID.randomUUID()), new LocalAgent(UUID.randomUUID()));
+    private static final Message MESSAGE = new MessageBuilder(Message.Type.PIN, new LocalAgent(UUID.randomUUID()), new LocalAgent(UUID.randomUUID())).make();
 
     @Test
     public void shouldStoreMessageUuid() throws Exception {

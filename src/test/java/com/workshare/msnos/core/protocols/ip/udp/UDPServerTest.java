@@ -22,6 +22,7 @@ import com.workshare.msnos.core.Gateway.Listener;
 import com.workshare.msnos.core.protocols.ip.udp.UDPServer;
 import com.workshare.msnos.core.Iden;
 import com.workshare.msnos.core.Message;
+import com.workshare.msnos.core.MessageBuilder;
 import com.workshare.msnos.soup.json.Json;
 import com.workshare.msnos.soup.threading.Multicaster;
 
@@ -122,7 +123,7 @@ public class UDPServerTest {
         final UUID uuid = new UUID(123, 456);
         final Iden src = new Iden(Iden.Type.AGT, uuid);
         final Iden dst = new Iden(Iden.Type.CLD, uuid);
-        final Message message = new Message(Message.Type.APP, src, dst, 1, false, null);
+        final Message message = new MessageBuilder(Message.Type.APP, src, dst).make();
         return message;
     }
     
