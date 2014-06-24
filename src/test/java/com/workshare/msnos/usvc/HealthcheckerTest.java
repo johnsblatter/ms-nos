@@ -28,11 +28,13 @@ import java.util.concurrent.TimeUnit;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.*;
 
+@SuppressWarnings("restriction")
 public class HealthcheckerTest {
 
     private Healthchecker healthchecker;
     private ScheduledExecutorService scheduler;
     private Cloud cloud;
+    private HttpServer httpServer;
 
     @Before
     public void setUp() throws Exception {
@@ -40,12 +42,19 @@ public class HealthcheckerTest {
         scheduler = mock(ScheduledExecutorService.class);
         Microservice microservice = getLocalMicroservice();
         healthchecker = new Healthchecker(microservice, scheduler);
+        httpServer = null;
         fakeSystemTime(12345L);
     }
 
     @After
-    public void tearDown() throws Exception {
+    public void resetTime() throws Exception {
         SystemTime.reset();
+    }
+
+    @After
+    public void stopHttpServer() throws Exception {
+        if (httpServer != null)
+            httpServer.stop(0);
     }
 
     @Test
@@ -74,7 +83,7 @@ public class HealthcheckerTest {
     }
 
     private void setupHttpServerWithHandlerResponds200() throws IOException {
-        HttpServer httpServer = setUpHttpServer("127.0.0.1", 9999);
+        setUpHttpServer("127.0.0.1", 9999);
         HttpContext context = httpServer.createContext("/content/files/");
         context.setHandler(new HttpHandler() {
             @Override
@@ -84,11 +93,10 @@ public class HealthcheckerTest {
         });
     }
 
-    private HttpServer setUpHttpServer(String host, int port) throws IOException {
-        HttpServer httpServer = HttpServer.create();
+    private void setUpHttpServer(String host, int port) throws IOException {
+        httpServer = HttpServer.create();
         httpServer.bind(new InetSocketAddress(host, port), port);
         httpServer.start();
-        return httpServer;
     }
 
     private Runnable capturePeriodicRunableCheck() {
