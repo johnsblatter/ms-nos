@@ -1,8 +1,10 @@
 package com.workshare.msnos.core;
 
-import com.workshare.msnos.soup.json.Json;
-
+import java.math.BigInteger;
+import java.security.SecureRandom;
 import java.util.UUID;
+
+import com.workshare.msnos.soup.json.Json;
 
 public class Message {
 
@@ -19,37 +21,41 @@ public class Message {
     private final Type type;
     private final Iden from;
     private final Iden to;
-    private final String sig;
     private final int hops;
     private final boolean reliable;
     private final Payload data;
 
+    private final String sig;
+    private final String rnd;
+    
+    private static final SecureRandom random = new SecureRandom();    
+    
     public Message(Type type, Iden from, Iden to, int hops, boolean reliable, Payload data) {
+        this(type, from, to, hops, reliable, data, UUID.randomUUID(), null, null);
+    }
+
+    public Message(Type type, Iden from, Iden to, int hops, boolean reliable, Payload data, UUID uuid) {
+        this(type, from, to, hops, reliable, data, uuid, null, null);
+    }
+
+    public Message(Type type, Iden from, Iden to, int hops, boolean reliable, Payload data, UUID uuid, String sig, String rnd) {
         if (reliable && to.getType() == Iden.Type.CLD) {
-            throw new IllegalArgumentException("Cannot create a reliable message to the cloud!");
+            throw new IllegalArgumentException("Cannot create a reliable message to the whole cloud!");
         }
 
         this.type = type;
         this.from = from;
         this.to = to;
-        this.sig = null;        // FIXME TODO let's remember to add security, shall we? what about .signedWith(...)
-        this.hops = hops;
-        this.reliable = reliable;
-        this.data = data;
-        this.uuid = UUID.randomUUID();
-    }
-
-    public Message(Type type, Iden from, Iden to, int hops, boolean reliable, Payload data, UUID uuid) {
-        this.type = type;
-        this.from = from;
-        this.to = to;
-        this.sig = null;        // FIXME TODO let's remember to add security, shall we? what about .signedWith(...)
         this.hops = hops;
         this.reliable = reliable;
         this.data = data;
         this.uuid = uuid;
+
+        this.sig = sig;
+        this.rnd = (sig == null ? null : (rnd == null ? new BigInteger(130, random).toString(32) : rnd)); 
     }
 
+    
     public UUID getUuid() {
         return uuid;
     }
@@ -82,24 +88,20 @@ public class Message {
         return hops;
     }
 
+    public String getRnd() {
+        return rnd;
+    }
+
     public boolean isReliable() {
         return reliable;
     }
 
-    public Message from(Iden from) {
-        return new Message(type, from, to, hops, reliable, data);
-    }
-
-    public Message to(Iden to) {
-        return new Message(type, from, to, hops, reliable, data);
-    }
-
     public Message reliable() {
-        return new Message(type, from, to, hops, true, data);
+        return new Message(type, from, to, hops, true, data, uuid, sig, rnd);
     }
 
     public Message data(Payload load) {
-        return new Message(type, from, to, hops, reliable, load, uuid);
+        return new Message(type, from, to, hops, reliable, load, uuid, sig, rnd);
 
     }
 
@@ -117,6 +119,11 @@ public class Message {
         } catch (Exception any) {
             return false;
         }
+    }
+
+    public Message signed(String keyId, String signature) {
+        String sign = keyId+":"+signature;
+        return new Message(type, from, to, hops, reliable, data, uuid, sign, null);
     }
 
 }

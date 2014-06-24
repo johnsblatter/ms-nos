@@ -135,7 +135,7 @@ public class UDPGatewayTest {
     public void shouldInvokeListenerOnMessages() throws Exception {
         addListenerToGateway();
 
-        Message message = UDPGatewayTest.newSampleMessage().from(SOMEONE).to(ME);
+        Message message = UDPGatewayTest.newSampleMessage(SOMEONE,ME);
         simulateMessageFromNetwork(message);
 
         assertMessageReceived(message);
@@ -163,10 +163,7 @@ public class UDPGatewayTest {
     }
 
     private Message getMessageWithPayload(final BigPayload payload) {
-        final UUID uuid = new UUID(123, 456);
-        final Iden src = new Iden(Iden.Type.AGT, uuid);
-        final Iden dst = new Iden(Iden.Type.CLD, uuid);
-        return new Message(Message.Type.PRS, src, dst, 1, false, payload).from(SOMEONE).to(ME);
+        return new Message(Message.Type.PRS, SOMEONE, ME, 1, false, payload);
     }
 
     private void simulateMessageFromNetwork(Message message) {
@@ -228,6 +225,10 @@ public class UDPGatewayTest {
         final UUID uuid = new UUID(123, 456);
         final Iden src = new Iden(Iden.Type.AGT, uuid);
         final Iden dst = new Iden(Iden.Type.CLD, uuid);
+        return newSampleMessage(src, dst);
+    }
+
+    private static Message newSampleMessage(final Iden src, final Iden dst) {
         return new Message(Message.Type.APP, src, dst, 1, false, null);
     }
 
