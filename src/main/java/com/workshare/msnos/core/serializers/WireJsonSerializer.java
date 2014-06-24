@@ -152,9 +152,10 @@ public class WireJsonSerializer implements WireSerializer {
             res.add("to", context.serialize(msg.getTo()));
             res.addProperty("hp", msg.getHops());
             res.addProperty("rx", msg.isReliable());
-            final Message.Type msgType = msg.getType();
-            res.addProperty("ty", msgType.toString());
+            res.addProperty("ty", msg.getType().toString());
             res.add("dt", context.serialize(msg.getData()));
+            res.addProperty("ss", msg.getSig());
+            res.addProperty("rr", msg.getRnd());
             return res;
         }
     };
@@ -171,6 +172,8 @@ public class WireJsonSerializer implements WireSerializer {
             final Iden to = context.deserialize(obj.get("to").getAsJsonPrimitive(), Iden.class);
             final int hops = obj.get("hp").getAsInt();
             final boolean reliable = obj.get("hp").getAsBoolean();
+            final String sig = getNullableString(obj, "ss");
+            final String rnd = getNullableString(obj, "rr");
 
             Payload data = null;
             JsonElement dataJson = obj.get("dt");
@@ -192,6 +195,7 @@ public class WireJsonSerializer implements WireSerializer {
                 .with(data)
                 .with(uuid)
                 .reliable(reliable)
+                .signed(sig, rnd)
                 .make();
         }
     };
@@ -262,4 +266,8 @@ public class WireJsonSerializer implements WireSerializer {
         }
     }
 
+    private static final String getNullableString(final JsonObject obj, final String memberName) {
+        final JsonElement jsonElement = obj.get(memberName);
+        return (jsonElement == null) ? null : jsonElement.getAsString();
+    }
 }
