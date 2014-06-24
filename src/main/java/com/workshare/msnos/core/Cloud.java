@@ -175,8 +175,6 @@ public class Cloud implements Identifiable {
 
     private void process(Message message) {
 
-        synchronizer.process(message);
-
         if (isProcessable(message)) {
             proto.info("RX: {} {} {} {}", message.getType(), message.getFrom(), message.getTo(), message.getData());
 
@@ -191,6 +189,8 @@ public class Cloud implements Identifiable {
         } else {
             proto.debug("NN: {} {} {} {}", message.getType(), message.getFrom(), message.getTo(), message.getData());
         }
+
+        synchronizer.process(message);
 
         touchSourceAgent(message);
     }
