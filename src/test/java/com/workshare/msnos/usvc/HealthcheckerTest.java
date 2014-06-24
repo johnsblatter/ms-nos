@@ -47,7 +47,7 @@ public class HealthcheckerTest {
     }
 
     @After
-    public void resetTime() throws Exception {
+    public void tearDown() throws Exception {
         SystemTime.reset();
     }
 
@@ -93,10 +93,13 @@ public class HealthcheckerTest {
         });
     }
 
-    private void setUpHttpServer(String host, int port) throws IOException {
-        httpServer = HttpServer.create();
-        httpServer.bind(new InetSocketAddress(host, port), port);
-        httpServer.start();
+    private HttpServer setUpHttpServer(String host, int port) throws IOException {
+        if (httpServer == null) {
+            httpServer = HttpServer.create();
+            httpServer.bind(new InetSocketAddress(host, port), port);
+            httpServer.start();
+        }
+        return httpServer;
     }
 
     private Runnable capturePeriodicRunableCheck() {
