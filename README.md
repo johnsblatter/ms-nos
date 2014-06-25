@@ -1,7 +1,7 @@
 ms-nos
 ======
 
-A simple network operating system for Microservices (java implementation)
+A simple network operating system for Microservices (java implementation). This is a work in progress, we are not in a position to have a stable release.
 
 
 [![Build Status](https://travis-ci.org/lviggiano/owner.png?branch=master)](https://travis-ci.org/bbossola/ms-nos)
