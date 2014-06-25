@@ -59,7 +59,7 @@ public class Cloud implements Identifiable {
     }
 
     public Cloud(UUID uuid, String signkey, Set<Gateway> gates, JoinSynchronizer synchronizer) throws IOException {
-        this(uuid, null, null, gates, synchronizer, new Multicaster(), Executors.newSingleThreadScheduledExecutor());
+        this(uuid, null, new Signer(), gates, synchronizer, new Multicaster(), Executors.newSingleThreadScheduledExecutor());
     }
 
     public Cloud(UUID uuid, String signkey, Signer signer, Set<Gateway> gates, JoinSynchronizer synchronizer, Multicaster multicaster, ScheduledExecutorService executor) {
@@ -112,9 +112,10 @@ public class Cloud implements Identifiable {
         
         proto.info("TX: {} {} {} {}", message.getType(), message.getFrom(), message.getTo(), message.getData());
 
-        MultiGatewayReceipt res = new MultiGatewayReceipt(message);
+        Message signed = sign(message);
+        MultiGatewayReceipt res = new MultiGatewayReceipt(signed);
         for (Gateway gate : gates) {
-            res.add(gate.send(message));
+            res.add(gate.send(signed));
         }
 
         return res;
@@ -191,7 +192,17 @@ public class Cloud implements Identifiable {
             return false;
         }
 
+        if (!isCorrectlySigned(message)) {
+            log.debug("Skipped message incorrectly signed: {} - key: ", message, signkey);
+            return false;
+        }
+
         return true;
+    }
+
+    private boolean isCorrectlySigned(Message message)  {
+        Message signed = sign(message);
+        return parseNull(message.getSig()).equals(parseNull(signed.getSig()));
     }
 
     private boolean isAddressedToARemoteAgent(Message message) {
@@ -213,7 +224,24 @@ public class Cloud implements Identifiable {
             dispatch(new MessageBuilder(Message.Type.FLT, this, this).with(new FltPayload(agent.getIden())).make());
     }
 
+    private Message sign(Message message) {
+        if (signkey == null)
+            return message;
+        
+        try {
+            return signer.signed(message, signkey);
+        } catch (IOException e) {
+            log.warn("Failed to sign message {} using key {}", message, signkey);
+            return  message;
+        }
+    }
+
     private void dispatch(Message message) {
         caster.dispatch(message);
     }
+
+    private String parseNull(String signature) {
+        return (signature == null ? "" : signature);
+    }
+
 }
