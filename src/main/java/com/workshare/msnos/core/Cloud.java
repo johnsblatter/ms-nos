@@ -50,15 +50,15 @@ public class Cloud implements Identifiable {
         }
     }
 
-    public Cloud(UUID uuid) throws IOException {
+    public Cloud(UUID uuid) throws MsnosException {
         this(uuid, null, Gateways.all(), new JoinSynchronizer());
     }
 
-    public Cloud(UUID uuid, String signkey) throws IOException {
+    public Cloud(UUID uuid, String signkey) throws MsnosException {
         this(uuid, signkey, Gateways.all(), new JoinSynchronizer());
     }
 
-    public Cloud(UUID uuid, String signkey, Set<Gateway> gates, JoinSynchronizer synchronizer) throws IOException {
+    public Cloud(UUID uuid, String signkey, Set<Gateway> gates, JoinSynchronizer synchronizer) {
         this(uuid, null, new Signer(), gates, synchronizer, new Multicaster(), Executors.newSingleThreadScheduledExecutor());
     }
 
@@ -107,7 +107,7 @@ public class Cloud implements Identifiable {
         return Collections.unmodifiableSet(gates);
     }
 
-    public Receipt send(Message message) throws IOException {
+    public Receipt send(Message message) throws MsnosException {
         checkCloudAlive();
         
         proto.info("TX: {} {} {} {}", message.getType(), message.getFrom(), message.getTo(), message.getData());
@@ -115,13 +115,20 @@ public class Cloud implements Identifiable {
         Message signed = sign(message);
         MultiGatewayReceipt res = new MultiGatewayReceipt(signed);
         for (Gateway gate : gates) {
-            res.add(gate.send(signed));
+            try {
+                res.add(gate.send(signed));
+            } catch (IOException ex) {
+                log.warn("Unable to send message "+message+" trough gateway "+gate, ex);
+            }
         }
+
+        if (res.size() == 0)
+            throw new MsnosException("Unable to send message "+message, MsnosException.Code.SEND_FAILED);
 
         return res;
     }
 
-    void onJoin(LocalAgent agent) throws IOException {
+    void onJoin(LocalAgent agent) throws MsnosException {
         checkCloudAlive();
 
         log.debug("Local agent joined: {}", agent);
@@ -137,7 +144,7 @@ public class Cloud implements Identifiable {
         }
     }
 
-    void onLeave(LocalAgent agent) throws IOException {
+    void onLeave(LocalAgent agent) throws MsnosException {
         checkCloudAlive();
 
         send(new MessageBuilder(Message.Type.PRS, agent, this).with(new Presence(false)).make());
@@ -145,9 +152,9 @@ public class Cloud implements Identifiable {
         localAgents.remove(agent.getIden());
     }
 
-    private void checkCloudAlive() throws IOException {
+    private void checkCloudAlive() throws MsnosException {
         if (gates.size() == 0 || synchronizer == null)
-            throw new IOException("This cloud is not connected as it is a mirror of a remote one");
+            throw new MsnosException("This cloud is not connected as it is a mirror of a remote one", MsnosException.Code.NOT_CONNECTED);
     }
 
     public Listener addListener(com.workshare.msnos.core.Cloud.Listener listener) {

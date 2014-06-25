@@ -1,6 +1,5 @@
 package com.workshare.msnos.core.cloud;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
@@ -12,6 +11,7 @@ import org.slf4j.LoggerFactory;
 import com.workshare.msnos.core.LocalAgent;
 import com.workshare.msnos.core.Message;
 import com.workshare.msnos.core.Message.Type;
+import com.workshare.msnos.core.MsnosException;
 
 public class JoinSynchronizer  {
     private static Logger log = LoggerFactory.getLogger(JoinSynchronizer.class);
@@ -24,7 +24,7 @@ public class JoinSynchronizer  {
         return status;
     }
 
-    public void wait(Status status) throws IOException {
+    public void wait(Status status) throws MsnosException {
         status.sync();
     }
     
@@ -59,7 +59,7 @@ public class JoinSynchronizer  {
             }
         }
         
-        public void sync() throws IOException {
+        public void sync() throws MsnosException {
             try {
                 latch.await(1, TimeUnit.SECONDS);
             } catch (InterruptedException e) {
@@ -67,7 +67,7 @@ public class JoinSynchronizer  {
             }
             
             if (latch.getCount() > 0)
-                throw new IOException("Unsuccessful cloud join for agent "+agent);
+                throw new MsnosException("Unsuccessful cloud join for agent "+agent, MsnosException.Code.JOIN_FAILED);
             
             log.debug("Join synchronisation successful");
         }

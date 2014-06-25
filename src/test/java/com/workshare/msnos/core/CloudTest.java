@@ -279,6 +279,30 @@ public class CloudTest {
         assertTrue(multi.getReceipts().contains(value2));
     }
 
+    @Test(expected = MsnosException.class)
+    public void shouldThrowExceptionWhenSendFailedOnAllGateways() throws Exception {
+        when(gate1.send(any(Message.class))).thenThrow(new IOException("boom"));
+        when(gate2.send(any(Message.class))).thenThrow(new IOException("boom"));
+
+        Message message = newMessage(APP, SOMEONE, SOMEONELSE);
+        thisCloud.send(message);
+    }
+
+    @Test
+    public void shouldNotThrowExceptionWhenSendFailedOnSomeGateways() throws Exception {
+        Receipt value1 = createMockFuture(Status.UNKNOWN);
+        when(gate1.send(any(Message.class))).thenReturn(value1);
+
+        when(gate2.send(any(Message.class))).thenThrow(new IOException("boom"));
+
+        Message message = newMessage(APP, SOMEONE, SOMEONELSE);
+        Receipt res = thisCloud.send(message);
+
+        MultiGatewayReceipt multi = (MultiGatewayReceipt) res;
+        assertTrue(multi.getReceipts().contains(value1));
+        assertEquals(1, multi.getReceipts().size());
+    }
+
     @Test
     public void shouldUpdateRemoteAgentAccessTimeOnPresenceReceived() throws Exception {
         RemoteAgent remoteAgent = newRemoteAgent(thisCloud);
