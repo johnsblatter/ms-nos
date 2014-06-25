@@ -1,6 +1,7 @@
 package com.workshare.msnos.usvc;
 
 import com.workshare.msnos.core.*;
+import com.workshare.msnos.core.cloud.JoinSynchronizer;
 import com.workshare.msnos.core.payloads.FltPayload;
 import com.workshare.msnos.core.payloads.QnePayload;
 import com.workshare.msnos.core.protocols.ip.Network;
@@ -15,8 +16,7 @@ import java.io.IOException;
 import java.util.*;
 
 import static org.junit.Assert.*;
-import static org.mockito.Mockito.atLeastOnce;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.*;
 
 @SuppressWarnings("unused")
 public class MicroserviceTest {
@@ -27,7 +27,7 @@ public class MicroserviceTest {
     @Before
     public void prepare() throws Exception {
         cloud = Mockito.mock(Cloud.class);
-        Mockito.when(cloud.getIden()).thenReturn(new Iden(Iden.Type.CLD, new UUID(111, 111)));
+        when(cloud.getIden()).thenReturn(new Iden(Iden.Type.CLD, new UUID(111, 111)));
 
         localMicroservice = getLocalMicroservice();
 
@@ -42,11 +42,18 @@ public class MicroserviceTest {
     @Test
     public void shouldInternalAgentJoinTheCloudOnJoin() throws Exception {
         localMicroservice = new Microservice("jeff");
-        cloud = new Cloud(UUID.randomUUID(), Collections.<Gateway>emptySet(), Mockito.mock(JoinSynchronizer.class));
+        cloud = new Cloud(UUID.randomUUID(), null, mockGateways(), mock(JoinSynchronizer.class));
 
         localMicroservice.join(cloud);
 
         assertEquals(localMicroservice.getAgent(), cloud.getLocalAgents().iterator().next());
+    }
+
+    private Set<Gateway> mockGateways() throws IOException {
+        Gateway gate = mock(Gateway.class);
+        Receipt receipt = mock(Receipt.class);
+        when(gate.send(any(Message.class))).thenReturn(receipt );
+        return new HashSet<Gateway>(Arrays.asList(new Gateway[]{gate}));
     }
 
     @Test
@@ -256,7 +263,7 @@ public class MicroserviceTest {
     }
 
     private void putRemoteAgentInCloudAgentsList(RemoteAgent agent) {
-        Mockito.when(cloud.getRemoteAgents()).thenReturn(new HashSet<RemoteAgent>(Arrays.asList(agent)));
+        when(cloud.getRemoteAgents()).thenReturn(new HashSet<RemoteAgent>(Arrays.asList(agent)));
     }
 
     private RestApi getRestApi() {

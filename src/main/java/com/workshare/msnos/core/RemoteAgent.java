@@ -59,7 +59,8 @@ public class RemoteAgent implements Agent {
         return iden.hashCode();
     }
 
-    void touch() {
+    @Override
+    public void touch() {
         this.accessTime = SystemTime.asMillis();
     }
 

@@ -26,6 +26,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
+import com.workshare.msnos.core.Cloud.Internal;
 import com.workshare.msnos.core.Gateway.Listener;
 import com.workshare.msnos.core.Iden;
 import com.workshare.msnos.core.Message;
@@ -256,6 +257,11 @@ public class UDPGatewayTest {
             int size2 = data.length - size1;
 
             return new Message.Payload[]{new BigPayload(size1), new BigPayload(size2)};
+        }
+
+        @Override
+        public boolean process(Message message, Internal internal) {
+            return false;
         }
     }
 

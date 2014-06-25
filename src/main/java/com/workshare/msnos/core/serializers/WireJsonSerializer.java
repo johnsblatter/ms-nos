@@ -95,7 +95,7 @@ public class WireJsonSerializer implements WireSerializer {
                 Iden iden = deserializeIden(json);
                 if (iden.getType() != Iden.Type.CLD)
                     throw new IllegalArgumentException("Unexpected type when converting cloud!");
-                return new Cloud(iden.getUUID(), Collections.<Gateway>emptySet(), null);
+                return new Cloud(iden.getUUID(), null, Collections.<Gateway>emptySet(), null);
             } catch (Exception any) {
                 throw new JsonParseException(any);
             }
