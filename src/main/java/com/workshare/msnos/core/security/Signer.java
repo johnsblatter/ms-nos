@@ -27,10 +27,13 @@ public class Signer {
         this.sz = sz;
         this.keys = keys;
     }
-    
+
     public Message signed(Message message, String keyId) throws IOException {
         String key = keys.get(keyId);
-        return message.signed(keyId, signText(key, sz.toText(message)));
+        if (key == null)
+            return message;
+        else
+            return message.signed(keyId, signText(key, sz.toText(message)));
     }
 
     private String signText(String key, String text) throws IOException {

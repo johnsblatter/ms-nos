@@ -1,7 +1,9 @@
 package com.workshare.msnos.core.security;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.mockito.Matchers.anyObject;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -58,6 +60,13 @@ public class SignerTest {
         Message result = signer.signed(message, KEY_ID);
         String signature = KEY_ID+":"+sign(KEY_VAL, MESSAGE_AS_TEXT);
         assertEquals(signature, result.getSig());
+    }
+    
+    @Test
+    public void shouldLeaveMessagUnsignedIfKeystoreEmpty() throws Exception {        
+        when(keys.get(anyString())).thenReturn(null);
+        Message result = signer.signed(message, KEY_ID);
+        assertNull(result.getSig());
     }
     
     
