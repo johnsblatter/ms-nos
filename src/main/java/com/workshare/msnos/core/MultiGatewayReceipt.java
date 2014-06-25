@@ -55,4 +55,8 @@ public class MultiGatewayReceipt implements Receipt {
         return getStatus() == Status.DELIVERED;
     }
 
+    public int size() {
+        return receipts.size();
+    }
+
 }

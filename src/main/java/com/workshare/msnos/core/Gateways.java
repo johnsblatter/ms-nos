@@ -14,14 +14,22 @@ public class Gateways {
 
 	private static HashSet<Gateway> all;
 
-	public synchronized static Set<Gateway> all() throws IOException {
+	public synchronized static Set<Gateway> all() throws MsnosException {
 		if (all == null) {
 			all = new HashSet<Gateway>();
-			all.add(buildUDPGateway());
+			addUDPGateway();
 		}
 		
 		return all;
 	}
+
+    private static void addUDPGateway() throws MsnosException {
+        try {
+            all.add(buildUDPGateway());
+        } catch (IOException ex) {
+            throw new MsnosException("Unable to build UDP gatway", ex);
+        }
+    }
 
 	private static UDPGateway buildUDPGateway() throws IOException {
 		final UDPServer server = new UDPServer();

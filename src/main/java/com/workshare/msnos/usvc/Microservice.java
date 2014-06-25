@@ -1,20 +1,29 @@
 package com.workshare.msnos.usvc;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.workshare.msnos.core.Cloud;
 import com.workshare.msnos.core.LocalAgent;
 import com.workshare.msnos.core.Message;
 import com.workshare.msnos.core.MessageBuilder;
+import com.workshare.msnos.core.MsnosException;
 import com.workshare.msnos.core.RemoteAgent;
 import com.workshare.msnos.core.payloads.FltPayload;
 import com.workshare.msnos.core.payloads.QnePayload;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 
 public class Microservice {
 
@@ -60,7 +69,7 @@ public class Microservice {
         return Collections.unmodifiableList(result);
     }
 
-    public void join(Cloud nimbus) throws IOException {
+    public void join(Cloud nimbus) throws MsnosException {
         agent.join(nimbus);
         this.cloud = nimbus;
         cloud.addListener(new Cloud.Listener() {
@@ -68,7 +77,7 @@ public class Microservice {
             public void onMessage(Message message) {
                 try {
                     process(message);
-                } catch (IOException e) {
+                } catch (MsnosException e) {
                     log.error("Error processing message {}", e);
                 }
             }
@@ -78,13 +87,13 @@ public class Microservice {
         healthcheck.run();
     }
 
-    public void publish(RestApi... api) throws IOException {
+    public void publish(RestApi... api) throws MsnosException {
         Message message = new MessageBuilder(Message.Type.QNE,agent,cloud).with(new QnePayload(name, api)).make();
         agent.send(message);
         localApis.addAll(Arrays.asList(api));
     }
 
-    private void process(Message message) throws IOException {
+    private void process(Message message) throws MsnosException {
         if (!message.getFrom().equals(agent.getIden())) {
             if (message.getType() == Message.Type.ENQ) {
                 processENQ();
@@ -98,7 +107,7 @@ public class Microservice {
         }
     }
 
-    private void processENQ() throws IOException {
+    private void processENQ() throws MsnosException {
         Message message = new MessageBuilder(Message.Type.QNE,agent,cloud).with(new QnePayload(name, new HashSet<RestApi>(localApis))).make();
         agent.send(message);
     }

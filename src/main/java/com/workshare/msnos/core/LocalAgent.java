@@ -1,19 +1,19 @@
 package com.workshare.msnos.core;
 
+import static com.workshare.msnos.core.Message.Type.DSC;
+import static com.workshare.msnos.core.Message.Type.PIN;
+
+import java.util.Set;
+import java.util.UUID;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.workshare.msnos.core.Cloud.Listener;
 import com.workshare.msnos.core.payloads.Presence;
 import com.workshare.msnos.core.protocols.ip.Network;
 import com.workshare.msnos.soup.json.Json;
 import com.workshare.msnos.soup.time.SystemTime;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-import java.util.Set;
-import java.util.UUID;
-
-import static com.workshare.msnos.core.Message.Type.DSC;
-import static com.workshare.msnos.core.Message.Type.PIN;
 
 public class LocalAgent implements Agent {
 
@@ -64,7 +64,7 @@ public class LocalAgent implements Agent {
         return SystemTime.asMillis();
     }
 
-    public LocalAgent join(Cloud cloud) throws IOException {
+    public LocalAgent join(Cloud cloud) throws MsnosException {
         this.cloud = cloud;
         cloud.onJoin(this);
         log.debug("Joined: {} as Agent: {}", getCloud(), this);
@@ -78,9 +78,9 @@ public class LocalAgent implements Agent {
         return this;
     }
 
-    public void leave() throws IOException {
+    public void leave() throws MsnosException {
         if (this.cloud == null) {
-            throw new IOException("Cannot leave a cloud I never joined!");
+            throw new MsnosException("Cannot leave a cloud I never joined!", MsnosException.Code.INVALID_STATE);
         }
         
         log.debug("Leaving cloud {}", cloud);
@@ -89,7 +89,7 @@ public class LocalAgent implements Agent {
         log.debug("So long {}", cloud);
     }
 
-    public Receipt send(Message message) throws IOException {
+    public Receipt send(Message message) throws MsnosException {
         return cloud.send(message);
     }
 
@@ -102,7 +102,7 @@ public class LocalAgent implements Agent {
         log.debug("Processing discovery: {}", message);
         try {
             send(new MessageBuilder(Message.Type.PRS, this, cloud).with(new Presence(true)).make());
-        } catch (IOException e) {
+        } catch (MsnosException e) {
             log.warn("Could not send message. ", e);
         }
     }
@@ -111,7 +111,7 @@ public class LocalAgent implements Agent {
         log.debug("Processing ping: {} ", message);
         try {
             send(new MessageBuilder(Message.Type.PON, this, cloud).make());
-        } catch (IOException e) {
+        } catch (MsnosException e) {
             log.warn("Could not send message. ", e);
         }
     }
