@@ -10,3 +10,9 @@ A simple network operating system for Microservices (java implementation). This 
 -->
 
 [![Built with Maven](http://maven.apache.org/images/logos/maven-feather.png)](http://maven.apache.org/)
+
+
+## License
+
+Released under the MIT License.  See the [LICENSE](LICENSE.md) file for further details.
+
