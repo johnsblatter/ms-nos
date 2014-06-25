@@ -1,6 +1,7 @@
 package com.workshare.msnos.core.serializers;
 
 import com.workshare.msnos.core.*;
+import com.workshare.msnos.core.cloud.JoinSynchronizer;
 import com.workshare.msnos.core.payloads.Presence;
 import com.workshare.msnos.core.payloads.QnePayload;
 import com.workshare.msnos.usvc.RestApi;
@@ -28,7 +29,7 @@ public class WireJsonSerializerTest {
 
     @Before
     public void before() throws Exception {
-        cloud = new Cloud(CLOUD_UUID, new HashSet<Gateway>(Arrays.asList(new NoopGateway())), Mockito.mock(JoinSynchronizer.class));
+        cloud = new Cloud(CLOUD_UUID, null, new HashSet<Gateway>(Arrays.asList(new NoopGateway())), Mockito.mock(JoinSynchronizer.class));
 
         agent = new LocalAgent(AGENT_UUID);
         agent.join(cloud);

@@ -9,7 +9,9 @@ public interface Agent extends Identifiable {
 
     Cloud getCloud();
 
+    Set<Network> getHosts();
+
     long getAccessTime();
 
-    Set<Network> getHosts();
+    void touch();
 }

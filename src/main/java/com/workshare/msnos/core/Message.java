@@ -4,12 +4,15 @@ import java.math.BigInteger;
 import java.security.SecureRandom;
 import java.util.UUID;
 
+import com.workshare.msnos.core.payloads.NullPayload;
+import com.workshare.msnos.core.payloads.PongPayload;
 import com.workshare.msnos.soup.json.Json;
 
 public class Message {
 
     public interface Payload {
         public Payload[] split();
+        public boolean process(Message message, Cloud.Internal internal);
     }
 
     public enum Status {UNKNOWN, PENDING, DELIVERED}
@@ -48,11 +51,15 @@ public class Message {
         this.to = to;
         this.hops = hops;
         this.reliable = reliable;
-        this.data = data;
         this.uuid = uuid;
 
         this.sig = sig;
         this.rnd = (sig == null ? null : (rnd == null ? new BigInteger(130, random).toString(32) : rnd)); 
+
+        if (type == Type.PON)
+            this.data = new PongPayload();
+        else
+            this.data = (data == null ? NullPayload.INSTANCE : data);
     }
 
     

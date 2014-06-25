@@ -55,6 +55,11 @@ public class LocalAgent implements Agent {
         return cloud;
     }
 
+    @Override
+    public void touch() {
+    }
+
+    @Override
     public long getAccessTime() {
         return SystemTime.asMillis();
     }

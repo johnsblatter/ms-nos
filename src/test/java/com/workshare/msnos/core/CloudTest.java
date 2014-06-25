@@ -38,10 +38,11 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 import org.mockito.Mockito;
 
-import com.workshare.msnos.core.Cloud.Multicaster;
 import com.workshare.msnos.core.Gateway.Listener;
 import com.workshare.msnos.core.Message.Status;
 import com.workshare.msnos.core.Message.Type;
+import com.workshare.msnos.core.cloud.JoinSynchronizer;
+import com.workshare.msnos.core.cloud.Multicaster;
 import com.workshare.msnos.core.payloads.FltPayload;
 import com.workshare.msnos.core.payloads.Presence;
 import com.workshare.msnos.core.protocols.ip.Network;
@@ -78,7 +79,7 @@ public class CloudTest {
         when(gate2.send(any(Message.class))).thenReturn(unknownReceipt);
         synchro = mock(JoinSynchronizer.class);
 
-        thisCloud = new Cloud(MY_CLOUD.getUUID(), new HashSet<Gateway>(Arrays.asList(gate1, gate2)), synchro, synchronousMulticaster(), scheduler);
+        thisCloud = new Cloud(MY_CLOUD.getUUID(), null, null, new HashSet<Gateway>(Arrays.asList(gate1, gate2)), synchro, synchronousMulticaster(), scheduler);
         thisCloud.addListener(new Cloud.Listener() {
             @Override
             public void onMessage(Message message) {
@@ -88,7 +89,7 @@ public class CloudTest {
 
         messages = new ArrayList<Message>();
 
-        otherCloud = new Cloud(UUID.randomUUID(), Collections.<Gateway>emptySet(), synchro);
+        otherCloud = new Cloud(UUID.randomUUID(), null, Collections.<Gateway>emptySet(), synchro);
     }
 
     @After
@@ -206,9 +207,7 @@ public class CloudTest {
 
     @Test
     public void shouldNOTForwardAnyNonCoreMessageSentToAnAgentOfAnotherCloud() throws Exception {
-        LocalAgent smith = new LocalAgent(UUID.randomUUID());
-        smith.join(otherCloud);
-
+        RemoteAgent smith = newRemoteAgent(otherCloud);
         simulateMessageFromNetwork(newMessage(APP, SOMEONE, smith.getIden()));
         assertEquals(0, messages.size());
     }
@@ -403,8 +402,17 @@ public class CloudTest {
 
         verify(synchro).process(message);
     }
+/*
+    @Test
+    public void shouldSendSignedMessagesIfKeystoreConfigured() throws Exception {
+        fail("todo");
+    }
 
-    
+    @Test
+    public void shouldDiscardMessagesSignedWithAnInvalidSignature() throws Exception {
+        fail("todo");
+    }
+*/
     private RemoteAgent getRemoteAgent(Cloud thisCloud, Iden iden) {
         for (RemoteAgent agent : thisCloud.getRemoteAgents()) {
             if (agent.getIden().equals(iden)) return agent;
@@ -514,7 +522,7 @@ public class CloudTest {
     }
 
     private Multicaster synchronousMulticaster() {
-        return new Cloud.Multicaster(new Executor() {
+        return new Multicaster(new Executor() {
             @Override
             public void execute(Runnable command) {
                 command.run();

@@ -1,4 +1,4 @@
-package com.workshare.msnos.core;
+package com.workshare.msnos.core.cloud;
 
 import java.io.IOException;
 import java.util.List;
@@ -9,9 +9,11 @@ import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.workshare.msnos.core.LocalAgent;
+import com.workshare.msnos.core.Message;
 import com.workshare.msnos.core.Message.Type;
 
-public class JoinSynchronizer {
+public class JoinSynchronizer  {
     private static Logger log = LoggerFactory.getLogger(JoinSynchronizer.class);
 
     private final List<Status> joiners = new CopyOnWriteArrayList<Status>();
@@ -38,7 +40,7 @@ public class JoinSynchronizer {
     }
 
     
-    static class Status {
+    public static class Status {
 
         private final CountDownLatch latch;
         private final LocalAgent agent;

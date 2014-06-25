@@ -3,28 +3,25 @@ package com.workshare.msnos.core;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.workshare.msnos.core.JoinSynchronizer.Status;
+import com.workshare.msnos.core.cloud.AgentWatchdog;
+import com.workshare.msnos.core.cloud.AgentsList;
+import com.workshare.msnos.core.cloud.JoinSynchronizer;
+import com.workshare.msnos.core.cloud.JoinSynchronizer.Status;
+import com.workshare.msnos.core.cloud.Multicaster;
 import com.workshare.msnos.core.payloads.FltPayload;
 import com.workshare.msnos.core.payloads.Presence;
+import com.workshare.msnos.core.security.Signer;
 import com.workshare.msnos.soup.json.Json;
-import com.workshare.msnos.soup.time.SystemTime;
 
 public class Cloud implements Identifiable {
-
-    private static final long AGENT_TIMEOUT = Long.getLong("msnos.core.agents.timeout.millis", 60000L);
-    private static final long AGENT_RETRIES = Long.getLong("msnos.core.agents.retries.num", 3);
 
     private static Logger log = LoggerFactory.getLogger(Cloud.class);
     private static Logger proto = LoggerFactory.getLogger("protocol");
@@ -33,47 +30,48 @@ public class Cloud implements Identifiable {
         public void onMessage(Message message);
     }
 
-    public static class Multicaster extends com.workshare.msnos.soup.threading.Multicaster<Listener, Message> {
-        public Multicaster() {
-            super();
-        }
-
-        public Multicaster(Executor executor) {
-            super(executor);
-        }
-
-        @Override
-        protected void dispatch(Listener listener, Message message) {
-            listener.onMessage(message);
-        }
-    }
-
     private final Iden iden;
-    private final Map<Iden, LocalAgent> localAgents;
-    private final Map<Iden, RemoteAgent> remoteAgents;
+    private final String signkey;
+    private final AgentsList<LocalAgent> localAgents;
+    private final AgentsList<RemoteAgent> remoteAgents;
 
     transient private final Set<Gateway> gates;
     transient private final Multicaster caster;
-    transient private final ScheduledExecutorService scheduler;
     transient private final JoinSynchronizer synchronizer;
+    transient private final Signer signer;
+    transient private final Internal internal;
+    
+    public class Internal {
+        public AgentsList<RemoteAgent> remoteAgents() {
+            return remoteAgents;
+        }
+        public Cloud cloud() {
+            return Cloud.this;
+        }
+    }
 
     public Cloud(UUID uuid) throws IOException {
-        this(uuid, Gateways.all(), new JoinSynchronizer());
+        this(uuid, null, Gateways.all(), new JoinSynchronizer());
     }
 
-    public Cloud(UUID uuid, Set<Gateway> gates, JoinSynchronizer synchronizer) throws IOException {
-        this(uuid, gates, synchronizer, new Multicaster(), Executors.newSingleThreadScheduledExecutor());
+    public Cloud(UUID uuid, String signkey) throws IOException {
+        this(uuid, signkey, Gateways.all(), new JoinSynchronizer());
     }
 
-    public Cloud(UUID uuid, Set<Gateway> gates, JoinSynchronizer synchronizer, Multicaster multicaster, ScheduledExecutorService executor) {
+    public Cloud(UUID uuid, String signkey, Set<Gateway> gates, JoinSynchronizer synchronizer) throws IOException {
+        this(uuid, null, null, gates, synchronizer, new Multicaster(), Executors.newSingleThreadScheduledExecutor());
+    }
+
+    public Cloud(UUID uuid, String signkey, Signer signer, Set<Gateway> gates, JoinSynchronizer synchronizer, Multicaster multicaster, ScheduledExecutorService executor) {
         this.iden = new Iden(Iden.Type.CLD, uuid);
-        this.localAgents = new ConcurrentHashMap<Iden, LocalAgent>();
-        this.remoteAgents = new ConcurrentHashMap<Iden, RemoteAgent>();
+        this.localAgents = new AgentsList<LocalAgent>();
+        this.remoteAgents = new AgentsList<RemoteAgent>();
         this.caster = multicaster;
         this.gates = gates;
-        this.scheduler = executor;
+        this.signer = signer;
+        this.signkey = signkey;
         this.synchronizer = synchronizer;
-
+        
         for (Gateway gate : gates) {
             gate.addListener(new Gateway.Listener() {
                 @Override
@@ -83,58 +81,35 @@ public class Cloud implements Identifiable {
             });
         }
 
-        final long period = AGENT_TIMEOUT / 2;
-        log.debug("Probing agent every {} milliseconds", period);
-        scheduler.scheduleAtFixedRate(new Runnable() {
-            @Override
-            public void run() {
-                probeQuietAgents();
-            }
-        }, period, period, TimeUnit.MILLISECONDS);
+        this.internal = new Internal();
+        new AgentWatchdog(this, executor).start();
     }
 
+    @Override
+    public String toString() {
+        return Json.toJsonString(this);
+    }
+
+    @Override
     public Iden getIden() {
         return iden;
     }
 
     public Collection<RemoteAgent> getRemoteAgents() {
-        return Collections.unmodifiableCollection(remoteAgents.values());
+        return remoteAgents.list();
     }
 
     public Collection<LocalAgent> getLocalAgents() {
-        return Collections.unmodifiableCollection(localAgents.values());
+        return localAgents.list();
     }
 
     public Set<Gateway> getGateways() {
         return Collections.unmodifiableSet(gates);
     }
 
-    private void probeQuietAgents() {
-        log.trace("Probing quite agents...");
-        for (RemoteAgent agent : getRemoteAgents()) {
-            if (agent.getAccessTime() < SystemTime.asMillis() - AGENT_TIMEOUT) {
-                log.debug("- sending ping to {}", agent.toString());
-                try {
-                    send(new MessageBuilder(Message.Type.PIN, this, agent).make());
-                } catch (IOException e) {
-                    log.debug("Unexpected exception pinging agent " + agent, e);
-                }
-            }
-            if (agent.getAccessTime() < SystemTime.asMillis() - (AGENT_TIMEOUT * AGENT_RETRIES)) {
-                log.debug("- remote agent removed due to inactivity: {}", agent);
-                removeFaultyAgent(agent);
-            }
-        }
-        log.trace("Done!");
-    }
-
-    private void removeFaultyAgent(RemoteAgent agent) {
-        RemoteAgent result = remoteAgents.remove(agent.getIden());
-        if (result != null)
-            caster.dispatch(new MessageBuilder(Message.Type.FLT, this, this).with(new FltPayload(agent.getIden())).make());
-    }
-
     public Receipt send(Message message) throws IOException {
+        checkCloudAlive();
+        
         proto.info("TX: {} {} {} {}", message.getType(), message.getFrom(), message.getTo(), message.getData());
 
         MultiGatewayReceipt res = new MultiGatewayReceipt(message);
@@ -146,8 +121,10 @@ public class Cloud implements Identifiable {
     }
 
     void onJoin(LocalAgent agent) throws IOException {
+        checkCloudAlive();
+
         log.debug("Local agent joined: {}", agent);
-        localAgents.put(agent.getIden(), agent);
+        localAgents.add(agent);
 
         final Status status = synchronizer.start(agent);
         try {
@@ -160,9 +137,16 @@ public class Cloud implements Identifiable {
     }
 
     void onLeave(LocalAgent agent) throws IOException {
+        checkCloudAlive();
+
         send(new MessageBuilder(Message.Type.PRS, agent, this).with(new Presence(false)).make());
         log.debug("Local agent left: {}", agent);
         localAgents.remove(agent.getIden());
+    }
+
+    private void checkCloudAlive() throws IOException {
+        if (gates.size() == 0 || synchronizer == null)
+            throw new IOException("This cloud is not connected as it is a mirror of a remote one");
     }
 
     public Listener addListener(com.workshare.msnos.core.Cloud.Listener listener) {
@@ -179,26 +163,20 @@ public class Cloud implements Identifiable {
         if (isProcessable(message)) {
             proto.info("RX: {} {} {} {}", message.getType(), message.getFrom(), message.getTo(), message.getData());
 
-            if (isPresence(message))
-                processPresence(message);
-            else if (isAbsence(message))
-                processAbsence(message);
-            else if (isPong(message))
-                processPong(message);
-            else
-                caster.dispatch(message);
+            boolean processed = message.getData().process(message, internal);
+            if (!processed)
+                dispatch(message);
         } else {
             proto.debug("NN: {} {} {} {}", message.getType(), message.getFrom(), message.getTo(), message.getData());
         }
 
-        synchronizer.process(message);
+        remoteAgents.touch(message.getFrom());
 
-        touchSourceAgent(message);
+        synchronizer.process(message);
     }
 
     private boolean isProcessable(Message message) {
         if (isComingFromALocalAgent(message)) {
-
             log.debug("Skipped message sent from a local agent: {}", message);
             return false;
         }
@@ -229,50 +207,13 @@ public class Cloud implements Identifiable {
         return to.equals(iden) || localAgents.containsKey(to);
     }
 
-    private void processPresence(Message message) {
-        Iden from = message.getFrom();
-        RemoteAgent agent = new RemoteAgent(from.getUUID(), this, ((Presence) message.getData()).getNetworks());
-        log.debug("Discovered new agent from network: {}", agent.toString());
-        remoteAgents.put(agent.getIden(), agent);
+    public void removeFaultyAgent(RemoteAgent agent) {
+        RemoteAgent result = remoteAgents.remove(agent.getIden());
+        if (result != null)
+            dispatch(new MessageBuilder(Message.Type.FLT, this, this).with(new FltPayload(agent.getIden())).make());
     }
 
-    private void processAbsence(Message message) {
-        Iden from = message.getFrom();
-        log.debug("Agent from network leaving: {}", from);
-        remoteAgents.remove(from);
+    private void dispatch(Message message) {
+        caster.dispatch(message);
     }
-
-    private void processPong(Message message) {
-        if (!remoteAgents.containsKey(message.getFrom()))
-            try {
-                send(new MessageBuilder(Message.Type.DSC, this.getIden(), message.getFrom()).make());
-            } catch (IOException e) {
-                log.error("Unexpected exception sending message " + message, e);
-            }
-    }
-
-    @Override
-    public String toString() {
-        return Json.toJsonString(this);
-    }
-
-    private boolean isAbsence(Message message) {
-        return message.getType() == Message.Type.PRS && !((Presence) message.getData()).isPresent();
-    }
-
-    private boolean isPresence(Message message) {
-        return message.getType() == Message.Type.PRS && ((Presence) message.getData()).isPresent();
-    }
-
-    private boolean isPong(Message message) {
-        return message.getType() == Message.Type.PON;
-    }
-
-    private void touchSourceAgent(Message message) {
-        if (remoteAgents.containsKey(message.getFrom())) {
-            RemoteAgent agent = remoteAgents.get(message.getFrom());
-            agent.touch();
-        }
-    }
-
 }

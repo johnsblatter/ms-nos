@@ -1,5 +1,7 @@
 package com.workshare.msnos.core.payloads;
 
+import com.workshare.msnos.core.Cloud.Internal;
+import com.workshare.msnos.core.Message;
 import com.workshare.msnos.core.Message.Payload;
 import com.workshare.msnos.soup.json.Json;
 import com.workshare.msnos.usvc.RestApi;
@@ -56,5 +58,10 @@ public class QnePayload implements Payload {
             new QnePayload(name, apisOne),
             new QnePayload(name, apisTwo)
         };
+    }
+
+    @Override
+    public boolean process(Message message, Internal internal) {
+        return false;
     }
 }

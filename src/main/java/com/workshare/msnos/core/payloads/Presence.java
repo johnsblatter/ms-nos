@@ -9,8 +9,11 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.workshare.msnos.core.Cloud;
+import com.workshare.msnos.core.Iden;
 import com.workshare.msnos.core.Message;
 import com.workshare.msnos.core.Message.Payload;
+import com.workshare.msnos.core.RemoteAgent;
 import com.workshare.msnos.core.protocols.ip.Network;
 import com.workshare.msnos.soup.json.Json;
 
@@ -96,6 +99,23 @@ public class Presence implements Message.Payload {
             return false;
         }
     }
+
+    @Override
+    public boolean process(Message message, Cloud.Internal internal) {
+        Iden from = message.getFrom();
+
+        RemoteAgent agent = new RemoteAgent(from.getUUID(), internal.cloud(), getNetworks());
+        if (isPresent()) {
+            log.debug("Discovered new agent from network: {}", agent.toString());
+            internal.remoteAgents().add(agent);
+        } else {
+            log.debug("Agent from network leaving: {}", from);
+            internal.remoteAgents().remove(from);
+        }
+        
+        return true;
+    }
+
     
     
 }
