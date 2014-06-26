@@ -5,11 +5,9 @@ import com.workshare.msnos.core.LocalAgent;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.util.UUID;
+
+import static org.junit.Assert.assertTrue;
 
 public class CoreIT {
 
@@ -24,36 +22,8 @@ public class CoreIT {
     }
 
     @Test
-    public void shouldSeePresenceFromRemoteOnJoin() throws Exception {
-        Process p = createProcess("java", "-jar", "~/Documents/Java/ms-nos-core-client/target/ms-nos-core-client-0.0.1-SNAPSHOT.jar");
-        int exitValue = printExitValue(p);
-    }
-
-    private Process createProcess(String java, String s, String command) throws IOException {
-        ProcessBuilder pb = new ProcessBuilder(java, s, command);
-        Process process = pb.start();
-        redirentProcessIO(process);
-        return process;
-    }
-
-    private void redirentProcessIO(Process p) throws IOException {
-        InputStream is = p.getInputStream();
-        InputStreamReader isr = new InputStreamReader(is);
-        BufferedReader br = new BufferedReader(isr);
-        String line;
-        while ((line = br.readLine()) != null) {
-            System.out.println(line);
-        }
-    }
-
-    private int printExitValue(Process p) {
-        int exitValue = 0;
-        try {
-            exitValue = p.waitFor();
-            System.out.println("\n\nExit Value is " + exitValue);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-        return exitValue;
+    public void shouldSeeRemoteOnJoin() throws Exception {
+        Thread.sleep(100);
+        assertTrue(cloud.getRemoteAgents().size() == 1);
     }
 }

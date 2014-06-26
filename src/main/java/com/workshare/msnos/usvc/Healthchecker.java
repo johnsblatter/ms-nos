@@ -12,7 +12,7 @@ import java.util.concurrent.TimeUnit;
 public class Healthchecker {
 
     private static final Logger log = LoggerFactory.getLogger(Healthchecker.class);
-    private static final long CHECK_PERIOD = Long.getLong("msnos.usvc.health.check.time", 600L);
+    private static final long CHECK_PERIOD = Long.getLong("msnos.usvc.health.check.time", 60000L);
 
     private final Microservice microservice;
     private final ScheduledExecutorService scheduler;
