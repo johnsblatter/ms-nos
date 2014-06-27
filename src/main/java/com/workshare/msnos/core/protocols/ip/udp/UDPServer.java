@@ -73,7 +73,7 @@ public class UDPServer {
 
         byte[] buf = new byte[maxPacketSize];
 
-        logger.info("Listening loop started on port" + socket.getLocalPort());
+        logger.info("Listening loop started on port " + socket.getLocalPort());
         while (!thread.isInterrupted()) {
             DatagramPacket packet = new DatagramPacket(buf, buf.length);
             try {

@@ -5,7 +5,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
 import org.slf4j.Logger;
@@ -20,6 +19,7 @@ import com.workshare.msnos.core.payloads.FltPayload;
 import com.workshare.msnos.core.payloads.Presence;
 import com.workshare.msnos.core.security.Signer;
 import com.workshare.msnos.soup.json.Json;
+import com.workshare.msnos.soup.threading.ExecutorServices;
 
 public class Cloud implements Identifiable {
 
@@ -59,7 +59,7 @@ public class Cloud implements Identifiable {
     }
 
     public Cloud(UUID uuid, String signkey, Set<Gateway> gates, JoinSynchronizer synchronizer) {
-        this(uuid, null, new Signer(), gates, synchronizer, new Multicaster(), Executors.newSingleThreadScheduledExecutor());
+        this(uuid, null, new Signer(), gates, synchronizer, new Multicaster(), ExecutorServices.newSingleThreadScheduledExecutor());
     }
 
     public Cloud(UUID uuid, String signkey, Signer signer, Set<Gateway> gates, JoinSynchronizer synchronizer, Multicaster multicaster, ScheduledExecutorService executor) {
