@@ -3,6 +3,8 @@ package com.workshare.msnos.core.serializers;
 import com.google.gson.*;
 import com.workshare.msnos.core.*;
 import com.workshare.msnos.core.Message.Payload;
+import com.workshare.msnos.core.payloads.GenericPayload;
+import com.workshare.msnos.core.payloads.NullPayload;
 import com.workshare.msnos.core.payloads.Presence;
 import com.workshare.msnos.core.payloads.QnePayload;
 import com.workshare.msnos.soup.json.Json;
@@ -153,9 +155,11 @@ public class WireJsonSerializer implements WireSerializer {
             res.addProperty("hp", msg.getHops());
             res.addProperty("rx", msg.isReliable());
             res.addProperty("ty", msg.getType().toString());
-            res.add("dt", context.serialize(msg.getData()));
             res.addProperty("ss", msg.getSig());
             res.addProperty("rr", msg.getRnd());
+            if (!(msg.getData() instanceof NullPayload))
+                res.add("dt", context.serialize(msg.getData()));
+
             return res;
         }
     };
@@ -186,10 +190,11 @@ public class WireJsonSerializer implements WireSerializer {
                         data = (Payload) Json.fromJsonTree(dataJson, QnePayload.class);
                         break;
                     default:
+                        data = (dataJson == null ? NullPayload.INSTANCE : new GenericPayload(dataJson));
                         break;
                 }
             }
-
+            
             return new MessageBuilder(type, from, to)
                 .with(hops)
                 .with(data)

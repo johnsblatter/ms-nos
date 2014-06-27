@@ -39,7 +39,8 @@
 				</configuration>
 			</plugin>
 
-			<!--  integration tests support -->
+			<!-- integration tests support -->
+
 			<plugin>
 				<groupId>org.codehaus.mojo</groupId>
 				<artifactId>exec-maven-plugin</artifactId>
@@ -47,12 +48,43 @@
 				<executions>
 					<execution>
 						<id>integration-dumb-client</id>
-                		<phase>pre-integration-test</phase>
-                		<goals>
+						<phase>pre-integration-test</phase>
+						<goals>
+							<goal>exec</goal>
+						</goals>
+						<configuration>
+							<classpathScope>test</classpathScope>
+       						<executable>java</executable>
+							<longClasspath>true</longClasspath>
+							<arguments>
+								<argument>-XX:MaxPermSize=128M</argument>
+								<argument>-Xmx1024M</argument>
+								<argument>-Xdebug</argument>
+								<argument>-Xrunjdwp:transport=dt_socket,address=8888,server=y,suspend=n</argument>
+								<argument>-classpath</argument>
+								<classpath />
+								<argument>com.workshare.msnos.integration.SupportServer</argument>
+								<argument>fork</argument>
+							</arguments>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+
+<!-- 			
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>exec-maven-plugin</artifactId>
+				<version>1.2.1</version>
+				<executions>
+					<execution>
+						<id>integration-dumb-client</id>
+						<phase>pre-integration-test</phase>
+						<goals>
 							<goal>java</goal>
 						</goals>
 						<configuration>
-							<mainClass>com.workshare.msnos.integration.IntegrationTestServer</mainClass>
+							<mainClass>com.workshare.msnos.integration.SupportServer</mainClass>
 							<classpathScope>test</classpathScope>
 							<systemProperties>
 								<systemProperty>
@@ -64,25 +96,8 @@
 					</execution>
 				</executions>
 			</plugin>
-<!-- 
-			<plugin>
-				<groupId>org.codehaus.mojo</groupId>
-				<artifactId>exec-maven-plugin</artifactId>
-				<version>1.2.1</version>
-				<executions>
-					<execution>
-						<id>####### starting-dumb-client ########</id>
-						<phase>pre-integration-test</phase>
-						<goals>
-							<goal>exec</goal>
-						</goals>
-					</execution>
-				</executions>
-				<configuration>
-					<executable>/home/rhys/Documents/Java/core-client-dumb/run.sh</executable>
-				</configuration>
-			</plugin>
 -->
+
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-failsafe-plugin</artifactId>
@@ -99,7 +114,7 @@
 					<forkMode>always</forkMode>
 				</configuration>
 			</plugin>
-			
+
 		</plugins>
 	</build>
 
