@@ -3,6 +3,8 @@ package com.workshare.msnos.usvc;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.workshare.msnos.usvc.RestApi.Type;
+
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -33,7 +35,7 @@ public class Healthchecker {
     private void healthCheckApis() {
         for (RemoteMicroservice remote : microservice.getMicroServices()) {
             for (RestApi rest : remote.getApis()) {
-                if (rest.isHealthCheck()) {
+                if (rest.getType() == Type.HEALTHCHECK) {
                     HttpURLConnection connection = null;
                     try {
                         connection = (HttpURLConnection) new URL(rest.getUrl()).openConnection();

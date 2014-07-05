@@ -7,6 +7,8 @@ import java.util.concurrent.atomic.AtomicLong;
 
 public class RestApi {
 
+    public enum Type {HEALTHCHECK, PUBLIC, INTERNAL}
+    
     private static final AtomicLong NEXT_ID = new AtomicLong(0);
 
     private final int port;
@@ -14,26 +16,23 @@ public class RestApi {
     private final String path;
     private final String host;
     private final boolean sessionAffinity;
-    private final boolean healthCheck;
+    private final Type type;
 
     private final transient AtomicInteger tempFaults;
+    private final transient long id;
 
-    private transient final long id;
     private transient boolean faulty;
+
 
     public RestApi(String name, String path, int port) {
         this(name, path, port, null);
     }
 
     public RestApi(String name, String path, int port, String host) {
-        this(name, path, port, host, false);
+        this(name, path, port, host, Type.PUBLIC, false);
     }
 
-    public RestApi(String name, String path, int port, String host, boolean sessionAffinity) {
-        this(name, path, port, host, sessionAffinity, false);
-    }
-
-    public RestApi(String name, String path, int port, String host, boolean sessionAffinity, boolean healthCheck) {
+    public RestApi(String name, String path, int port, String host, Type type, boolean sessionAffinity) {
         if (path == null) {
             throw new IllegalArgumentException("path cannot be null");
         }
@@ -43,29 +42,29 @@ public class RestApi {
         this.port = port;
         this.host = host;
         this.sessionAffinity = sessionAffinity;
-        this.healthCheck = healthCheck;
+        this.type = type;
         this.id = NEXT_ID.getAndIncrement();
         tempFaults = new AtomicInteger();
     }
 
     public RestApi asHealthCheck() {
-        return new RestApi(name, path, port, host, sessionAffinity, true);
+        return new RestApi(name, path, port, host, Type.HEALTHCHECK, sessionAffinity);
+    }
+
+    public RestApi asInternal() {
+        return new RestApi(name, path, port, host, Type.INTERNAL, sessionAffinity);
     }
 
     public RestApi onHost(String host) {
-        return new RestApi(name, path, port, host, sessionAffinity, healthCheck);
+        return new RestApi(name, path, port, host, type, sessionAffinity);
     }
 
     public RestApi withAffinity() {
-        return new RestApi(name, path, port, host, true, healthCheck);
+        return new RestApi(name, path, port, host, type, true);
     }
 
     public boolean hasAffinity() {
         return sessionAffinity;
-    }
-
-    public boolean isHealthCheck() {
-        return healthCheck;
     }
 
     public boolean isFaulty() {
@@ -111,6 +110,10 @@ public class RestApi {
 
     public long getId() {
         return id;
+    }
+
+    public Type getType() {
+        return type;
     }
 
     @Override
