@@ -9,6 +9,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ScheduledExecutorService;
@@ -43,12 +44,14 @@ public class WWWGateway implements Gateway {
     public static final String SYSP_SYNC_PERIOD = "com.ws.nsnos.www.sync.period.millis";
     public static final String SYSP_ADDRESS = "com.ws.nsnos.www.address";
 
+    private static final UUID NULL = new UUID(0000,000);
+
     private static Logger log = LoggerFactory.getLogger(WWWGateway.class);
 
     private final ScheduledExecutorService scheduler;
     private final HttpClient client;
     private final WireSerializer serializer;
-    private final Map<Cloud, Listener> cloudListeners;
+    private final Map<Cloud, UUID> cloudListeners;
     private final Map<Cloud, Queue<Message>> cloudMessages;
     private final Multicaster<Listener, Message> caster;
 
@@ -64,7 +67,7 @@ public class WWWGateway implements Gateway {
         this.caster = caster;
         this.scheduler = scheduler;
         this.serializer = serializer;
-        this.cloudListeners = new ConcurrentHashMap<Cloud, Listener>();
+        this.cloudListeners = new ConcurrentHashMap<Cloud, UUID>();
         this.cloudMessages = new ConcurrentBuildingMap<Cloud, Queue<Message>>(new Factory<Queue<Message>>() {
             @Override
             public Queue<Message> make() {
@@ -87,7 +90,7 @@ public class WWWGateway implements Gateway {
     }
 
     private void ping(HttpClient client) throws IOException, ClientProtocolException, MalformedURLException {
-        HttpResponse response = client.execute(new HttpGet(composeUrl("api/1.0/ping")));
+        HttpResponse response = client.execute(new HttpGet(composeUrl("ping")));
         EntityUtils.consume(response.getEntity());
     }
 
@@ -102,7 +105,7 @@ public class WWWGateway implements Gateway {
 
     @Override
     public void addListener(Cloud cloud, Listener listener) {
-        cloudListeners.put(cloud, listener);
+        cloudListeners.put(cloud, NULL);
         caster.addListener(listener);
     }
 
@@ -149,23 +152,34 @@ public class WWWGateway implements Gateway {
     private void syncRx() throws IOException {
         Set<Cloud> clouds = new HashSet<Cloud>(cloudListeners.keySet());
         for (Cloud cloud : clouds) {
-            HttpGet request = new HttpGet(urlMsgs+"?cloud=" + cloud.getIden().getUUID());
+            String url = urlMsgs+"?cloud=" + cloud.getIden().getUUID();
+            UUID message = cloudListeners.get(cloud);
+            if (message != NULL)
+                url += "&message=" + message;
+                
+            HttpGet request = new HttpGet(url);
             HttpResponse res = client.execute(request);
             try {
                 BufferedReader in = new BufferedReader(new InputStreamReader(res.getEntity().getContent(), "UTF-8"));
                 try {
                     String line;
+                    Message last = null;
                     while((line=in.readLine())!=null) {
                         Message msg = serializer.fromText(line, Message.class);
-                        caster.dispatch(msg);
+                        if (msg != null) {
+                            caster.dispatch(msg);
+                            last = msg;
+                        }
                     }
+                    
+                    if (last != null)
+                        cloudListeners.put(cloud, last.getUuid());
                 } finally {
                     in.close();
                 }
             } finally {
                 EntityUtils.consume(res.getEntity());
             }
-
         }
     }
 

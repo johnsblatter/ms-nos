@@ -7,12 +7,14 @@ import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anyObject;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.when;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -157,16 +159,25 @@ public class WWWGatewayTest {
         scheduledTask().run();
 
         HttpGet request = getLastGetToWWW();
-        assertEquals(messagesRequestUrl(cloud), request.getURI().toString());
+        assertEquals(messagesRequestUrl(cloud),request.getURI().toString());
         
     }
     
     @Test
+    public void shouldInvokeGetMessagesOnSyncStartingFromTheLastOne() throws Exception {
+        final Message message = new MessageBuilder(Message.Type.PIN, cloud, cloud).make();
+        mockGetResponse(message);
+
+        scheduledTask().run();
+        scheduledTask().run();
+
+        HttpGet request = getLastGetToWWW();
+        assertEquals(messagesRequestUrl(cloud, message),request.getURI().toString());
+    }
+    
+    @Test
     public void shouldInvokeListenerOnReceivedMessages() throws Exception {
-        Message message =  new MessageBuilder(Message.Type.PIN, cloud, cloud).make();
-        StringBuilder input = new StringBuilder();
-        input.append(toWireJson(message));
-        when(response.getEntity()).thenReturn(new StringEntity(input.toString()));
+        mockGetResponse(new MessageBuilder(Message.Type.PIN, cloud, cloud).make());
         
         scheduledTask().run();
 
@@ -193,6 +204,15 @@ public class WWWGatewayTest {
     public void shouldBlowUpIfCannotContactTheServer() throws Exception {
         when(client.execute(any(HttpUriRequest.class))).thenThrow(new IOException ("boom!") );
         gate = new WWWGateway(client, scheduler, serializer, synchronousMulticaster());
+    }
+
+    private void mockGetResponse(Message... messages) throws UnsupportedEncodingException {
+        StringBuilder input = new StringBuilder();
+        for (Message message : messages) {
+            input.append(toWireJson(message));
+        }
+
+        when(response.getEntity()).thenReturn(new StringEntity(input.toString()));
     }
 
     private void waitFor(Thread... threads) throws InterruptedException {
@@ -329,7 +349,14 @@ public class WWWGatewayTest {
     }
 
     private String messagesRequestUrl(final Cloud cloud) {
-        return WWW_ROOT+"api/1.0/messages?cloud="+cloud.getIden().getUUID();
+        return messagesRequestUrl(cloud, null);
+    }
+
+    private String messagesRequestUrl(final Cloud cloud, final Message message) {
+        String url = WWW_ROOT+"api/1.0/messages?cloud="+cloud.getIden().getUUID();
+        if (message != null)
+            url = url+"&message="+message.getUuid().toString();
+        return url;
     }
 
 }
