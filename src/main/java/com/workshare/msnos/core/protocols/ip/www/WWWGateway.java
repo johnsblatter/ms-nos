@@ -40,8 +40,8 @@ import com.workshare.msnos.soup.threading.Multicaster;
 
 public class WWWGateway implements Gateway {
 
-    static final String SYSP_SYNC_PERIOD = "com.ws.nsnos.www.sync.period.millis";
-    static final String SYSP_ADDRESS = "com.ws.nsnos.www.address";
+    public static final String SYSP_SYNC_PERIOD = "com.ws.nsnos.www.sync.period.millis";
+    public static final String SYSP_ADDRESS = "com.ws.nsnos.www.address";
 
     private static Logger log = LoggerFactory.getLogger(WWWGateway.class);
 

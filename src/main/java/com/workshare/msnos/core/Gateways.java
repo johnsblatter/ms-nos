@@ -32,7 +32,7 @@ public class Gateways {
 		if (all == null) {
 	        all = new HashSet<Gateway>();
 			addGateway(buildUDPGateway());
-//            addGateway(buildWWWGateway());
+            addGateway(buildWWWGateway());
 
             if (all.size() == 0)
                 throw new MsnosException("Unable to create at least one gateway", Code.UNRECOVERABLE_FAILURE);
@@ -82,6 +82,11 @@ public class Gateways {
     }
 
     private static WWWGateway buildWWWGateway() {
+        if (!System.getProperties().containsKey(WWWGateway.SYSP_ADDRESS)) {
+            log.warn("Missing configuration for WWW gateway, please add property "+WWWGateway.SYSP_ADDRESS);
+            return null;
+        }
+        
         try {
             return new WWWGateway(newHttpClient(), newScheduler(), new WireJsonSerializer(), newMulticaster()); 
         } catch (Throwable ex) {

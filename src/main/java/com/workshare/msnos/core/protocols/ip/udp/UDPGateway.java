@@ -1,5 +1,18 @@
 package com.workshare.msnos.core.protocols.ip.udp;
 
+import java.io.IOException;
+import java.net.DatagramPacket;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.MulticastSocket;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Set;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.workshare.msnos.core.Cloud;
 import com.workshare.msnos.core.Gateway;
 import com.workshare.msnos.core.Message;
@@ -11,21 +24,10 @@ import com.workshare.msnos.core.protocols.ip.Endpoint;
 import com.workshare.msnos.core.protocols.ip.MulticastSocketFactory;
 import com.workshare.msnos.core.serializers.WireSerializer;
 import com.workshare.msnos.soup.threading.Multicaster;
-import org.apache.log4j.Logger;
-
-import java.io.IOException;
-import java.net.DatagramPacket;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.MulticastSocket;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Set;
 
 public class UDPGateway implements Gateway {
 
-    private static Logger logger = Logger.getLogger(UDPGateway.class);
+    private static Logger logger = LoggerFactory.getLogger(UDPGateway.class);
 
     public static final String SYSP_PORT_NUM = "com.ws.nsnos.udp.port.number";
     public static final String SYSP_PORT_WIDTH = "com.ws.nsnos.udp.port.width";
