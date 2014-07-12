@@ -9,3 +9,4 @@ tmp
 .idea
 spikes
 *~
+dependency-reduced-pom.xml
