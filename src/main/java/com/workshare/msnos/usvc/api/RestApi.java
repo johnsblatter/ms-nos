@@ -1,5 +1,6 @@
-package com.workshare.msnos.usvc;
+package com.workshare.msnos.usvc.api;
 
+import com.workshare.msnos.core.geo.Location;
 import com.workshare.msnos.soup.json.Json;
 
 import java.util.concurrent.atomic.AtomicInteger;
@@ -116,6 +117,10 @@ public class RestApi {
         return type;
     }
 
+    public Location getLocation() {
+        return Location.UNKNOWN;
+    }
+
     @Override
     public int hashCode() {
         final int prime = 31;
@@ -140,4 +145,5 @@ public class RestApi {
     public String toString() {
         return Json.toJsonString(this);
     }
+
 }

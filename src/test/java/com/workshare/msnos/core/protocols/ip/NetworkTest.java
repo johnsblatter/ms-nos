@@ -66,6 +66,12 @@ public class NetworkTest {
     }
 
     @Test
+    public void shouldComputeGetHostString() {
+        Network net = new Network(new byte[] { 10, 0, 0, 1 }, (byte) 24);
+        assertEquals("10.0.0.1", net.getHostString());
+    }
+
+    @Test
     public void shouldComputeToString() {
         Network net = new Network(new byte[] { 10, 0, 0, 1 }, (byte) 24);
         assertTrue(net.toString().contains("10.0.0.1/24"));

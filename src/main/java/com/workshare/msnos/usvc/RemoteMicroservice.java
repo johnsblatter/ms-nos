@@ -1,30 +1,33 @@
 package com.workshare.msnos.usvc;
 
-import com.workshare.msnos.core.RemoteAgent;
-import com.workshare.msnos.core.protocols.ip.Network;
-
 import java.util.HashSet;
 import java.util.Set;
 
+import com.workshare.msnos.core.RemoteAgent;
+import com.workshare.msnos.core.geo.Location;
+import com.workshare.msnos.core.protocols.ip.Network;
+import com.workshare.msnos.usvc.api.RestApi;
+
 public class RemoteMicroservice {
 
-    private RemoteAgent agent;
-    private String name;
-    private Set<RestApi> apis;
+    private final RemoteAgent agent;
+    private final String name;
+    private final Set<RestApi> apis;
+    private final Location location;
 
     public RemoteMicroservice(String name, RemoteAgent agent, Set<RestApi> apis) {
         this.name = name;
-        this.apis = apis;
         this.agent = agent;
-        this.apis = checkApiHosts(this.apis);
+        this.apis = ensureHostIsPresent(apis);
+        this.location = Location.computeMostPreciseLocation(agent.getHosts());
     }
 
-    private Set<RestApi> checkApiHosts(Set<RestApi> apis) {
+    private Set<RestApi> ensureHostIsPresent(Set<RestApi> apis) {
         Set<RestApi> result = new HashSet<RestApi>();
         for (RestApi api : apis) {
             if (api.getHost() == null || api.getHost().isEmpty()) {
                 for (Network network : agent.getHosts()) {
-                    result.add(api.onHost(network.toString()));
+                    result.add(api.onHost(network.getHostString()));
                 }
             } else {
                 result.add(api);
@@ -43,6 +46,10 @@ public class RemoteMicroservice {
 
     public RemoteAgent getAgent() {
         return agent;
+    }
+
+    public Location getLocation() {
+        return location;
     }
 
     @Override

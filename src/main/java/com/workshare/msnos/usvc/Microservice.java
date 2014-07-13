@@ -1,15 +1,28 @@
 package com.workshare.msnos.usvc;
 
-import com.workshare.msnos.core.*;
-import com.workshare.msnos.core.payloads.FltPayload;
-import com.workshare.msnos.core.payloads.QnePayload;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ScheduledExecutorService;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
+import com.workshare.msnos.core.Cloud;
+import com.workshare.msnos.core.LocalAgent;
+import com.workshare.msnos.core.Message;
+import com.workshare.msnos.core.MessageBuilder;
+import com.workshare.msnos.core.MsnosException;
+import com.workshare.msnos.core.RemoteAgent;
+import com.workshare.msnos.core.geo.Location;
+import com.workshare.msnos.core.payloads.FltPayload;
+import com.workshare.msnos.core.payloads.QnePayload;
+import com.workshare.msnos.soup.threading.ExecutorServices;
+import com.workshare.msnos.usvc.api.RestApi;
+import com.workshare.msnos.usvc.api.routing.ApiRepository;
 
 public class Microservice {
 
@@ -20,44 +33,51 @@ public class Microservice {
     private final Healthchecker healthcheck;
     private final List<RestApi> localApis;
     private final List<RemoteMicroservice> microServices;
-    private final Map<String, ApiList> remoteApis;
-
+    private final ApiRepository apis;
+    private final Location location;
+    
     private Cloud cloud;
 
+
     public Microservice(String name) {
-        this(name, Executors.newSingleThreadScheduledExecutor());
+        this(name, new LocalAgent(UUID.randomUUID()), ExecutorServices.newSingleThreadScheduledExecutor());
     }
 
-    public Microservice(String name, ScheduledExecutorService executor) {
-        agent = new LocalAgent(UUID.randomUUID());
-        cloud = null;
-        this.name = name;
+    public Microservice(String name, LocalAgent agent) {
+        this(name, agent, ExecutorServices.newSingleThreadScheduledExecutor());
+    }
 
-        localApis = new ArrayList<RestApi>();
-        microServices = new ArrayList<RemoteMicroservice>();
-        remoteApis = new ConcurrentHashMap<String, ApiList>();
-        healthcheck = new Healthchecker(this, executor);
+    public Microservice(String name, LocalAgent agent, ScheduledExecutorService executor) {
+        this.name = name;
+        this.agent = agent;
+
+        this.localApis = new CopyOnWriteArrayList<RestApi>();
+        this.microServices = new CopyOnWriteArrayList<RemoteMicroservice>();
+        this.healthcheck = new Healthchecker(this, executor);
+        this.apis = new ApiRepository();
+        this.location = Location.computeMostPreciseLocation(agent.getHosts());
+
+        this.cloud = null;
     }
 
     public LocalAgent getAgent() {
         return agent;
     }
 
+    public Location getLocation() {
+        return location;
+    }
+
     public List<RemoteMicroservice> getMicroServices() {
         return Collections.unmodifiableList(microServices);
     }
 
-    public List<RestApi> getAllRemoteRestApis() {
-        List<RestApi> result = new ArrayList<RestApi>();
-        for (ApiList api : remoteApis.values()) {
-            result.addAll(api.getAll());
-        }
-        return Collections.unmodifiableList(result);
-    }
-
     public void join(Cloud nimbus) throws MsnosException {
-        agent.join(nimbus);
+        if (this.cloud != null)
+            throw new IllegalArgumentException("The same instance of a microservice cannot join different clouds!");
+        
         this.cloud = nimbus;
+        agent.join(cloud);
         cloud.addListener(new Cloud.Listener() {
             @Override
             public void onMessage(Message message) {
@@ -68,8 +88,10 @@ public class Microservice {
                 }
             }
         });
+        
         Message message = new MessageBuilder(Message.Type.ENQ, agent, cloud).make();
         agent.send(message);
+        
         healthcheck.run();
     }
 
@@ -98,78 +120,42 @@ public class Microservice {
         agent.send(message);
     }
 
+    // TODO what happens if the remote agent is not recognized?
     private void processQNE(Message message) {
-        synchronized (microServices) {
-            QnePayload qnePayload = ((QnePayload) message.getData());
-            String name = qnePayload.getName();
-            Set<RestApi> apis = new HashSet<RestApi>(qnePayload.getApis());
-            RemoteAgent remoteAgent = null;
-            for (RemoteAgent agent : cloud.getRemoteAgents()) {
-                if (agent.getIden().equals(message.getFrom())) {
-                    remoteAgent = agent;
-                    break;
-                }
+        QnePayload qnePayload = ((QnePayload) message.getData());
+        
+        RemoteAgent remoteAgent = null;
+        for (RemoteAgent agent : cloud.getRemoteAgents()) {
+            if (agent.getIden().equals(message.getFrom())) {
+                remoteAgent = agent;
+                break;
             }
-            RemoteMicroservice remote = new RemoteMicroservice(name, remoteAgent, apis);
-            microServices.add(remote);
-            processRestApis(remote, remote.getApis());
         }
-    }
 
-    private void processRestApis(RemoteMicroservice remote, Set<RestApi> apis) {
-        for (RestApi rest : apis) {
-            String key = rest.getName() + rest.getPath();
-            if (remoteApis.containsKey(key)) {
-                remoteApis.get(key).add(remote, rest);
-            } else {
-                ApiList apiList = new ApiList();
-                apiList.add(remote, rest);
-                remoteApis.put(key, apiList);
-            }
-        }
+        String name = qnePayload.getName();
+        RemoteMicroservice remote = new RemoteMicroservice(name, remoteAgent, new HashSet<RestApi>(qnePayload.getApis()));
+
+        microServices.add(remote);
+        apis.register(remote);
     }
 
     private void processFault(Message message) {
         FltPayload fault = (FltPayload) message.getData();
-        synchronized (microServices) {
-            for (int i = 0; i < microServices.size(); i++) {
-                if (microServices.get(i).getAgent().getIden().equals(fault.getAbout())) {
-                    RemoteMicroservice faulty = microServices.get(i);
-                    microServices.remove(faulty);
-                    removeRestApis(faulty, faulty.getApis());
-                    break;
-                }
-            }
-        }
-    }
-
-    private void removeRestApis(RemoteMicroservice faulty, Set<RestApi> apis) {
-        for (RestApi rest : apis) {
-            String key = rest.getName() + rest.getPath();
-            if (remoteApis.containsKey(key)) {
-                ApiList apiList = remoteApis.get(key);
-                apiList.remove(faulty);
+        for (int i = 0; i < microServices.size(); i++) {
+            if (microServices.get(i).getAgent().getIden().equals(fault.getAbout())) {
+                RemoteMicroservice faulty = microServices.get(i);
+                microServices.remove(faulty);
+                apis.unregister(faulty);
                 break;
             }
         }
     }
 
     public RestApi searchApiById(long id) throws Exception {
-        Collection<ApiList> apiListCol = remoteApis.values();
-        for (ApiList apiList : apiListCol) {
-            for (RestApi rest : apiList.getAll()) {
-                if (rest.getId() == id) {
-                    return rest;
-                }
-            }
-        }
-        return null;
+        return apis.searchApiById(id);
     }
-
     public RestApi searchApi(String name, String path) throws Exception {
-        String key = name + path;
-        ApiList apiList = remoteApis.get(key);
-        return apiList == null ? null : apiList.get();
+        return apis.searchApi(this, name, path);
     }
 
     @Override
@@ -188,4 +174,5 @@ public class Microservice {
         result = 31 * result + cloud.hashCode();
         return result;
     }
+
 }

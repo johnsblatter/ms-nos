@@ -52,8 +52,8 @@ public class Network {
         return netmask;
 	}
 
-	@Override
-    public String toString() {
+
+    public String getHostString() {
         StringBuffer sb = new StringBuffer();
         for (int i = 0; i < address.length; i++) {
             if (i > 0)
@@ -62,10 +62,12 @@ public class Network {
             sb.append(x);
         }
    
-        sb.append('/');
-        sb.append(prefix);
-
         return sb.toString();
+    }
+
+    @Override
+    public String toString() {
+        return getHostString()+"/"+prefix;
     }
 
     // TODO: dumb implementation, should be improved

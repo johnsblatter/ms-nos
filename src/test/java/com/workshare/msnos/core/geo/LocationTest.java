@@ -1,6 +1,7 @@
 package com.workshare.msnos.core.geo;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.powermock.api.mockito.PowerMockito.mock;
 import static org.powermock.api.mockito.PowerMockito.when;
 
@@ -142,6 +143,30 @@ public class LocationTest {
         Match match = self.match(other);
         
         assertEquals(15, match.value());
+    }
+    
+    @Test
+    public void shouldCalculatePrecisionWhenNowhere() {
+        assertEquals(0, Location.UNKNOWN.getPrecision());
+    }
+    
+    @Test
+    public void shouldCalculatePrecisionCorrectly() {
+        Location continent = new Location (response(NORTH_AMERICA, null, null, null));
+        Location country = new Location (response(NORTH_AMERICA, UNITED_STATES, null, null));
+        Location region = new Location (response(NORTH_AMERICA, UNITED_STATES, NEW_YORK, null));
+        Location city = new Location (response(NORTH_AMERICA, UNITED_STATES, NEW_YORK, SYRACUSE));
+        
+        assertTrue(country.getPrecision() > continent.getPrecision());
+        assertTrue(region.getPrecision() > country.getPrecision());
+        assertTrue(city.getPrecision() > region.getPrecision());
+        
+    }
+    
+    @Test
+    public void shouldComputeMostPreciseLocationAsNowherWhenNoNetworks() {
+        Location location = Location.computeMostPreciseLocation(null);
+        assertEquals(Location.UNKNOWN, location);
     }
     
     private OmniResponse response(Continent continent) {

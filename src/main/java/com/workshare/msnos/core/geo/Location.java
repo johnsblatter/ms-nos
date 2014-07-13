@@ -1,25 +1,37 @@
 package com.workshare.msnos.core.geo;
 
+import java.util.Set;
+
 import com.maxmind.geoip2.model.OmniResponse;
+import com.maxmind.geoip2.record.AbstractNamedRecord;
 import com.maxmind.geoip2.record.City;
 import com.maxmind.geoip2.record.Continent;
 import com.maxmind.geoip2.record.Country;
 import com.maxmind.geoip2.record.Subdivision;
+import com.workshare.msnos.core.protocols.ip.Network;
 import com.workshare.msnos.soup.json.Json;
 
 public class Location {
 
-    public static Place NOWHERE = new Place(Place.Type.CONTINENT, "Nowhere", "NN") {
-        @Override
-        public boolean equals(Object obj) {
-            return false;
-        }
-    };
+    public static Location UNKNOWN = new Location(Place.NOWHERE, Place.NOWHERE, Place.NOWHERE, Place.NOWHERE);
 
     public static class Place {
         public enum Type {
             CONTINENT, COUNTRY, REGION, CITY
         }
+
+        public static Location.Place NOWHERE = new Location.Place(Type.CONTINENT, "Nowhere", "NN") {
+            @Override
+            public boolean equals(Object obj) {
+                return false;
+            }
+            
+            @Override
+            public String toString() {
+                return "{\"type\":\"UNKNOWN\"}";
+            }
+            
+        };
 
         private final Type type;
         private final String name;
@@ -103,42 +115,46 @@ public class Location {
         public int value() {
             return value;
         }
+        
+        public String toString() {
+            return "match: "+Integer.toString(value);
+        }
     }
 
     private final Place continent;
     private final Place country;
     private final Place region;
     private final Place city;
+    private final int precision;
 
     public Location(OmniResponse response) {
-        this.continent = (response.getContinent() == null ? NOWHERE : makeContinent(response.getContinent()));
-        this.country = (response.getCountry() == null ? NOWHERE : makeCountry(response.getCountry()));
-        ;
-        this.region = (response.getMostSpecificSubdivision() == null ? NOWHERE : makeRegion(response
-                .getMostSpecificSubdivision()));
-        ;
-        this.city = (response.getCity() == null ? NOWHERE : makeCity(response.getCity()));
-        ;
+        this(
+            makeContinent(response.getContinent()),
+            makeCountry(response.getCountry()),
+            makeRegion(response.getMostSpecificSubdivision()),
+            makeCity(response.getCity())
+            );
     }
 
-    private Place makeContinent(final Continent aContinent) {
-        return new Place(Place.Type.CONTINENT, aContinent.getName(), aContinent.getCode());
+    public Location(Place continent, Place country, Place region, Place city) {
+        this.continent =  parseNull(continent);
+        this.country = parseNull(country);
+        this.region = parseNull(region);
+        this.city = parseNull(city);
+        this.precision = computePrecision();
+    }
+    
+    private Place parseNull(Place place) {
+        return place == null ? Place.NOWHERE : place;
     }
 
-    private Place makeCountry(final Country aCountry) {
-        return new Place(Place.Type.COUNTRY, aCountry.getName(), aCountry.getIsoCode());
-    }
-
-    private Place makeRegion(final Subdivision aRegion) {
-        return new Place(Place.Type.REGION, aRegion.getName(), aRegion.getIsoCode());
-    }
-
-    private Place makeCity(final City aCity) {
-        final Integer geoNameId = aCity.getGeoNameId();
-        if (geoNameId == null)
-            return null;
-
-        return new Place(Place.Type.CITY, aCity.getName(), geoNameId.toString());
+    private int computePrecision() {
+        int total = 0;
+        total += (continent != Place.NOWHERE ? 1 : 0);
+        total += (country != Place.NOWHERE ? 2 : 0);
+        total += (region != Place.NOWHERE ? 4 : 0);
+        total += (city != Place.NOWHERE ? 8 : 0);
+        return total;
     }
 
     public Place getContinent() {
@@ -157,7 +173,66 @@ public class Location {
         return city;
     }
 
+    public int getPrecision() {
+        return precision;
+    }
+
     public Match match(Location other) {
         return new Match(this, other);
     }
+    
+    @Override
+    public boolean equals(Object obj) {
+        try {
+            Location other = (Location) obj;
+            return equals(continent, other.continent) && equals(country, other.country) && equals(region, other.region) && equals(city, other.city);    
+        } catch (Exception ignore) {
+            return false;
+        }
+    }
+
+    private boolean equals(Place alfa, Place beta) {
+        return alfa == beta || alfa.equals(beta);
+    }
+
+    @Override
+    public String toString() {
+        return Json.toJsonString(this);
+    }
+    
+    public static Location computeMostPreciseLocation(final Set<Network> networks) {
+        LocationFactory locations = LocationFactory.DEFAULT;
+        
+        Location res = UNKNOWN;
+        if (networks != null)
+            for (Network network : networks) {
+                Location loc = locations.make(network.getHostString());
+                if (loc.getPrecision() > res.getPrecision())
+                    res = loc;
+            }
+        
+        return res;
+    }
+
+    private static boolean isValid(final AbstractNamedRecord r) {
+        return r != null && r.getGeoNameId() != null;
+    }
+
+    private static Place makeContinent(final Continent where) {
+        return isValid(where) ? new Place(Place.Type.CONTINENT, where.getName(), where.getCode()) : null;
+    }
+
+    private static Place makeCountry(final Country where) {
+        return isValid(where) ? new Place(Place.Type.COUNTRY, where.getName(), where.getIsoCode()) : null;
+    }
+
+    private static Place makeRegion(final Subdivision where) {
+        return isValid(where) ? new Place(Place.Type.REGION, where.getName(), where.getIsoCode()) : null;
+    }
+
+    private static Place makeCity(final City where) {
+        return isValid(where) ? new Place(Place.Type.CITY, where.getName(), where.getGeoNameId().toString()) : null;
+    }
+
+
 }

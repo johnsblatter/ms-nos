@@ -4,7 +4,8 @@ import com.workshare.msnos.core.*;
 import com.workshare.msnos.core.cloud.JoinSynchronizer;
 import com.workshare.msnos.core.payloads.Presence;
 import com.workshare.msnos.core.payloads.QnePayload;
-import com.workshare.msnos.usvc.RestApi;
+import com.workshare.msnos.usvc.api.RestApi;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;

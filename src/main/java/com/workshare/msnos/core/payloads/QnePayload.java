@@ -4,7 +4,7 @@ import com.workshare.msnos.core.Cloud.Internal;
 import com.workshare.msnos.core.Message;
 import com.workshare.msnos.core.Message.Payload;
 import com.workshare.msnos.soup.json.Json;
-import com.workshare.msnos.usvc.RestApi;
+import com.workshare.msnos.usvc.api.RestApi;
 
 import java.util.Arrays;
 import java.util.Collections;

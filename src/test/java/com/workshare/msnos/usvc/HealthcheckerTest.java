@@ -12,6 +12,8 @@ import com.workshare.msnos.core.RemoteAgent;
 import com.workshare.msnos.core.payloads.QnePayload;
 import com.workshare.msnos.core.protocols.ip.Network;
 import com.workshare.msnos.soup.time.SystemTime;
+import com.workshare.msnos.usvc.api.RestApi;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
