@@ -106,7 +106,7 @@ public class RestApi {
     }
 
     public String getUrl() {
-        return String.format("http://%s:%d/%s/%s/", getHost().substring(0, getHost().indexOf("/")), getPort(), getName(), getPath());
+        return String.format("http://%s:%d/%s/%s/", getHost(), getPort(), getName(), getPath());
     }
 
     public long getId() {

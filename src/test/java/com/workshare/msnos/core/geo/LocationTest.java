@@ -169,6 +169,13 @@ public class LocationTest {
         assertEquals(Location.UNKNOWN, location);
     }
     
+    @Test
+    public void shouldNotMatchWhenOtherIsNull() {
+        Location self = new Location (response(NORTH_AMERICA, UNITED_STATES, NEW_YORK, SYRACUSE));
+        Match match = self.match(null);
+        assertEquals(0, match.value());
+    }
+    
     private OmniResponse response(Continent continent) {
         return response(continent, null, null, null);
     }

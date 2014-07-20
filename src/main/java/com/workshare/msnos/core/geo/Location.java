@@ -178,7 +178,7 @@ public class Location {
     }
 
     public Match match(Location other) {
-        return new Match(this, other);
+        return new Match(this, other == null ? UNKNOWN : other);
     }
     
     @Override

@@ -31,6 +31,7 @@ public class ApiListTest {
         this.apiList = null;
         this.locations = mock(OfflineLocationFactory.class);
         this.svc = Mockito.mock(Microservice.class);
+        when(svc.getLocation()).thenReturn(Location.UNKNOWN);
     }
 
     @Test

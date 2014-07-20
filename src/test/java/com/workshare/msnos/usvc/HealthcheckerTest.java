@@ -23,6 +23,7 @@ import org.mockito.Mockito;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
@@ -65,7 +66,7 @@ public class HealthcheckerTest {
 
     @Test
     public void shouldOnFaultyHealthCheckMarkAllApisFaulty() throws Exception {
-        RemoteMicroservice remote = setupRemoteMicroserviceMultipleAPIsAndHealthCheck("127.0.0.1/25", "10.10.10.25/25", "10.10.10.91/25", "10.10.10.143/25", "content", "files");
+        RemoteMicroservice remote = setupRemoteMicroserviceMultipleAPIsAndHealthCheck("127.0.0.1", "10.10.10.25", "10.10.10.91", "10.10.10.143", "content", "files");
         setUpHttpServer("127.0.0.1", 9999);
 
         healthchecker.run();
@@ -78,7 +79,7 @@ public class HealthcheckerTest {
 
     @Test
     public void shouldOn200HealthCheckMarkAllApisWorking() throws Exception {
-        RemoteMicroservice remote = setupRemoteMicroserviceMultipleAPIsAndHealthCheck("127.0.0.1/25", "10.10.10.25/25", "10.10.10.91/25", "10.10.10.143/25", "content", "files");
+        RemoteMicroservice remote = setupRemoteMicroserviceMultipleAPIsAndHealthCheck("127.0.0.1", "10.10.10.25", "10.10.10.91", "10.10.10.143", "content", "files");
         setupHttpServerWithHandlerResponds200();
 
         healthchecker.run();
@@ -151,11 +152,7 @@ public class HealthcheckerTest {
     }
 
     private RemoteAgent newRemoteAgent() {
-        return newRemoteAgent(UUID.randomUUID());
-    }
-
-    private RemoteAgent newRemoteAgent(final UUID uuid, Network... hosts) {
-        RemoteAgent remote = new RemoteAgent(uuid, cloud, new HashSet<Network>(Arrays.asList(hosts)));
+        RemoteAgent remote = new RemoteAgent(UUID.randomUUID(), cloud, Collections.<Network>emptySet());
         putRemoteAgentInCloudAgentsList(remote);
         return remote;
     }

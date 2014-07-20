@@ -247,10 +247,10 @@ public class MicroserviceTest {
 
     @Test
     public void shouldReturnCorrectApiWhenSearchingById() throws Exception {
-        RestApi api1 = getRestApis(setupRemoteMicroservice("24.24.24.24/25", "content", "/files"))[0];
-        RestApi api2 = getRestApis(setupRemoteMicroservice("11.11.11.11/24", "content", "/folders"))[0];
-        RestApi api3 = getRestApis(setupRemoteMicroservice("23.23.23.23/15", "content", "/files"))[0];
-        RestApi api4 = getRestApis(setupRemoteMicroservice("25.22.22.22/42", "content", "/files"))[0];
+        RestApi api1 = getRestApis(setupRemoteMicroservice("24.24.24.24", "content", "/files"))[0];
+        RestApi api2 = getRestApis(setupRemoteMicroservice("11.11.11.11", "content", "/folders"))[0];
+        RestApi api3 = getRestApis(setupRemoteMicroservice("23.23.23.23", "content", "/files"))[0];
+        RestApi api4 = getRestApis(setupRemoteMicroservice("25.22.22.22", "content", "/files"))[0];
 
         assertEquals(api1, localMicroservice.searchApiById(api1.getId()));
         assertEquals(api2, localMicroservice.searchApiById(api2.getId()));

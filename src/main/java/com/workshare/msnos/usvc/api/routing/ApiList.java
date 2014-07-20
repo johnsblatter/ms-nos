@@ -13,6 +13,7 @@ import com.workshare.msnos.core.geo.LocationFactory;
 import com.workshare.msnos.usvc.Microservice;
 import com.workshare.msnos.usvc.RemoteMicroservice;
 import com.workshare.msnos.usvc.api.RestApi;
+import com.workshare.msnos.usvc.api.routing.strategies.CompositeStrategy;
 import com.workshare.msnos.usvc.api.routing.strategies.LocationBasedStrategy;
 import com.workshare.msnos.usvc.api.routing.strategies.RoundRobinRoutingStrategy;
 
@@ -97,13 +98,20 @@ public class ApiList {
         try {
             res = routing.select(from, endpoints).get(0);
         } catch (Throwable justInCaseSizeChanged) {
-            log.warn("Unexpected error selecting API using round robin");
+            log.warn("Unexpected error selecting API using round robin - "+toString(justInCaseSizeChanged));
             res = endpoints.size() > 0 ? endpoints.get(0) : null;
         }
         return res == null ? null : res.api();
     }
     
+    private String toString(Throwable ex) {
+        if (ex.getMessage() == null)
+            return ex.getClass().getSimpleName();
+        else
+            return ex.getClass().getSimpleName()+": "+ex.getMessage();
+    }
+
     static RoutingStrategy defaultRoutingStrategy() {
-        return new CompositeStrategy(new RoundRobinRoutingStrategy());
+        return new CompositeStrategy(new LocationBasedStrategy(), new RoundRobinRoutingStrategy());
     }
 }

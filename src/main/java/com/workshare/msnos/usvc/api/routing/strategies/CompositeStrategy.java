@@ -1,8 +1,10 @@
-package com.workshare.msnos.usvc.api.routing;
+package com.workshare.msnos.usvc.api.routing.strategies;
 
 import java.util.List;
 
 import com.workshare.msnos.usvc.Microservice;
+import com.workshare.msnos.usvc.api.routing.ApiEndpoint;
+import com.workshare.msnos.usvc.api.routing.RoutingStrategy;
 
 public class CompositeStrategy implements RoutingStrategy {
 
