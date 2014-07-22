@@ -15,6 +15,7 @@ import com.workshare.msnos.usvc.Microservice;
 import com.workshare.msnos.usvc.RemoteMicroservice;
 import com.workshare.msnos.usvc.api.routing.strategies.SkipFaultiesRoutingStrategy;
 
+@SuppressWarnings("unused")
 public class SkipFaultiesRoutingStrategyTest {
 
     private Microservice from;

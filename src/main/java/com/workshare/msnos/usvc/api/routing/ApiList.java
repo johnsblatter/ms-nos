@@ -3,6 +3,7 @@ package com.workshare.msnos.usvc.api.routing;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -13,6 +14,7 @@ import com.workshare.msnos.core.geo.LocationFactory;
 import com.workshare.msnos.usvc.Microservice;
 import com.workshare.msnos.usvc.RemoteMicroservice;
 import com.workshare.msnos.usvc.api.RestApi;
+import com.workshare.msnos.usvc.api.routing.strategies.CachingRoutingStrategy;
 import com.workshare.msnos.usvc.api.routing.strategies.CompositeStrategy;
 import com.workshare.msnos.usvc.api.routing.strategies.LocationBasedStrategy;
 import com.workshare.msnos.usvc.api.routing.strategies.RoundRobinRoutingStrategy;
@@ -112,6 +114,7 @@ public class ApiList {
     }
 
     static RoutingStrategy defaultRoutingStrategy() {
-        return new CompositeStrategy(new LocationBasedStrategy(), new RoundRobinRoutingStrategy());
+        final CompositeStrategy composite = new CompositeStrategy(new LocationBasedStrategy(), new RoundRobinRoutingStrategy());
+        return new CachingRoutingStrategy(composite);
     }
 }

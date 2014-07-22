@@ -9,9 +9,11 @@ import com.workshare.msnos.core.payloads.QnePayload;
 import com.workshare.msnos.core.protocols.ip.Network;
 import com.workshare.msnos.soup.time.SystemTime;
 import com.workshare.msnos.usvc.api.RestApi;
+import com.workshare.msnos.usvc.api.routing.strategies.CachingRoutingStrategy;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
@@ -29,6 +31,11 @@ public class MicroserviceTest {
     private Cloud cloud;
     private Microservice localMicroservice;
 
+    @BeforeClass
+    public static void disableCaching() {
+        System.setProperty(CachingRoutingStrategy.SYSP_TIMEOUT, "0");
+    }
+    
     @Before
     public void prepare() throws Exception {
         cloud = Mockito.mock(Cloud.class);

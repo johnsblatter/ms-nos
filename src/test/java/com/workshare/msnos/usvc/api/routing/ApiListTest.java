@@ -6,6 +6,7 @@ import static org.mockito.Mockito.*;
 import java.util.List;
 
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
@@ -16,6 +17,7 @@ import com.workshare.msnos.core.geo.OfflineLocationFactory;
 import com.workshare.msnos.usvc.Microservice;
 import com.workshare.msnos.usvc.RemoteMicroservice;
 import com.workshare.msnos.usvc.api.RestApi;
+import com.workshare.msnos.usvc.api.routing.strategies.CachingRoutingStrategy;
 
 @SuppressWarnings({ "unchecked", "rawtypes" })
 public class ApiListTest {
@@ -26,6 +28,11 @@ public class ApiListTest {
     private LocationFactory locations = LocationFactory.DEFAULT;
     private RoutingStrategy routing = ApiList.defaultRoutingStrategy();
 
+    @BeforeClass
+    public static void disableCaching() {
+        System.setProperty(CachingRoutingStrategy.SYSP_TIMEOUT, "0");
+    }
+    
     @Before
     public void preparation() {
         this.apiList = null;
