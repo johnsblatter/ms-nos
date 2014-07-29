@@ -12,10 +12,10 @@ public class RestApi {
 
     private static final AtomicLong NEXT_ID = new AtomicLong(0);
 
-    private final int port;
     private final String name;
     private final String path;
     private final String host;
+    private final int port;
     private final boolean sessionAffinity;
     private final Type type;
 
