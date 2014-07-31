@@ -9,7 +9,7 @@ public class SystemPropertiesKeysStore implements KeysStore {
 
     private static Logger logger = Logger.getLogger(SystemPropertiesKeysStore.class);
     
-    public static final String SYSP_KEYS = "com.ws.nsnos.keys";
+    public static final String SYSP_KEYS = "com.ws.msnos.keys";
 
     public final Map<String,String> keyvals = new ConcurrentHashMap<String,String>();
     

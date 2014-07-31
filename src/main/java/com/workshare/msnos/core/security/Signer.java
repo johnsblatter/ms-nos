@@ -12,11 +12,13 @@ import com.workshare.msnos.core.serializers.WireSerializer;
 
 public class Signer {
 
+    public static final KeysStore DEFAULT_KEYSSTORE = new SystemPropertiesKeysStore();
+
     private final WireSerializer sz;
     private final KeysStore keys;
 
     public Signer() {
-        this(new SystemPropertiesKeysStore());
+        this(DEFAULT_KEYSSTORE);
     }
     
     public Signer(KeysStore keys) {
