@@ -31,7 +31,7 @@ public class Cloud implements Identifiable {
     }
 
     private final Iden iden;
-    private final String signkey;
+    private final String signid;
     private final AgentsList<LocalAgent> localAgents;
     private final AgentsList<RemoteAgent> remoteAgents;
 
@@ -54,22 +54,22 @@ public class Cloud implements Identifiable {
         this(uuid, null, Gateways.all(), new JoinSynchronizer());
     }
 
-    public Cloud(UUID uuid, String signkey) throws MsnosException {
-        this(uuid, signkey, Gateways.all(), new JoinSynchronizer());
+    public Cloud(UUID uuid, String signid) throws MsnosException {
+        this(uuid, signid, Gateways.all(), new JoinSynchronizer());
     }
 
-    public Cloud(UUID uuid, String signkey, Set<Gateway> gates, JoinSynchronizer synchronizer) {
-        this(uuid, null, new Signer(), gates, synchronizer, new Multicaster(), ExecutorServices.newSingleThreadScheduledExecutor());
+    public Cloud(UUID uuid, String signid, Set<Gateway> gates, JoinSynchronizer synchronizer) {
+        this(uuid, signid, new Signer(), gates, synchronizer, new Multicaster(), ExecutorServices.newSingleThreadScheduledExecutor());
     }
 
-    public Cloud(UUID uuid, String signkey, Signer signer, Set<Gateway> gates, JoinSynchronizer synchronizer, Multicaster multicaster, ScheduledExecutorService executor) {
+    public Cloud(UUID uuid, String signid, Signer signer, Set<Gateway> gates, JoinSynchronizer synchronizer, Multicaster multicaster, ScheduledExecutorService executor) {
         this.iden = new Iden(Iden.Type.CLD, uuid);
         this.localAgents = new AgentsList<LocalAgent>();
         this.remoteAgents = new AgentsList<RemoteAgent>();
         this.caster = multicaster;
         this.gates = gates;
         this.signer = signer;
-        this.signkey = signkey;
+        this.signid = signid;
         this.synchronizer = synchronizer;
         
         for (Gateway gate : gates) {
@@ -200,7 +200,7 @@ public class Cloud implements Identifiable {
         }
 
         if (!isCorrectlySigned(message)) {
-            log.debug("Skipped message incorrectly signed: {} - key: ", message, signkey);
+            log.debug("Skipped message incorrectly signed: {} - key: ", message, signid);
             return false;
         }
 
@@ -232,13 +232,13 @@ public class Cloud implements Identifiable {
     }
 
     private Message sign(Message message) {
-        if (signkey == null)
+        if (signid == null)
             return message;
         
         try {
-            return signer.signed(message, signkey);
+            return signer.signed(message, signid);
         } catch (IOException e) {
-            log.warn("Failed to sign message {} using key {}", message, signkey);
+            log.warn("Failed to sign message {} using key {}", message, signid);
             return  message;
         }
     }
