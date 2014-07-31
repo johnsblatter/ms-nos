@@ -31,7 +31,7 @@ public class AgentTest {
     public void before() throws Exception {
         cloud = mock(Cloud.class);
         when(cloud.getIden()).thenReturn(new Iden(Iden.Type.CLD, UUID.randomUUID()));
-        
+
         karl = new LocalAgent(UUID.randomUUID());
         karl.join(cloud);
 
@@ -133,6 +133,12 @@ public class AgentTest {
     public void otherAgentsShouldNOTStillSeeAgentOnLeave() throws Exception {
         smith.leave();
         assertFalse(karl.getCloud().getLocalAgents().contains(smith));
+    }
+
+    @Test
+    public void agentShouldStoreNetworkInformationAfterJoin() throws Exception {
+        smith.join(cloud);
+        assertEquals(new Presence(true).getNetworks(), smith.getHosts());
     }
 
     private Message getLastMessageToCloud() throws IOException {

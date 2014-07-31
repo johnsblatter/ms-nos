@@ -1,28 +1,18 @@
 package com.workshare.msnos.usvc;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.UUID;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.ScheduledExecutorService;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.workshare.msnos.core.Cloud;
-import com.workshare.msnos.core.LocalAgent;
-import com.workshare.msnos.core.Message;
-import com.workshare.msnos.core.MessageBuilder;
-import com.workshare.msnos.core.MsnosException;
-import com.workshare.msnos.core.RemoteAgent;
+import com.workshare.msnos.core.*;
 import com.workshare.msnos.core.geo.Location;
 import com.workshare.msnos.core.payloads.FltPayload;
 import com.workshare.msnos.core.payloads.QnePayload;
 import com.workshare.msnos.soup.threading.ExecutorServices;
 import com.workshare.msnos.usvc.api.RestApi;
 import com.workshare.msnos.usvc.api.routing.ApiRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.*;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ScheduledExecutorService;
 
 public class Microservice {
 
@@ -35,7 +25,7 @@ public class Microservice {
     private final List<RemoteMicroservice> microServices;
     private final ApiRepository apis;
     private final Location location;
-    
+
     private Cloud cloud;
 
 
@@ -75,7 +65,7 @@ public class Microservice {
     public void join(Cloud nimbus) throws MsnosException {
         if (this.cloud != null)
             throw new IllegalArgumentException("The same instance of a microservice cannot join different clouds!");
-        
+
         this.cloud = nimbus;
         agent.join(cloud);
         cloud.addListener(new Cloud.Listener() {
@@ -88,10 +78,10 @@ public class Microservice {
                 }
             }
         });
-        
+
         Message message = new MessageBuilder(Message.Type.ENQ, agent, cloud).make();
         agent.send(message);
-        
+
         healthcheck.run();
     }
 
@@ -123,7 +113,7 @@ public class Microservice {
     // TODO what happens if the remote agent is not recognized?
     private void processQNE(Message message) {
         QnePayload qnePayload = ((QnePayload) message.getData());
-        
+
         RemoteAgent remoteAgent = null;
         for (RemoteAgent agent : cloud.getRemoteAgents()) {
             if (agent.getIden().equals(message.getFrom())) {
@@ -154,6 +144,7 @@ public class Microservice {
     public RestApi searchApiById(long id) throws Exception {
         return apis.searchApiById(id);
     }
+
     public RestApi searchApi(String name, String path) throws Exception {
         return apis.searchApi(this, name, path);
     }

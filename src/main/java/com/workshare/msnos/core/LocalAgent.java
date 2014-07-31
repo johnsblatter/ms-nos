@@ -1,19 +1,18 @@
 package com.workshare.msnos.core;
 
-import static com.workshare.msnos.core.Message.Type.DSC;
-import static com.workshare.msnos.core.Message.Type.PIN;
-
-import java.util.Set;
-import java.util.UUID;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.workshare.msnos.core.Cloud.Listener;
 import com.workshare.msnos.core.payloads.Presence;
 import com.workshare.msnos.core.protocols.ip.Network;
 import com.workshare.msnos.soup.json.Json;
 import com.workshare.msnos.soup.time.SystemTime;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.Set;
+import java.util.UUID;
+
+import static com.workshare.msnos.core.Message.Type.DSC;
+import static com.workshare.msnos.core.Message.Type.PIN;
 
 public class LocalAgent implements Agent {
 
@@ -41,8 +40,13 @@ public class LocalAgent implements Agent {
         this.hosts = hosts;
     }
 
+
     public LocalAgent withHosts(Set<Network> hosts) {
         return new LocalAgent(iden, cloud, hosts);
+    }
+
+    public void setHosts(Set<Network> hosts) {
+        this.hosts = hosts;
     }
 
     @Override
@@ -75,6 +79,7 @@ public class LocalAgent implements Agent {
                 process(message);
             }
         });
+        setHosts(new Presence(true).getNetworks());
         return this;
     }
 
@@ -82,7 +87,7 @@ public class LocalAgent implements Agent {
         if (this.cloud == null) {
             throw new MsnosException("Cannot leave a cloud I never joined!", MsnosException.Code.INVALID_STATE);
         }
-        
+
         log.debug("Leaving cloud {}", cloud);
         cloud.onLeave(this);
         cloud.removeListener(listener);
