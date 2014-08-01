@@ -101,6 +101,11 @@
 
 	<dependencies>
 		<dependency>
+			<groupId>org.mapdb</groupId>
+			<artifactId>mapdb</artifactId>
+			<version>${mapdb.version}</version>
+		</dependency>
+		<dependency>
 			<groupId>com.google.code.gson</groupId>
 			<artifactId>gson</artifactId>
 			<version>${gson-version}</version>
@@ -183,6 +188,7 @@
 		<powermock.version>1.5.1</powermock.version>
 		<sl4j.version>1.7.6</sl4j.version>
 		<logback.version>1.1.2</logback.version>
+		<mapdb.version>1.0.5</mapdb.version>
 	</properties>
 
 	<reporting>
