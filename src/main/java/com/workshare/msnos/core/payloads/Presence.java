@@ -1,14 +1,5 @@
 package com.workshare.msnos.core.payloads;
 
-import java.net.NetworkInterface;
-import java.net.SocketException;
-import java.util.Enumeration;
-import java.util.HashSet;
-import java.util.Set;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.workshare.msnos.core.Cloud;
 import com.workshare.msnos.core.Iden;
 import com.workshare.msnos.core.Message;
@@ -16,6 +7,14 @@ import com.workshare.msnos.core.Message.Payload;
 import com.workshare.msnos.core.RemoteAgent;
 import com.workshare.msnos.core.protocols.ip.Network;
 import com.workshare.msnos.soup.json.Json;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.net.NetworkInterface;
+import java.net.SocketException;
+import java.util.Enumeration;
+import java.util.HashSet;
+import java.util.Set;
 
 public class Presence implements Message.Payload {
 
@@ -68,17 +67,17 @@ public class Presence implements Message.Payload {
 
         int i = 0;
         for (Network net : networks) {
-            if (i++%2 == 0)
+            if (i++ % 2 == 0)
                 netOne.add(net);
             else
                 netTwo.add(net);
         }
-        
-        
-        return new Payload[] {
-            new Presence(present, netOne),
-            new Presence(present, netTwo)
-        };    
+
+
+        return new Payload[]{
+                new Presence(present, netOne),
+                new Presence(present, netTwo)
+        };
     }
 
     @Override
@@ -105,6 +104,8 @@ public class Presence implements Message.Payload {
         Iden from = message.getFrom();
 
         RemoteAgent agent = new RemoteAgent(from.getUUID(), internal.cloud(), getNetworks());
+        agent.setSeq(message.getSeq());
+
         if (isPresent()) {
             log.debug("Discovered new agent from network: {}", agent.toString());
             internal.remoteAgents().add(agent);
@@ -112,10 +113,9 @@ public class Presence implements Message.Payload {
             log.debug("Agent from network leaving: {}", from);
             internal.remoteAgents().remove(from);
         }
-        
+
         return true;
     }
 
-    
-    
+
 }

@@ -1,9 +1,10 @@
 package com.workshare.msnos.core;
 
-import java.util.UUID;
-
 import com.workshare.msnos.core.Message.Payload;
 import com.workshare.msnos.core.Message.Type;
+import com.workshare.msnos.soup.time.SystemTime;
+
+import java.util.UUID;
 
 public class MessageBuilder {
 
@@ -13,24 +14,25 @@ public class MessageBuilder {
 
     private UUID uuid = null;
     private int hops = 2;
+    private long seq;
     private boolean reliable = false;
     private Payload data = null;
 
     private String sig = null;
     private String rnd = null;
-    
+
     public MessageBuilder(Type type, Iden from, Iden to) {
         this.type = type;
         this.from = from;
         this.to = to;
     }
-    
+
     public MessageBuilder(Type type, Identifiable from, Identifiable to) {
         this.type = type;
         this.from = from.getIden();
         this.to = to.getIden();
     }
-    
+
     public MessageBuilder with(UUID uuid) {
         this.uuid = uuid;
         return this;
@@ -57,6 +59,11 @@ public class MessageBuilder {
         return this;
     }
 
+    public MessageBuilder sequence(long seq) {
+        this.seq = seq;
+        return this;
+    }
+
     public Message make() {
         if (from == null)
             throw new RuntimeException("Cannot build a message with no source");
@@ -64,7 +71,9 @@ public class MessageBuilder {
             throw new RuntimeException("Cannot build a message with no destination");
         if (uuid == null)
             uuid = UUID.randomUUID();
-        
-        return new Message(type, from, to, hops, reliable, data, uuid, sig, rnd);
+        if (seq == 0)
+            seq = SystemTime.asMillis();
+
+        return new Message(type, from, to, hops, reliable, data, uuid, sig, rnd, seq);
     }
 }

@@ -9,7 +9,6 @@ import com.workshare.msnos.core.payloads.Presence;
 import com.workshare.msnos.core.payloads.QnePayload;
 import com.workshare.msnos.soup.json.Json;
 import com.workshare.msnos.soup.json.ThreadSafeGson;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -157,6 +156,7 @@ public class WireJsonSerializer implements WireSerializer {
             res.addProperty("ty", msg.getType().toString());
             res.addProperty("ss", msg.getSig());
             res.addProperty("rr", msg.getRnd());
+            res.addProperty("sq", msg.getSeq());
             if (!(msg.getData() instanceof NullPayload))
                 res.add("dt", context.serialize(msg.getData()));
 
@@ -178,6 +178,7 @@ public class WireJsonSerializer implements WireSerializer {
             final boolean reliable = obj.get("hp").getAsBoolean();
             final String sig = getNullableString(obj, "ss");
             final String rnd = getNullableString(obj, "rr");
+            final long seq = obj.get("sq").getAsLong();
 
             Payload data = null;
             JsonElement dataJson = obj.get("dt");
@@ -194,14 +195,15 @@ public class WireJsonSerializer implements WireSerializer {
                         break;
                 }
             }
-            
+
             return new MessageBuilder(type, from, to)
-                .with(hops)
-                .with(data)
-                .with(uuid)
-                .reliable(reliable)
-                .signed(sig, rnd)
-                .make();
+                    .with(hops)
+                    .with(data)
+                    .with(uuid)
+                    .sequence(seq)
+                    .reliable(reliable)
+                    .signed(sig, rnd)
+                    .make();
         }
     };
 

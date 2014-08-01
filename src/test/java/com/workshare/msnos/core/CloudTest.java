@@ -1,43 +1,5 @@
 package com.workshare.msnos.core;
 
-import static com.workshare.msnos.core.Message.Type.APP;
-import static com.workshare.msnos.core.Message.Type.FLT;
-import static com.workshare.msnos.core.Message.Type.PIN;
-import static com.workshare.msnos.core.Message.Type.PRS;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyInt;
-import static org.mockito.Mockito.atLeastOnce;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.inOrder;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.*;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executor;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.ArgumentCaptor;
-import org.mockito.InOrder;
-import org.mockito.Mockito;
-
 import com.workshare.msnos.core.Gateway.Listener;
 import com.workshare.msnos.core.Message.Status;
 import com.workshare.msnos.core.Message.Type;
@@ -51,6 +13,25 @@ import com.workshare.msnos.core.security.KeysStore;
 import com.workshare.msnos.core.security.Signer;
 import com.workshare.msnos.soup.json.Json;
 import com.workshare.msnos.soup.time.SystemTime;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
+import org.mockito.Mockito;
+
+import java.io.IOException;
+import java.util.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
+import static com.workshare.msnos.core.Message.Type.*;
+import static org.junit.Assert.*;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyInt;
+import static org.mockito.Mockito.*;
 
 public class CloudTest {
 
@@ -88,7 +69,7 @@ public class CloudTest {
 
         keystore = mock(KeysStore.class);
         Signer signer = new Signer(keystore);
- 
+
         thisCloud = new Cloud(MY_CLOUD.getUUID(), KEY_ID, signer, new HashSet<Gateway>(Arrays.asList(gate1, gate2)), synchro, synchronousMulticaster(), scheduler);
         thisCloud.addListener(new Cloud.Listener() {
             @Override
@@ -124,16 +105,16 @@ public class CloudTest {
 
         smith.join(thisCloud);
 
-        assertMessageSent(Message.Type.PRS,smith.getIden(), thisCloud.getIden(), null);
+        assertMessageSent(Message.Type.PRS, smith.getIden(), thisCloud.getIden(), null);
     }
 
     @Test
     public void shouldSendDiscoveryMessageWhenAgentJoins() throws Exception {
-        LocalAgent smith = new LocalAgent(UUID.randomUUID());       
+        LocalAgent smith = new LocalAgent(UUID.randomUUID());
 
         smith.join(thisCloud);
 
-        assertMessageSent(Message.Type.DSC,smith.getIden(), thisCloud.getIden(), null);
+        assertMessageSent(Message.Type.DSC, smith.getIden(), thisCloud.getIden(), null);
     }
 
     @Test
@@ -149,12 +130,12 @@ public class CloudTest {
     public void shouldDoNothingWhenKnownAgentPongs() throws Exception {
         RemoteAgent remote = newRemoteAgent(thisCloud);
         simulateAgentJoiningCloud(remote, thisCloud);
-        
+
         simulateMessageFromNetwork(new MessageBuilder(Message.Type.PON, remote, thisCloud).make());
 
         assertNoMessagesSent();
     }
-    
+
     @Test
     public void shouldSendDiscoveryWhenUnknownAgentPongs() throws Exception {
         RemoteAgent remote = newRemoteAgent(thisCloud);
@@ -164,10 +145,9 @@ public class CloudTest {
         assertMessageSent(Message.Type.DSC, thisCloud.getIden(), remote.getIden(), null);
     }
 
-    
+
     @Test
     public void shouldRemoveLocalAgentOnLeave() throws Exception {
-
         LocalAgent jeff = new LocalAgent(UUID.randomUUID());
         jeff.join(thisCloud);
         jeff.leave();
@@ -179,7 +159,7 @@ public class CloudTest {
     public void shouldRemoveRemoteAgentOnLeave() throws Exception {
         RemoteAgent remote = newRemoteAgent(thisCloud);
         simulateAgentJoiningCloud(remote, thisCloud);
-        
+
         simulateAgentLeavingCloud(remote, thisCloud);
         assertFalse(thisCloud.getLocalAgents().contains(remote));
     }
@@ -188,7 +168,7 @@ public class CloudTest {
     public void shouldSendAbsenceWhenLeavingCloud() throws Exception {
         LocalAgent karl = new LocalAgent(UUID.randomUUID());
         karl.join(thisCloud);
-        
+
         karl.leave();
 
         assertMessageContent(getLastMessageSent(), PRS, karl.getIden(), thisCloud.getIden(), new Presence(false));
@@ -222,26 +202,26 @@ public class CloudTest {
         assertEquals(0, receivedMessages.size());
     }
 
-    @Test   
+    @Test
     public void shouldNOTForwardAnyNonCoreMessageSentToAnotherCloud() throws Exception {
         simulateMessageFromNetwork(newMessage(APP, SOMEONE, otherCloud.getIden()));
         assertEquals(0, receivedMessages.size());
     }
 
-    @Test   
+    @Test
     public void shouldNOTForwardAnyMessageSentFromALocalAgent() throws Exception {
         LocalAgent karl = new LocalAgent(UUID.randomUUID());
         karl.join(thisCloud);
-        
+
         simulateMessageFromNetwork(newMessage(APP, karl.getIden(), thisCloud.getIden()));
         assertEquals(0, receivedMessages.size());
     }
 
-    @Test   
+    @Test
     public void shouldNOTForwardAnyMessageSentToARemoteAgent() throws Exception {
         RemoteAgent remote = newRemoteAgent(thisCloud);
         simulateAgentJoiningCloud(remote, thisCloud);
-        
+
         receivedMessages.clear();
         simulateMessageFromNetwork(newMessage(APP, thisCloud.getIden(), remote.getIden()));
         assertEquals(0, receivedMessages.size());
@@ -402,31 +382,30 @@ public class CloudTest {
 
         LocalAgent local = new LocalAgent(UUID.randomUUID());
         local.join(thisCloud);
-        
-        InOrder inOrder = inOrder(synchro); 
+
+        InOrder inOrder = inOrder(synchro);
         inOrder.verify(synchro).start(local);
         inOrder.verify(synchro).wait(status);
         inOrder.verify(synchro).remove(status);
     }
-    
+
     @Test(expected = IOException.class)
     public void shouldUseSynchronizerOnUnsuccessfulSync() throws IOException {
         JoinSynchronizer.Status status = mock(JoinSynchronizer.Status.class);
         when(synchro.start(any(LocalAgent.class))).thenReturn(status);
         doThrow(IOException.class).when(synchro).wait(status);
-        
+
         LocalAgent local = new LocalAgent(UUID.randomUUID());
         try {
             local.join(thisCloud);
-        }
-        finally {
-            InOrder inOrder = inOrder(synchro); 
+        } finally {
+            InOrder inOrder = inOrder(synchro);
             inOrder.verify(synchro).start(local);
             inOrder.verify(synchro).wait(status);
             inOrder.verify(synchro).remove(status);
         }
     }
-    
+
     @Test
     public void shouldInvokeSynchronzerWhenMessageReceived() throws Exception {
         RemoteAgent frank = newRemoteAgent(thisCloud);
@@ -435,12 +414,13 @@ public class CloudTest {
 
         verify(synchro).process(message);
     }
+
     @Test
     public void shouldSendSignedMessagesIfKeystoreConfigured() throws Exception {
         when(keystore.get(KEY_ID)).thenReturn(KEY_VAL);
-        
+
         thisCloud.send(newReliableMessage(APP, SOMEONE, SOMEONELSE));
-        
+
         Message message = getLastMessageSentToNetwork();
         assertNotNull(message.getSig());
         assertNotNull(message.getRnd());
@@ -449,12 +429,46 @@ public class CloudTest {
     @Test
     public void shouldDiscardMessagesSignedWithAnInvalidSignature() throws Exception {
         when(keystore.get(KEY_ID)).thenReturn(KEY_VAL);
-        
+
         final Message message = newMessage(APP, SOMEONE, thisCloud.getIden()).signed(KEY_ID, "this-is-an-invalid-signature");
         simulateMessageFromNetwork(message);
 
         assertEquals(0, receivedMessages.size());
 
+    }
+
+    @Test
+    public void shouldDiscardMessageFromPast() throws Exception {
+        RemoteAgent remoteAgent = mockRemoteWithIden(new Iden(Iden.Type.AGT, UUID.randomUUID()));
+        simulateAgentJoiningCloudWithSeq(remoteAgent, 42L);
+
+        Message msg = new MessageBuilder(APP, SOMEONE, thisCloud.getIden()).sequence(32L).make();
+        simulateMessageFromNetwork(msg);
+
+        assertTrue(getAllMessagesSent().isEmpty());
+    }
+
+    @Test
+    public void shouldUpdateAllRemoteAgentsWhenNewProcessibleMessage() throws Exception {
+        RemoteAgent remoteAgent = mockRemoteWithIden(new Iden(Iden.Type.AGT, UUID.randomUUID()));
+        simulateAgentJoiningCloudWithSeq(remoteAgent, 42L);
+
+        Message msg = new MessageBuilder(APP, SOMEONE, thisCloud.getIden()).sequence(52L).make();
+        simulateMessageFromNetwork(msg);
+
+        assertEquals(52L, getRemoteAgent(thisCloud, remoteAgent.getIden()).getSeq());
+    }
+
+
+    private void simulateAgentJoiningCloudWithSeq(RemoteAgent remoteAgent, long seq) {
+        Message message = (new MessageBuilder(Type.PRS, remoteAgent, thisCloud).with(new Presence(true)).sequence(seq).make());
+        simulateMessageFromNetwork(message);
+    }
+
+    private RemoteAgent mockRemoteWithIden(Iden iden) {
+        RemoteAgent remoteAgent = mock(RemoteAgent.class);
+        when(remoteAgent.getIden()).thenReturn(iden);
+        return remoteAgent;
     }
 
     private RemoteAgent getRemoteAgent(Cloud thisCloud, Iden iden) {
@@ -522,18 +536,16 @@ public class CloudTest {
             ArgumentCaptor<Message> captor = ArgumentCaptor.forClass(Message.class);
             verify(gate1, atLeastOnce()).send(any(Cloud.class), captor.capture());
             return captor.getAllValues();
-        }
-        catch (Throwable any) {
+        } catch (Throwable any) {
             return Collections.emptyList();
         }
     }
 
     private Message getLastMessageSent() throws IOException {
         List<Message> messageList = getAllMessagesSent();
-        Message message = messageList.get(messageList.size()-1);
-        return message;
+        return messageList.get(messageList.size() - 1);
     }
-    
+
 
     private Message newMessage(final Message.Type type, final Iden idenFrom, final Iden idenTo) {
         return new Message(type, idenFrom, idenTo, 1, false, null);
@@ -560,7 +572,7 @@ public class CloudTest {
         assertEquals(type, message.getType());
         assertEquals(from, message.getFrom());
         assertEquals(to, message.getTo());
-        
+
         if (data != null)
             assertEquals(Json.toJsonString(data), Json.toJsonString(message.getData()));
     }

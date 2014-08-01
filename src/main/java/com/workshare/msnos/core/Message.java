@@ -1,17 +1,18 @@
 package com.workshare.msnos.core;
 
-import java.math.BigInteger;
-import java.security.SecureRandom;
-import java.util.UUID;
-
 import com.workshare.msnos.core.payloads.NullPayload;
 import com.workshare.msnos.core.payloads.PongPayload;
 import com.workshare.msnos.soup.json.Json;
+
+import java.math.BigInteger;
+import java.security.SecureRandom;
+import java.util.UUID;
 
 public class Message {
 
     public interface Payload {
         public Payload[] split();
+
         public boolean process(Message message, Cloud.Internal internal);
     }
 
@@ -25,14 +26,15 @@ public class Message {
     private final Iden from;
     private final Iden to;
     private final int hops;
+    private final long seq;
     private final boolean reliable;
     private final Payload data;
 
     private final String sig;
     private final String rnd;
-    
-    private static final SecureRandom random = new SecureRandom();    
-    
+
+    private static final SecureRandom random = new SecureRandom();
+
     Message(Type type, Iden from, Iden to, int hops, boolean reliable, Payload data) {
         this(type, from, to, hops, reliable, data, UUID.randomUUID(), null, null);
     }
@@ -42,6 +44,11 @@ public class Message {
     }
 
     Message(Type type, Iden from, Iden to, int hops, boolean reliable, Payload data, UUID uuid, String sig, String rnd) {
+        this(type, from, to, hops, reliable, data, uuid, sig, rnd, 0);
+    }
+
+
+    public Message(Type type, Iden from, Iden to, int hops, boolean reliable, Payload data, UUID uuid, String sig, String rnd, long seq) {
         if (reliable && to.getType() == Iden.Type.CLD) {
             throw new IllegalArgumentException("Cannot create a reliable message to the whole cloud!");
         }
@@ -52,9 +59,9 @@ public class Message {
         this.hops = hops;
         this.reliable = reliable;
         this.uuid = uuid;
-
         this.sig = sig;
-        this.rnd = (sig == null ? null : (rnd == null ? new BigInteger(130, random).toString(32) : rnd)); 
+        this.rnd = (sig == null ? null : (rnd == null ? new BigInteger(130, random).toString(32) : rnd));
+        this.seq = seq;
 
         if (type == Type.PON)
             this.data = new PongPayload();
@@ -62,7 +69,10 @@ public class Message {
             this.data = (data == null ? NullPayload.INSTANCE : data);
     }
 
-    
+    public long getSeq() {
+        return seq;
+    }
+
     public UUID getUuid() {
         return uuid;
     }
@@ -104,11 +114,11 @@ public class Message {
     }
 
     public Message reliable() {
-        return new Message(type, from, to, hops, true, data, uuid, sig, rnd);
+        return new Message(type, from, to, hops, true, data, uuid, sig, rnd, seq);
     }
 
     public Message data(Payload load) {
-        return new Message(type, from, to, hops, reliable, load, uuid, sig, rnd);
+        return new Message(type, from, to, hops, reliable, load, uuid, sig, rnd, seq);
 
     }
 
@@ -129,8 +139,8 @@ public class Message {
     }
 
     public Message signed(String keyId, String signature) {
-        String sign = keyId+":"+signature;
-        return new Message(type, from, to, hops, reliable, data, uuid, sign, null);
+        String sign = keyId + ":" + signature;
+        return new Message(type, from, to, hops, reliable, data, uuid, sign, null, seq);
     }
 
 }

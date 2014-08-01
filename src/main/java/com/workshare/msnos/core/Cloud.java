@@ -1,15 +1,5 @@
 package com.workshare.msnos.core;
 
-import java.io.IOException;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ScheduledExecutorService;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.workshare.msnos.core.cloud.AgentWatchdog;
 import com.workshare.msnos.core.cloud.AgentsList;
 import com.workshare.msnos.core.cloud.JoinSynchronizer;
@@ -20,6 +10,15 @@ import com.workshare.msnos.core.payloads.Presence;
 import com.workshare.msnos.core.security.Signer;
 import com.workshare.msnos.soup.json.Json;
 import com.workshare.msnos.soup.threading.ExecutorServices;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ScheduledExecutorService;
 
 public class Cloud implements Identifiable {
 
@@ -40,11 +39,12 @@ public class Cloud implements Identifiable {
     transient private final JoinSynchronizer synchronizer;
     transient private final Signer signer;
     transient private final Internal internal;
-    
+
     public class Internal {
         public AgentsList<RemoteAgent> remoteAgents() {
             return remoteAgents;
         }
+
         public Cloud cloud() {
             return Cloud.this;
         }
@@ -71,7 +71,7 @@ public class Cloud implements Identifiable {
         this.signer = signer;
         this.signid = signid;
         this.synchronizer = synchronizer;
-        
+
         for (Gateway gate : gates) {
             gate.addListener(this, new Gateway.Listener() {
                 @Override
@@ -109,7 +109,7 @@ public class Cloud implements Identifiable {
 
     public Receipt send(Message message) throws MsnosException {
         checkCloudAlive();
-        
+
         proto.info("TX: {} {} {} {}", message.getType(), message.getFrom(), message.getTo(), message.getData());
 
         Message signed = sign(message);
@@ -118,12 +118,12 @@ public class Cloud implements Identifiable {
             try {
                 res.add(gate.send(this, signed));
             } catch (IOException ex) {
-                log.warn("Unable to send message "+message+" trough gateway "+gate, ex);
+                log.warn("Unable to send message " + message + " trough gateway " + gate, ex);
             }
         }
 
         if (res.size() == 0)
-            throw new MsnosException("Unable to send message "+message, MsnosException.Code.SEND_FAILED);
+            throw new MsnosException("Unable to send message " + message, MsnosException.Code.SEND_FAILED);
 
         return res;
     }
@@ -179,7 +179,7 @@ public class Cloud implements Identifiable {
         }
 
         remoteAgents.touch(message.getFrom());
-
+        for (RemoteAgent agent : remoteAgents.list()) agent.setSeq(message.getSeq());
         synchronizer.process(message);
     }
 
@@ -191,6 +191,11 @@ public class Cloud implements Identifiable {
 
         if (isAddressedToARemoteAgent(message)) {
             log.debug("Skipped message addressed to a remote agent: {}", message);
+            return false;
+        }
+
+        if (isOutOfSequence(message)) {
+            log.debug("Skipped message sent out of order: {} ", message);
             return false;
         }
 
@@ -207,7 +212,16 @@ public class Cloud implements Identifiable {
         return true;
     }
 
-    private boolean isCorrectlySigned(Message message)  {
+    private boolean isOutOfSequence(Message message) {
+        for (RemoteAgent remote : getRemoteAgents()) {
+            if (message.getSeq() <= remote.getSeq()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean isCorrectlySigned(Message message) {
         Message signed = sign(message);
         return parseNull(message.getSig()).equals(parseNull(signed.getSig()));
     }
@@ -234,12 +248,11 @@ public class Cloud implements Identifiable {
     private Message sign(Message message) {
         if (signid == null)
             return message;
-        
         try {
             return signer.signed(message, signid);
         } catch (IOException e) {
             log.warn("Failed to sign message {} using key {}", message, signid);
-            return  message;
+            return message;
         }
     }
 

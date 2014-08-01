@@ -50,6 +50,11 @@ public class LocalAgent implements Agent {
     }
 
     @Override
+    public Set<Network> getHosts() {
+        return hosts;
+    }
+
+    @Override
     public Iden getIden() {
         return iden;
     }
@@ -103,6 +108,14 @@ public class LocalAgent implements Agent {
         else if (isPing(message)) processPing(message);
     }
 
+    private boolean isPing(Message message) {
+        return message.getType() == PIN;
+    }
+
+    private boolean isDiscovery(Message message) {
+        return message.getType() == DSC;
+    }
+
     private void processDiscovery(Message message) {
         log.debug("Processing discovery: {}", message);
         try {
@@ -146,17 +159,4 @@ public class LocalAgent implements Agent {
         if (iden == null || iden.getType() != Iden.Type.AGT)
             throw new IllegalArgumentException("Invalid iden");
     }
-
-    private boolean isPing(Message message) {
-        return message.getType() == PIN;
-    }
-
-    private boolean isDiscovery(Message message) {
-        return message.getType() == DSC;
-    }
-
-    public Set<Network> getHosts() {
-        return hosts;
-    }
-
 }

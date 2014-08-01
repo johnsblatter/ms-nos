@@ -117,13 +117,13 @@ public class WireJsonSerializerTest {
 
         assertEquals(expected, current);
     }
-    
+
     @Test
     public void shouldBeAbleToEncodeAndDecodeSignedMessage() throws Exception {
         final String sig = "this-is-a-signature";
         final String rnd = "random";
         Message source = new MessageBuilder(Message.Type.QNE, AGENT_IDEN, CLOUD_IDEN).signed(sig, rnd).make();
-                
+
         byte[] data = sz.toBytes(source);
         Message decoded = sz.fromBytes(data, Message.class);
 

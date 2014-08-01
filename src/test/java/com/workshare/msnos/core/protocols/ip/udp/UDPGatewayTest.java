@@ -1,31 +1,5 @@
 package com.workshare.msnos.core.protocols.ip.udp;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.anyInt;
-import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.atLeastOnce;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
-import java.io.IOException;
-import java.net.DatagramPacket;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.MulticastSocket;
-import java.net.SocketException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
-import java.util.concurrent.Executor;
-
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.ArgumentCaptor;
-
 import com.workshare.msnos.core.Cloud;
 import com.workshare.msnos.core.Cloud.Internal;
 import com.workshare.msnos.core.Gateway.Listener;
@@ -35,6 +9,21 @@ import com.workshare.msnos.core.MessageBuilder;
 import com.workshare.msnos.core.protocols.ip.MulticastSocketFactory;
 import com.workshare.msnos.core.serializers.WireJsonSerializer;
 import com.workshare.msnos.soup.threading.Multicaster;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.ArgumentCaptor;
+
+import java.io.IOException;
+import java.net.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.Executor;
+
+import static org.junit.Assert.*;
+import static org.mockito.Matchers.anyInt;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.*;
 
 public class UDPGatewayTest {
 
@@ -58,7 +47,7 @@ public class UDPGatewayTest {
         socket = mock(MulticastSocket.class);
         sockets = mock(MulticastSocketFactory.class);
         when(sockets.create()).thenReturn(socket);
-        
+
         cloud = mock(Cloud.class);
         when(cloud.getIden()).thenReturn(new Iden(Iden.Type.CLD, UUID.randomUUID()));
 
@@ -120,7 +109,7 @@ public class UDPGatewayTest {
         System.setProperty(UDPGateway.SYSP_PORT_WIDTH, "3");
 
         Message message = UDPGatewayTest.newSampleMessage();
-        gate().send(cloud,message);
+        gate().send(cloud, message);
 
         List<DatagramPacket> packets = getSentPackets();
         assertEquals(3, packets.size());
@@ -136,14 +125,14 @@ public class UDPGatewayTest {
     @Test
     public void shouldStartServer() throws Exception {
         gate();
-        verify(server).start(eq(socket),anyInt());
+        verify(server).start(eq(socket), anyInt());
     }
 
     @Test
     public void shouldInvokeListenerOnMessages() throws Exception {
         addListenerToGateway();
 
-        Message message = UDPGatewayTest.newSampleMessage(SOMEONE,ME);
+        Message message = UDPGatewayTest.newSampleMessage(SOMEONE, ME);
         simulateMessageFromNetwork(message);
 
         assertMessageReceived(message);
@@ -154,7 +143,7 @@ public class UDPGatewayTest {
         System.setProperty(UDPGateway.SYSP_UDP_PACKET_SIZE, Integer.toString(333));
         Message message = getMessageWithPayload(new BigPayload(1000));
 
-        gate().send(cloud,message);
+        gate().send(cloud, message);
 
         List<DatagramPacket> packets = getSentPackets();
         for (DatagramPacket datagramPacket : packets) {
@@ -167,7 +156,7 @@ public class UDPGatewayTest {
         System.setProperty(UDPGateway.SYSP_UDP_PACKET_SIZE, Integer.toString(333));
         Message message = getMessageWithPayload(new BigPayload(1000).unsplittable());
 
-        gate().send(cloud,message);
+        gate().send(cloud, message);
     }
 
     private Message getMessageWithPayload(final BigPayload payload) {
@@ -244,7 +233,7 @@ public class UDPGatewayTest {
 
         private byte[] data;
         private boolean splittable = true;
-        
+
         BigPayload(int size) {
             data = new byte[size];
         }

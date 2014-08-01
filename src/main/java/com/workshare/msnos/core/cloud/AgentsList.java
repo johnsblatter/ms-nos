@@ -1,11 +1,11 @@
 package com.workshare.msnos.core.cloud;
 
+import com.workshare.msnos.core.Agent;
+import com.workshare.msnos.core.Iden;
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.concurrent.ConcurrentHashMap;
-
-import com.workshare.msnos.core.Agent;
-import com.workshare.msnos.core.Iden;
 
 public class AgentsList<T extends Agent> {
 
@@ -14,7 +14,7 @@ public class AgentsList<T extends Agent> {
     public AgentsList() {
         this.agents = new ConcurrentHashMap<Iden, T>();
     }
-    
+
     public Collection<T> list() {
         return Collections.unmodifiableCollection(agents.values());
     }
@@ -39,5 +39,4 @@ public class AgentsList<T extends Agent> {
         } else
             return null;
     }
-
 }

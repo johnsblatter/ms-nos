@@ -12,15 +12,21 @@ public class RemoteAgent implements Agent {
     private final Iden iden;
     private final Cloud cloud;
 
+    private long seq;
     private Set<Network> hosts;
     private long accessTime;
+
 
     public RemoteAgent(UUID uuid, Cloud cloud, Set<Network> networks) {
         this.iden = new Iden(Iden.Type.AGT, uuid);
         this.cloud = cloud;
         this.hosts = networks;
     }
-    
+
+    public void setSeq(long seq) {
+        this.seq = seq;
+    }
+
     @Override
     public Iden getIden() {
         return iden;
@@ -28,6 +34,10 @@ public class RemoteAgent implements Agent {
 
     public Cloud getCloud() {
         return cloud;
+    }
+
+    public long getSeq() {
+        return seq;
     }
 
     @Override
@@ -63,5 +73,4 @@ public class RemoteAgent implements Agent {
     public void touch() {
         this.accessTime = SystemTime.asMillis();
     }
-
 }
