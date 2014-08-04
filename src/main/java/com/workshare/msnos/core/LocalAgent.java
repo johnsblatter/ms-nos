@@ -23,6 +23,7 @@ public class LocalAgent implements Agent {
     private Cloud cloud;
     private Listener listener;
     private Set<Network> hosts;
+    private long seq;
 
     public LocalAgent(UUID uuid) {
         this.iden = new Iden(Iden.Type.AGT, uuid);
@@ -158,5 +159,9 @@ public class LocalAgent implements Agent {
             throw new IllegalArgumentException("Invalid cloud");
         if (iden == null || iden.getType() != Iden.Type.AGT)
             throw new IllegalArgumentException("Invalid iden");
+    }
+
+    public long getSeq() {
+        return seq;
     }
 }

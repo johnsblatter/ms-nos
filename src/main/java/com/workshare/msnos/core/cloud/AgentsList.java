@@ -31,6 +31,10 @@ public class AgentsList<T extends Agent> {
         return agents.remove(iden);
     }
 
+    public T get(Iden iden) {
+        return agents.get(iden);
+    }
+
     public T touch(Iden iden) {
         if (agents.containsKey(iden)) {
             T agent = agents.get(iden);

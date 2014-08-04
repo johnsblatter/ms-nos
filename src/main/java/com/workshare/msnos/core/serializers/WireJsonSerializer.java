@@ -196,7 +196,7 @@ public class WireJsonSerializer implements WireSerializer {
                 }
             }
 
-            return new MessageBuilder(type, from, to)
+            return new MessageBuilder(type, from, to, seq)
                     .with(hops)
                     .with(data)
                     .with(uuid)

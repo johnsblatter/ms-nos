@@ -5,7 +5,6 @@ import com.workshare.msnos.core.cloud.JoinSynchronizer;
 import com.workshare.msnos.core.payloads.Presence;
 import com.workshare.msnos.core.payloads.QnePayload;
 import com.workshare.msnos.usvc.api.RestApi;
-
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -74,7 +73,7 @@ public class WireJsonSerializerTest {
 
     @Test
     public void shouldBeAbleToEncodeAndDecodeMessage() throws Exception {
-        Message source = new MessageBuilder(Message.Type.PRS, AGENT_IDEN, CLOUD_IDEN).with(new Presence(true)).make();
+        Message source = new MessageBuilder(Message.Type.PRS, agent, cloud).with(new Presence(true)).make();
 
         byte[] data = sz.toBytes(source);
         Message decoded = sz.fromBytes(data, Message.class);
@@ -84,7 +83,7 @@ public class WireJsonSerializerTest {
 
     @Test
     public void shouldBeAbleToEncodeAndDecodeQNE() throws Exception {
-        Message source = new MessageBuilder(Message.Type.QNE, AGENT_IDEN, CLOUD_IDEN).with(new QnePayload("test", new RestApi("test", "/test", 7070))).make();
+        Message source = new MessageBuilder(Message.Type.QNE, agent, cloud).with(new QnePayload("test", new RestApi("test", "/test", 7070))).make();
 
         byte[] data = sz.toBytes(source);
         Message decoded = sz.fromBytes(data, Message.class);
@@ -122,7 +121,7 @@ public class WireJsonSerializerTest {
     public void shouldBeAbleToEncodeAndDecodeSignedMessage() throws Exception {
         final String sig = "this-is-a-signature";
         final String rnd = "random";
-        Message source = new MessageBuilder(Message.Type.QNE, AGENT_IDEN, CLOUD_IDEN).signed(sig, rnd).make();
+        Message source = new MessageBuilder(Message.Type.QNE, agent, cloud).signed(sig, rnd).make();
 
         byte[] data = sz.toBytes(source);
         Message decoded = sz.fromBytes(data, Message.class);

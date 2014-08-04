@@ -4,16 +4,11 @@ import com.sun.net.httpserver.HttpContext;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
-import com.workshare.msnos.core.Cloud;
-import com.workshare.msnos.core.Iden;
-import com.workshare.msnos.core.Message;
-import com.workshare.msnos.core.MessageBuilder;
-import com.workshare.msnos.core.RemoteAgent;
+import com.workshare.msnos.core.*;
 import com.workshare.msnos.core.payloads.QnePayload;
 import com.workshare.msnos.core.protocols.ip.Network;
 import com.workshare.msnos.soup.time.SystemTime;
 import com.workshare.msnos.usvc.api.RestApi;
-
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -22,11 +17,7 @@ import org.mockito.Mockito;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
@@ -45,7 +36,7 @@ public class HealthcheckerTest {
     public void setUp() throws Exception {
         cloud = mock(Cloud.class);
         when(cloud.getIden()).thenReturn(new Iden(Iden.Type.CLD, UUID.randomUUID()));
-        
+
         scheduler = mock(ScheduledExecutorService.class);
         Microservice microservice = getLocalMicroservice();
         healthchecker = new Healthchecker(microservice, scheduler);
@@ -146,7 +137,7 @@ public class HealthcheckerTest {
 
     private RemoteMicroservice addRemoteAgentToCloudListAndMicroserviceToLocalList(String name, RemoteMicroservice remote, RestApi... restApi) {
         putRemoteAgentInCloudAgentsList(remote.getAgent());
-        final Message message = new MessageBuilder(Message.Type.QNE, remote.getAgent(), cloud).with(new QnePayload(name, restApi)).make();
+        final Message message = new MockMessageHelper(Message.Type.QNE, remote.getAgent().getIden(), cloud.getIden()).data(new QnePayload(name, restApi)).make();
         simulateMessageFromCloud(message);
         return remote;
     }

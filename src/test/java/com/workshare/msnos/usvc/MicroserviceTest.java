@@ -2,15 +2,12 @@ package com.workshare.msnos.usvc;
 
 import com.workshare.msnos.core.*;
 import com.workshare.msnos.core.cloud.JoinSynchronizer;
-import com.workshare.msnos.core.geo.Location;
-import com.workshare.msnos.core.geo.LocationFactory;
 import com.workshare.msnos.core.payloads.FltPayload;
 import com.workshare.msnos.core.payloads.QnePayload;
 import com.workshare.msnos.core.protocols.ip.Network;
 import com.workshare.msnos.soup.time.SystemTime;
 import com.workshare.msnos.usvc.api.RestApi;
 import com.workshare.msnos.usvc.api.routing.strategies.CachingRoutingStrategy;
-
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -35,7 +32,7 @@ public class MicroserviceTest {
     public static void disableCaching() {
         System.setProperty(CachingRoutingStrategy.SYSP_TIMEOUT, "0");
     }
-    
+
     @Before
     public void prepare() throws Exception {
         cloud = Mockito.mock(Cloud.class);
@@ -64,7 +61,7 @@ public class MicroserviceTest {
     private Set<Gateway> mockGateways() throws IOException {
         Gateway gate = mock(Gateway.class);
         Receipt receipt = mock(Receipt.class);
-        when(gate.send(any(Cloud.class), any(Message.class))).thenReturn(receipt );
+        when(gate.send(any(Cloud.class), any(Message.class))).thenReturn(receipt);
         return new HashSet<Gateway>(Arrays.asList(new Gateway[]{gate}));
     }
 
@@ -337,11 +334,11 @@ public class MicroserviceTest {
     }
 
     private Message newENQMessage(Identifiable from, Identifiable to) {
-        return new MessageBuilder(Message.Type.ENQ, from.getIden(), to.getIden()).make();
+        return new MockMessageHelper(Message.Type.ENQ, from.getIden(), to.getIden()).make();
     }
 
     private Message newQNEMessage(RemoteAgent from, String name, RestApi... apis) {
-        return new MessageBuilder(Message.Type.QNE, from, cloud).with(new QnePayload("content", apis)).make();
+        return new MockMessageHelper(Message.Type.QNE, from.getIden(), cloud.getIden()).data(new QnePayload("content", apis)).make();
     }
 
     private Message newFaultMessage(Agent agent) {

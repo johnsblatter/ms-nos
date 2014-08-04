@@ -131,7 +131,7 @@ public class CloudTest {
         RemoteAgent remote = newRemoteAgent(thisCloud);
         simulateAgentJoiningCloud(remote, thisCloud);
 
-        simulateMessageFromNetwork(new MessageBuilder(Message.Type.PON, remote, thisCloud).make());
+        simulateMessageFromNetwork(new MockMessageHelper(Message.Type.PON, remote.getIden(), thisCloud.getIden()).make());
 
         assertNoMessagesSent();
     }
@@ -140,7 +140,7 @@ public class CloudTest {
     public void shouldSendDiscoveryWhenUnknownAgentPongs() throws Exception {
         RemoteAgent remote = newRemoteAgent(thisCloud);
 
-        simulateMessageFromNetwork(new MessageBuilder(Message.Type.PON, remote, thisCloud).make());
+        simulateMessageFromNetwork(new MockMessageHelper(Message.Type.PON, remote.getIden(), thisCloud.getIden()).make());
 
         assertMessageSent(Message.Type.DSC, thisCloud.getIden(), remote.getIden(), null);
     }
@@ -287,7 +287,7 @@ public class CloudTest {
         RemoteAgent remoteAgent = newRemoteAgent(thisCloud);
 
         fakeSystemTime(12345L);
-        simulateMessageFromNetwork(new MessageBuilder(Message.Type.PRS, remoteAgent, thisCloud).with(new Presence(true)).make());
+        simulateMessageFromNetwork(new MockMessageHelper(Message.Type.PRS, remoteAgent.getIden(), thisCloud.getIden()).data(new Presence(true)).make());
 
         fakeSystemTime(99999L);
         assertEquals(12345L, getRemoteAgentAccessTime(thisCloud, remoteAgent));
@@ -299,7 +299,7 @@ public class CloudTest {
         simulateAgentJoiningCloud(remoteAgent, thisCloud);
 
         fakeSystemTime(12345L);
-        simulateMessageFromNetwork(new MessageBuilder(Message.Type.PIN, remoteAgent, thisCloud).make());
+        simulateMessageFromNetwork(new MockMessageHelper(Message.Type.PIN, remoteAgent.getIden(), thisCloud.getIden()).make());
 
         fakeSystemTime(99999L);
         assertEquals(12345L, getRemoteAgentAccessTime(thisCloud, remoteAgent));
@@ -442,7 +442,7 @@ public class CloudTest {
         RemoteAgent remoteAgent = mockRemoteWithIden(new Iden(Iden.Type.AGT, UUID.randomUUID()));
         simulateAgentJoiningCloudWithSeq(remoteAgent, 42L);
 
-        Message msg = new MessageBuilder(APP, SOMEONE, thisCloud.getIden()).sequence(32L).make();
+        Message msg = new MockMessageHelper(APP, SOMEONE, thisCloud.getIden()).sequence(32L).make();
         simulateMessageFromNetwork(msg);
 
         assertTrue(getAllMessagesSent().isEmpty());
@@ -453,7 +453,7 @@ public class CloudTest {
         RemoteAgent remoteAgent = mockRemoteWithIden(new Iden(Iden.Type.AGT, UUID.randomUUID()));
         simulateAgentJoiningCloudWithSeq(remoteAgent, 42L);
 
-        Message msg = new MessageBuilder(APP, SOMEONE, thisCloud.getIden()).sequence(52L).make();
+        Message msg = new MockMessageHelper(APP, SOMEONE, thisCloud.getIden()).sequence(52L).make();
         simulateMessageFromNetwork(msg);
 
         assertEquals(52L, getRemoteAgent(thisCloud, remoteAgent.getIden()).getSeq());
@@ -461,7 +461,7 @@ public class CloudTest {
 
 
     private void simulateAgentJoiningCloudWithSeq(RemoteAgent remoteAgent, long seq) {
-        Message message = (new MessageBuilder(Type.PRS, remoteAgent, thisCloud).with(new Presence(true)).sequence(seq).make());
+        Message message = (new MockMessageHelper(Type.PRS, remoteAgent.getIden(), thisCloud.getIden()).data(new Presence(true)).sequence(seq).make());
         simulateMessageFromNetwork(message);
     }
 
@@ -506,7 +506,7 @@ public class CloudTest {
     }
 
     private Message simulateAgentJoiningCloud(Agent agent, Cloud cloud) {
-        Message message = (new MessageBuilder(Message.Type.PRS, agent, cloud).with(new Presence(true)).make());
+        Message message = (new MockMessageHelper(Message.Type.PRS, agent.getIden(), cloud.getIden()).data(new Presence(true)).make());
         simulateMessageFromNetwork(message);
         return message;
     }

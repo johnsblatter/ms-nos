@@ -47,8 +47,7 @@ public class Message {
         this(type, from, to, hops, reliable, data, uuid, sig, rnd, 0);
     }
 
-
-    public Message(Type type, Iden from, Iden to, int hops, boolean reliable, Payload data, UUID uuid, String sig, String rnd, long seq) {
+    Message(Type type, Iden from, Iden to, int hops, boolean reliable, Payload data, UUID uuid, String sig, String rnd, long seq) {
         if (reliable && to.getType() == Iden.Type.CLD) {
             throw new IllegalArgumentException("Cannot create a reliable message to the whole cloud!");
         }
@@ -140,7 +139,7 @@ public class Message {
 
     public Message signed(String keyId, String signature) {
         String sign = keyId + ":" + signature;
-        return new Message(type, from, to, hops, reliable, data, uuid, sign, null, seq);
+        return new Message(type, from, to, hops, reliable, data, uuid, sign, rnd, seq);
     }
 
 }

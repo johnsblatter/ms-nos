@@ -137,7 +137,7 @@ public class Cloud implements Identifiable {
         final Status status = synchronizer.start(agent);
         try {
             send(new MessageBuilder(Message.Type.PRS, agent, this).with(new Presence(true)).make());
-            send(new MessageBuilder(Message.Type.DSC, agent.getIden(), this.getIden()).make());
+            send(new MessageBuilder(Message.Type.DSC, agent, this).make());
             synchronizer.wait(status);
         } finally {
             synchronizer.remove(status);

@@ -21,16 +21,28 @@ public class MessageBuilder {
     private String sig = null;
     private String rnd = null;
 
-    public MessageBuilder(Type type, Iden from, Iden to) {
+    private MessageBuilder(Type type, Iden from, Iden to) {
         this.type = type;
         this.from = from;
         this.to = to;
     }
 
-    public MessageBuilder(Type type, Identifiable from, Identifiable to) {
-        this.type = type;
-        this.from = from.getIden();
-        this.to = to.getIden();
+    public MessageBuilder(Type type, Cloud from, Iden to) {
+        this(type, from.getIden(), to);
+    }
+
+    public MessageBuilder(Type type, Cloud from, Identifiable to) {
+        this(type, from.getIden(), to.getIden());
+        // FIXME how about sequence numbers from the cloud?
+    }
+
+    public MessageBuilder(Type type, LocalAgent from, Identifiable to) {
+        this(type, from.getIden(), to.getIden(), from.getSeq());
+    }
+
+    public MessageBuilder(Type type, Iden from, Iden to, long sequenceNumber) {
+        this(type, from, to);
+        this.seq = sequenceNumber;
     }
 
     public MessageBuilder with(UUID uuid) {
