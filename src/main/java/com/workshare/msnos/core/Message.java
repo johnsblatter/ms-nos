@@ -35,29 +35,20 @@ public class Message {
 
     private static final SecureRandom random = new SecureRandom();
 
-    Message(Type type, Iden from, Iden to, int hops, boolean reliable, Payload data) {
-        this(type, from, to, hops, reliable, data, UUID.randomUUID(), null, null);
-    }
-
-    Message(Type type, Iden from, Iden to, int hops, boolean reliable, Payload data, UUID uuid) {
-        this(type, from, to, hops, reliable, data, uuid, null, null);
-    }
-
-    Message(Type type, Iden from, Iden to, int hops, boolean reliable, Payload data, UUID uuid, String sig, String rnd) {
-        this(type, from, to, hops, reliable, data, uuid, sig, rnd, 0);
-    }
-
     Message(Type type, Iden from, Iden to, int hops, boolean reliable, Payload data, UUID uuid, String sig, String rnd, long seq) {
         if (reliable && to.getType() == Iden.Type.CLD) {
             throw new IllegalArgumentException("Cannot create a reliable message to the whole cloud!");
         }
+        if (seq == 0 && uuid == null) {
+            throw new IllegalArgumentException("Unable to construct message without UUID or Sequence number!");
+        }
 
+        this.uuid = uuid == null ? UUID.fromString(from.getUUID().toString() + seq) : uuid;
         this.type = type;
         this.from = from;
         this.to = to;
         this.hops = hops;
         this.reliable = reliable;
-        this.uuid = uuid;
         this.sig = sig;
         this.rnd = (sig == null ? null : (rnd == null ? new BigInteger(130, random).toString(32) : rnd));
         this.seq = seq;

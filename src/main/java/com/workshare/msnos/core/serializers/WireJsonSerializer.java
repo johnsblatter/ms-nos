@@ -148,7 +148,6 @@ public class WireJsonSerializer implements WireSerializer {
         public JsonElement serialize(Message msg, Type typeof, JsonSerializationContext context) {
             final JsonObject res = new JsonObject();
             res.add("v", context.serialize(msg.getVersion()));
-            res.add("id", context.serialize(msg.getUuid()));
             res.add("fr", context.serialize(msg.getFrom()));
             res.add("to", context.serialize(msg.getTo()));
             res.addProperty("hp", msg.getHops());
@@ -157,6 +156,7 @@ public class WireJsonSerializer implements WireSerializer {
             res.addProperty("ss", msg.getSig());
             res.addProperty("rr", msg.getRnd());
             res.addProperty("sq", msg.getSeq());
+            if (res.get("sq") == null) res.add("id", context.serialize(msg.getUuid()));
             if (!(msg.getData() instanceof NullPayload))
                 res.add("dt", context.serialize(msg.getData()));
 
@@ -168,9 +168,12 @@ public class WireJsonSerializer implements WireSerializer {
         @Override
         public Message deserialize(JsonElement json, Type typeof, JsonDeserializationContext context)
                 throws JsonParseException {
-
             final JsonObject obj = json.getAsJsonObject();
-            final UUID uuid = context.deserialize(obj.get("id").getAsJsonPrimitive(), UUID.class);
+
+            final UUID uuid;
+            if (obj.get("id") != null) uuid = context.deserialize(obj.get("id").getAsJsonPrimitive(), UUID.class);
+            else uuid = null;
+
             final Message.Type type = Message.Type.valueOf(obj.get("ty").getAsString());
             final Iden from = context.deserialize(obj.get("fr").getAsJsonPrimitive(), Iden.class);
             final Iden to = context.deserialize(obj.get("to").getAsJsonPrimitive(), Iden.class);

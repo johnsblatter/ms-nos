@@ -2,7 +2,6 @@ package com.workshare.msnos.core;
 
 import com.workshare.msnos.core.Message.Payload;
 import com.workshare.msnos.core.Message.Type;
-import com.workshare.msnos.soup.time.SystemTime;
 
 import java.util.UUID;
 
@@ -81,11 +80,6 @@ public class MessageBuilder {
             throw new RuntimeException("Cannot build a message with no source");
         if (to == null)
             throw new RuntimeException("Cannot build a message with no destination");
-        if (uuid == null)
-            uuid = UUID.randomUUID();
-        if (seq == 0)
-            seq = SystemTime.asMillis();
-
         return new Message(type, from, to, hops, reliable, data, uuid, sig, rnd, seq);
     }
 }

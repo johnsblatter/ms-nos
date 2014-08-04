@@ -40,8 +40,7 @@ public class LocalAgent implements Agent {
         this.cloud = cloud;
         this.hosts = hosts;
     }
-
-
+    
     public LocalAgent withHosts(Set<Network> hosts) {
         return new LocalAgent(iden, cloud, hosts);
     }

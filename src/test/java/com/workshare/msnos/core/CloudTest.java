@@ -512,7 +512,7 @@ public class CloudTest {
     }
 
     private void simulateAgentLeavingCloud(RemoteAgent agent, Cloud cloud) {
-        simulateMessageFromNetwork(new Message(PRS, agent.getIden(), cloud.getIden(), 2, false, new Presence(false)));
+        simulateMessageFromNetwork(new MessageBuilder(PRS, agent.getIden(), cloud.getIden(), 1).with(2).reliable(false).with(new Presence(false)).make());
     }
 
     private void simulateMessageFromNetwork(final Message message) {
@@ -548,11 +548,11 @@ public class CloudTest {
 
 
     private Message newMessage(final Message.Type type, final Iden idenFrom, final Iden idenTo) {
-        return new Message(type, idenFrom, idenTo, 1, false, null);
+        return new MessageBuilder(type, idenFrom, idenTo, 1).with(1).reliable(false).make();
     }
 
     private Message newReliableMessage(final Message.Type type, final Iden idenFrom, final Iden idenTo) {
-        return new Message(type, idenFrom, idenTo, 1, true, null);
+        return new MessageBuilder(type, idenFrom, idenTo, 1).with(1).reliable(true).make();
     }
 
     private void assertNoMessagesSent() throws IOException {
