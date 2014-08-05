@@ -132,7 +132,7 @@ public class WireJsonSerializerTest {
 
     @Test
     public void shouldNotSerializeUUIDIfSequenceNumber() throws Exception {
-        Message source = new MessageBuilder(Message.Type.QNE, agent, cloud).sequence(12).with(UUID.randomUUID()).sequence(23).make();
+        Message source = new MessageBuilder(Message.Type.QNE, agent, cloud).with(UUID.randomUUID()).sequence(23).make();
 
         byte[] data = sz.toBytes(source);
         Message decoded = sz.fromBytes(data, Message.class);
@@ -141,6 +141,6 @@ public class WireJsonSerializerTest {
     }
 
     private UUID getUUID(Iden iden, long sequenceNumber) {
-        return UUID.fromString(iden.getUUID().toString() + sequenceNumber);
+        return UUID.nameUUIDFromBytes((iden.getUUID().toString() + sequenceNumber).getBytes());
     }
 }

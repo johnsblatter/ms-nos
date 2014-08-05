@@ -43,7 +43,7 @@ public class Message {
             throw new IllegalArgumentException("Unable to construct message without UUID or Sequence number!");
         }
 
-        this.uuid = uuid == null ? UUID.fromString(from.getUUID().toString() + seq) : uuid;
+        this.uuid = uuid == null ? UUID.nameUUIDFromBytes((from.getUUID().toString() + seq).getBytes()) : uuid;
         this.type = type;
         this.from = from;
         this.to = to;

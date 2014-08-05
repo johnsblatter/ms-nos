@@ -11,6 +11,7 @@ import com.workshare.msnos.core.protocols.ip.Network;
 import com.workshare.msnos.core.protocols.ip.udp.UDPGateway;
 import com.workshare.msnos.core.security.KeysStore;
 import com.workshare.msnos.core.security.Signer;
+import com.workshare.msnos.core.storage.Storage;
 import com.workshare.msnos.soup.json.Json;
 import com.workshare.msnos.soup.time.SystemTime;
 import org.junit.After;
@@ -51,7 +52,7 @@ public class CloudTest {
     private ScheduledExecutorService scheduler;
     private List<Message> receivedMessages;
     private JoinSynchronizer synchro;
-
+    private Storage storage;
     private KeysStore keystore;
 
     @Before
@@ -70,7 +71,11 @@ public class CloudTest {
         keystore = mock(KeysStore.class);
         Signer signer = new Signer(keystore);
 
-        thisCloud = new Cloud(MY_CLOUD.getUUID(), KEY_ID, signer, new HashSet<Gateway>(Arrays.asList(gate1, gate2)), synchro, synchronousMulticaster(), scheduler);
+        storage = mock(Storage.class);
+        Set<UUID> set = new HashSet<UUID>();
+        when(storage.getUUIDsStore()).thenReturn(set);
+
+        thisCloud = new Cloud(MY_CLOUD.getUUID(), KEY_ID, signer, new HashSet<Gateway>(Arrays.asList(gate1, gate2)), synchro, synchronousMulticaster(), scheduler, storage);
         thisCloud.addListener(new Cloud.Listener() {
             @Override
             public void onMessage(Message message) {
@@ -87,6 +92,7 @@ public class CloudTest {
     public void after() throws Exception {
         SystemTime.reset();
         scheduler.shutdown();
+        storage.close();
     }
 
     @Test
@@ -456,9 +462,23 @@ public class CloudTest {
         Message msg = new MockMessageHelper(APP, SOMEONE, thisCloud.getIden()).sequence(52L).make();
         simulateMessageFromNetwork(msg);
 
-        assertEquals(52L, getRemoteAgent(thisCloud, remoteAgent.getIden()).getSeq());
+        assertEquals(Long.valueOf(52L), getRemoteAgent(thisCloud, remoteAgent.getIden()).getSeq());
     }
 
+    @Test
+    public void shouldStoreMessageIfNoEntryInStorage() throws Exception {
+        simulateMessageFromNetwork(new MessageBuilder(Type.APP, thisCloud, thisCloud).sequence(12).make());
+
+        assertEquals(1, thisCloud.getuuids().size());
+    }
+
+    @Test
+    public void shouldDiscardMessagesIfAlreadyReceived() throws Exception {
+        simulateMessageFromNetwork(new MessageBuilder(Type.APP, thisCloud, thisCloud).sequence(12).make());
+        simulateMessageFromNetwork(new MessageBuilder(Type.APP, thisCloud, thisCloud).sequence(12).make());
+
+        assertEquals(1, thisCloud.getuuids().size());
+    }
 
     private void simulateAgentJoiningCloudWithSeq(RemoteAgent remoteAgent, long seq) {
         Message message = (new MockMessageHelper(Type.PRS, remoteAgent.getIden(), thisCloud.getIden()).data(new Presence(true)).sequence(seq).make());

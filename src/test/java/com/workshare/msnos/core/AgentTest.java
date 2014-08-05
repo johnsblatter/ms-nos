@@ -147,7 +147,7 @@ public class AgentTest {
     public void shouldCreateSequenceNumberOnCreation() throws Exception {
         smith.send(new MessageBuilder(Message.Type.PIN, smith, cloud).make());
         Message toCloud = getLastMessageToCloud();
-        assertEquals(smith.getSeq(), toCloud.getSeq());
+        assertEquals(Long.valueOf(smith.getSeq() - 1), Long.valueOf(toCloud.getSeq()));
     }
 
     private Message getLastMessageToCloud() throws IOException {

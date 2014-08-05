@@ -156,7 +156,7 @@ public class WireJsonSerializer implements WireSerializer {
             res.addProperty("ss", msg.getSig());
             res.addProperty("rr", msg.getRnd());
             res.addProperty("sq", msg.getSeq());
-            if (res.get("sq") == null) res.add("id", context.serialize(msg.getUuid()));
+            if (msg.getSeq() == 0) res.add("id", context.serialize(msg.getUuid()));
             if (!(msg.getData() instanceof NullPayload))
                 res.add("dt", context.serialize(msg.getData()));
 

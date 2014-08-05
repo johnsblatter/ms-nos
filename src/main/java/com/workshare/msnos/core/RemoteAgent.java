@@ -6,13 +6,14 @@ import com.workshare.msnos.soup.time.SystemTime;
 
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class RemoteAgent implements Agent {
 
     private final Iden iden;
     private final Cloud cloud;
 
-    private long seq;
+    private AtomicLong seq;
     private Set<Network> hosts;
     private long accessTime;
 
@@ -21,10 +22,11 @@ public class RemoteAgent implements Agent {
         this.iden = new Iden(Iden.Type.AGT, uuid);
         this.cloud = cloud;
         this.hosts = networks;
+        this.seq = new AtomicLong();
     }
 
     public void setSeq(long seq) {
-        this.seq = seq;
+        this.seq.set(seq);
     }
 
     @Override
@@ -32,12 +34,14 @@ public class RemoteAgent implements Agent {
         return iden;
     }
 
+    @Override
     public Cloud getCloud() {
         return cloud;
     }
 
-    public long getSeq() {
-        return seq;
+    @Override
+    public Long getSeq() {
+        return seq.get();
     }
 
     @Override

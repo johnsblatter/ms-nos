@@ -1,6 +1,5 @@
 package com.workshare.msnos.core.storage;
 
-import com.workshare.msnos.core.Cloud;
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
 import org.mapdb.HTreeMap;
@@ -20,8 +19,8 @@ public class Storage implements Closeable {
     private final Set<UUID> uuids;
     private final Map<String, Object> keyval;
 
-    public Storage(Cloud cloud) {
-        dbase = ensureDatabasePresent(cloud);
+    public Storage(UUID uuid) {
+        dbase = ensureDatabasePresent(uuid);
         uuids = ensureUuidsSetPresent(dbase);
         keyval = createKeyval(dbase);
     }
@@ -41,13 +40,13 @@ public class Storage implements Closeable {
         return res;
     }
 
-    private DB ensureDatabasePresent(Cloud cloud) {
+    private DB ensureDatabasePresent(UUID uuid) {
         synchronized (MSNOS_ROOT) {
             if (!MSNOS_ROOT.exists()) {
                 MSNOS_ROOT.mkdirs();
             }
 
-            File dbFile = new File(MSNOS_ROOT, cloud.getIden().getUUID().toString());
+            File dbFile = new File(MSNOS_ROOT, uuid.toString());
             DB db = DBMaker.newFileDB(dbFile)
                     .mmapFileEnableIfSupported()
                     .asyncWriteEnable()

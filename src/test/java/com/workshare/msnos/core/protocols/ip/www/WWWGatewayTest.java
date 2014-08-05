@@ -170,7 +170,7 @@ public class WWWGatewayTest {
 
     @Test
     public void shouldInvokeListenerOnReceivedMessages() throws Exception {
-        mockGetResponse(new MessageBuilder(Message.Type.PIN, cloud, cloud).sequence(12 ).make());
+        mockGetResponse(new MessageBuilder(Message.Type.PIN, cloud, cloud).sequence(12).make());
 
         scheduledTask().run();
 

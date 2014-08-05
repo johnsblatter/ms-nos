@@ -8,6 +8,7 @@ import com.workshare.msnos.core.cloud.Multicaster;
 import com.workshare.msnos.core.payloads.FltPayload;
 import com.workshare.msnos.core.payloads.Presence;
 import com.workshare.msnos.core.security.Signer;
+import com.workshare.msnos.core.storage.Storage;
 import com.workshare.msnos.soup.json.Json;
 import com.workshare.msnos.soup.threading.ExecutorServices;
 import org.slf4j.Logger;
@@ -37,6 +38,7 @@ public class Cloud implements Identifiable {
     transient private final Set<Gateway> gates;
     transient private final Multicaster caster;
     transient private final JoinSynchronizer synchronizer;
+    transient private final Storage storage;
     transient private final Signer signer;
     transient private final Internal internal;
 
@@ -66,11 +68,13 @@ public class Cloud implements Identifiable {
         this.iden = new Iden(Iden.Type.CLD, uuid);
         this.localAgents = new AgentsList<LocalAgent>();
         this.remoteAgents = new AgentsList<RemoteAgent>();
+
         this.caster = multicaster;
         this.gates = gates;
         this.signer = signer;
         this.signid = signid;
         this.synchronizer = synchronizer;
+        this.storage = null;
 
         for (Gateway gate : gates) {
             gate.addListener(this, new Gateway.Listener() {
@@ -85,6 +89,32 @@ public class Cloud implements Identifiable {
         new AgentWatchdog(this, executor).start();
     }
 
+    protected Cloud(UUID uuid, String signid, Signer signer, Set<Gateway> gates, JoinSynchronizer synchronizer, Multicaster multicaster, ScheduledExecutorService executor, Storage storage) {
+        this.iden = new Iden(Iden.Type.CLD, uuid);
+        this.localAgents = new AgentsList<LocalAgent>();
+        this.remoteAgents = new AgentsList<RemoteAgent>();
+
+        this.caster = multicaster;
+        this.gates = gates;
+        this.signer = signer;
+        this.signid = signid;
+        this.synchronizer = synchronizer;
+        this.storage = storage;
+
+        for (Gateway gate : gates) {
+            gate.addListener(this, new Gateway.Listener() {
+                @Override
+                public void onMessage(Message message) {
+                    process(message);
+                }
+            });
+        }
+
+        this.internal = new Internal();
+        new AgentWatchdog(this, executor).start();
+    }
+
+
     @Override
     public String toString() {
         return Json.toJsonString(this);
@@ -93,6 +123,10 @@ public class Cloud implements Identifiable {
     @Override
     public Iden getIden() {
         return iden;
+    }
+
+    public Set<UUID> getuuids() {
+        return storage.getUUIDsStore();
     }
 
     public Collection<RemoteAgent> getRemoteAgents() {
@@ -189,6 +223,13 @@ public class Cloud implements Identifiable {
             return false;
         }
 
+        if (fromCloudAndNotStored(message)) {
+            Set<UUID> store = storage.getUUIDsStore();
+            store.add(message.getUuid());
+        } else if (message.getFrom().getType() == Iden.Type.CLD) {
+            return false;
+        }
+
         if (isAddressedToARemoteAgent(message)) {
             log.debug("Skipped message addressed to a remote agent: {}", message);
             return false;
@@ -210,6 +251,10 @@ public class Cloud implements Identifiable {
         }
 
         return true;
+    }
+
+    private boolean fromCloudAndNotStored(Message message) {
+        return message.getFrom().getType() == Iden.Type.CLD && !storage.getUUIDsStore().contains(message.getUuid());
     }
 
     private boolean isOutOfSequence(Message message) {

@@ -1,10 +1,11 @@
 package com.workshare.msnos.core.storage;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import com.workshare.msnos.core.Cloud;
+import com.workshare.msnos.core.Iden;
+import org.junit.AfterClass;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 import java.io.File;
 import java.io.IOException;
@@ -12,13 +13,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
-
-import com.workshare.msnos.core.Cloud;
-import com.workshare.msnos.core.Iden;
+import static org.junit.Assert.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 @SuppressWarnings("resource")
 public class StorageTest {
@@ -27,18 +24,18 @@ public class StorageTest {
 
     private Cloud cloud;
 
-    @BeforeClass 
+    @BeforeClass
     public static void initAll() throws IOException {
         home = File.createTempFile("msnos-", ".tmp");
         home.delete();
         home.mkdirs();
         assertTrue(home.exists());
         assertTrue(home.isDirectory());
-        
+
         System.setProperty("user.home", home.toString());
     }
 
-    @AfterClass 
+    @AfterClass
     public static void termAll() throws IOException {
         home.delete();
     }
@@ -51,78 +48,78 @@ public class StorageTest {
 
     @Test
     public void shouldCreatRootStorageFolder() {
-        File root = msnosRootFolder(); 
+        File root = msnosRootFolder();
         delete(root);
-        
-        new Storage(cloud);
+
+        new Storage(cloud.getIden().getUUID());
 
         assertFolderExists(root);
     }
 
     @Test
     public void shouldCreatCloudStorageFolder() {
-        File clouddb = cloudDatabaseFile(); 
+        File clouddb = cloudDatabaseFile();
         delete(clouddb);
 
-        new Storage(cloud);
+        new Storage(cloud.getIden().getUUID());
 
         assertFileExists(clouddb);
     }
 
     @Test
     public void shouldCreateUUIDMap() {
-        Storage storage = new Storage(cloud);
+        Storage storage = new Storage(cloud.getIden().getUUID());
         assertNotNull(storage.getUUIDsStore());
     }
-    
+
     @Test
     public void shouldPersistUUIDMap() throws IOException {
         final UUID uuid = cloud.getIden().getUUID();
 
-        Storage storage = new Storage(cloud);
+        Storage storage = new Storage(cloud.getIden().getUUID());
         Set<UUID> uuids = storage.getUUIDsStore();
         uuids.add(uuid);
         storage.close();
 
-        uuids = new Storage(cloud).getUUIDsStore();
+        uuids = new Storage(cloud.getIden().getUUID()).getUUIDsStore();
         assertTrue(uuids.contains(uuid));
     }
-    
+
     @Test
     public void shouldCreateKeyvalStorage() {
-        Storage storage = new Storage(cloud);
+        Storage storage = new Storage(cloud.getIden().getUUID());
         assertNotNull(storage.getKeyvalStore());
     }
-    
+
     @Test
     public void shouldPersistKeyvalStorage() throws IOException {
-        Storage storage = new Storage(cloud);
+        Storage storage = new Storage(cloud.getIden().getUUID());
         Map<String, Object> keyval = storage.getKeyvalStore();
         keyval.put("key", "value");
         storage.close();
-        
-        keyval = new Storage(cloud).getKeyvalStore();
-        assertEquals("value",keyval.get("key"));
+
+        keyval = new Storage(cloud.getIden().getUUID()).getKeyvalStore();
+        assertEquals("value", keyval.get("key"));
     }
-    
+
     private File msnosRootFolder() {
         return new File(System.getProperty("user.home"), ".msnos");
     }
-    
+
     private File cloudDatabaseFile() {
-        return new File(System.getProperty("user.home"), ".msnos/"+cloud.getIden().getUUID());
+        return new File(System.getProperty("user.home"), ".msnos/" + cloud.getIden().getUUID());
     }
-    
+
     private void assertFolderExists(File entry) {
         assertTrue(entry.exists());
         assertTrue(entry.isDirectory());
     }
-    
+
     private void assertFileExists(File entry) {
         assertTrue(entry.exists());
         assertTrue(entry.isFile());
     }
-    
+
     private void delete(final File folder) {
         if (folder.isDirectory()) {
             File[] files = folder.listFiles();
@@ -134,9 +131,9 @@ public class StorageTest {
                     file.delete();
                 }
             }
-            
+
             if (!folder.delete())
                 throw new RuntimeException("Cannot delete folder!");
         }
-    }    
+    }
 }

@@ -11,6 +11,8 @@ public interface Agent extends Identifiable {
 
     Set<Network> getHosts();
 
+    Long getSeq();
+
     long getAccessTime();
 
     void touch();
