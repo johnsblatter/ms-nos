@@ -137,7 +137,7 @@ public class HealthcheckerTest {
 
     private RemoteMicroservice addRemoteAgentToCloudListAndMicroserviceToLocalList(String name, RemoteMicroservice remote, RestApi... restApi) {
         putRemoteAgentInCloudAgentsList(remote.getAgent());
-        final Message message = new MockMessageHelper(Message.Type.QNE, remote.getAgent().getIden(), cloud.getIden()).data(new QnePayload(name, restApi)).make();
+        final Message message = new MockMessageHelper(Message.Type.QNE, remote.getAgent().getIden(), cloud.getIden()).sequence(12).data(new QnePayload(name, restApi)).make();
         simulateMessageFromCloud(message);
         return remote;
     }

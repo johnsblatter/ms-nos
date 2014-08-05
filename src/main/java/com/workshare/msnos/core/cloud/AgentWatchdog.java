@@ -1,17 +1,16 @@
 package com.workshare.msnos.core.cloud;
 
-import java.io.IOException;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.workshare.msnos.core.Cloud;
 import com.workshare.msnos.core.Message;
 import com.workshare.msnos.core.MessageBuilder;
 import com.workshare.msnos.core.RemoteAgent;
 import com.workshare.msnos.soup.time.SystemTime;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 public class AgentWatchdog {
 
@@ -45,7 +44,8 @@ public class AgentWatchdog {
             if (agent.getAccessTime() < SystemTime.asMillis() - AGENT_TIMEOUT) {
                 log.debug("- sending ping to {}", agent.toString());
                 try {
-                    cloud.send(new MessageBuilder(Message.Type.PIN, cloud, agent).make());
+//                    FIXME FIXME FIXME
+                    cloud.send(new MessageBuilder(Message.Type.PIN, cloud, agent).with(agent.getIden().getUUID()).make());
                 } catch (IOException e) {
                     log.debug("Unexpected exception pinging agent " + agent, e);
                 }
@@ -57,5 +57,5 @@ public class AgentWatchdog {
         }
         log.trace("Done!");
     }
-    
+
 }

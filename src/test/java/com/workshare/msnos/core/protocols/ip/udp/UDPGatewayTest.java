@@ -160,7 +160,7 @@ public class UDPGatewayTest {
     }
 
     private Message getMessageWithPayload(final BigPayload payload) {
-        return new MessageBuilder(Message.Type.PRS, SOMEONE, ME, 0).with(payload).make();
+        return new MessageBuilder(Message.Type.PRS, SOMEONE, ME, 0).sequence(12).with(payload).make();
     }
 
     private void simulateMessageFromNetwork(Message message) {
@@ -226,7 +226,7 @@ public class UDPGatewayTest {
     }
 
     private static Message newSampleMessage(final Iden src, final Iden dst) {
-        return new MessageBuilder(Message.Type.APP, src, dst, 0).make();
+        return new MessageBuilder(Message.Type.APP, src, dst, 0).sequence(12).make();
     }
 
     static class BigPayload implements Message.Payload {

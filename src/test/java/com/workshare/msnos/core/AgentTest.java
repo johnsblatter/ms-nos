@@ -51,7 +51,7 @@ public class AgentTest {
 
     @Test
     public void shouldSendPresenceWhenDiscoveryIsReceived() throws IOException {
-        Message discovery = new MockMessageHelper(Message.Type.DSC, cloud.getIden(), smith.getIden()).make();
+        Message discovery = new MockMessageHelper(Message.Type.DSC, cloud.getIden(), smith.getIden()).sequence(12).make();
         simulateMessageFromCloud(discovery);
 
         Message message = getLastMessageToCloud();
@@ -63,7 +63,7 @@ public class AgentTest {
 
     @Test
     public void shouldSendPongWhenPingIsReceived() throws IOException {
-        simulateMessageFromCloud(new MessageBuilder(Message.Type.PIN, cloud, smith).make());
+        simulateMessageFromCloud(new MessageBuilder(Message.Type.PIN, cloud, smith).sequence(12).make());
         Message message = getLastMessageToCloud();
 
         assertNotNull(message);
@@ -74,7 +74,7 @@ public class AgentTest {
     @Test
     public void shouldSendUnreliableMessageThroughCloud() throws Exception {
 
-        smith.send(new MessageBuilder(Message.Type.PIN, smith, karl).make());
+        smith.send(new MessageBuilder(Message.Type.PIN, smith, karl).sequence(12).make());
 
         Message message = getLastMessageToCloud();
         assertNotNull(message);
@@ -87,7 +87,7 @@ public class AgentTest {
     @Test
     public void shouldSendReliableMessageThroughCloud() throws Exception {
 
-        smith.send(new MessageBuilder(Message.Type.PIN, smith, karl).make().reliable());
+        smith.send(new MessageBuilder(Message.Type.PIN, smith, karl).sequence(12).make().reliable());
 
         Message message = getLastMessageToCloud();
         assertNotNull(message);
@@ -99,7 +99,7 @@ public class AgentTest {
 
     @Test
     public void presenceMessageShouldContainNetworkInfo() throws Exception {
-        smith.send(new MessageBuilder(Message.Type.PRS, smith, cloud).with(new Presence(true)).make());
+        smith.send(new MessageBuilder(Message.Type.PRS, smith, cloud).sequence(12).with(new Presence(true)).make());
 
         Message message = getLastMessageToCloud();
 
@@ -125,7 +125,7 @@ public class AgentTest {
     public void shouldUpdateAccessTimeWhenMessageIsReceived() {
         fakeSystemTime(123456790L);
 
-        Message message = new MessageBuilder(Message.Type.PIN, cloud, smith).make();
+        Message message = new MessageBuilder(Message.Type.PIN, cloud.getIden(), smith.getIden(), 12).make();
         simulateMessageFromCloud(message);
 
         assertEquals(123456790L, smith.getAccessTime());
@@ -141,6 +141,13 @@ public class AgentTest {
     public void agentShouldStoreNetworkInformationAfterJoin() throws Exception {
         smith.join(cloud);
         assertEquals(new Presence(true).getNetworks(), smith.getHosts());
+    }
+
+    @Test
+    public void shouldCreateSequenceNumberOnCreation() throws Exception {
+        smith.send(new MessageBuilder(Message.Type.PIN, smith, cloud).make());
+        Message toCloud = getLastMessageToCloud();
+        assertEquals(smith.getSeq(), toCloud.getSeq());
     }
 
     private Message getLastMessageToCloud() throws IOException {

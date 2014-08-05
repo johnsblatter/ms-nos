@@ -73,7 +73,7 @@ public class WireJsonSerializerTest {
 
     @Test
     public void shouldBeAbleToEncodeAndDecodeMessage() throws Exception {
-        Message source = new MessageBuilder(Message.Type.PRS, agent, cloud).with(new Presence(true)).make();
+        Message source = new MessageBuilder(Message.Type.PRS, agent, cloud).sequence(12).with(new Presence(true)).make();
 
         byte[] data = sz.toBytes(source);
         Message decoded = sz.fromBytes(data, Message.class);
@@ -83,7 +83,7 @@ public class WireJsonSerializerTest {
 
     @Test
     public void shouldBeAbleToEncodeAndDecodeQNE() throws Exception {
-        Message source = new MessageBuilder(Message.Type.QNE, agent, cloud).with(new QnePayload("test", new RestApi("test", "/test", 7070))).make();
+        Message source = new MessageBuilder(Message.Type.QNE, agent, cloud).sequence(12).with(new QnePayload("test", new RestApi("test", "/test", 7070))).make();
 
         byte[] data = sz.toBytes(source);
         Message decoded = sz.fromBytes(data, Message.class);
@@ -121,7 +121,7 @@ public class WireJsonSerializerTest {
     public void shouldBeAbleToEncodeAndDecodeSignedMessage() throws Exception {
         final String sig = "this-is-a-signature";
         final String rnd = "random";
-        Message source = new MessageBuilder(Message.Type.QNE, agent, cloud).signed(sig, rnd).make();
+        Message source = new MessageBuilder(Message.Type.QNE, agent, cloud).sequence(12).signed(sig, rnd).make();
 
         byte[] data = sz.toBytes(source);
         Message decoded = sz.fromBytes(data, Message.class);
@@ -132,7 +132,7 @@ public class WireJsonSerializerTest {
 
     @Test
     public void shouldNotSerializeUUIDIfSequenceNumber() throws Exception {
-        Message source = new MessageBuilder(Message.Type.QNE, agent, cloud).with(UUID.randomUUID()).sequence(23).make();
+        Message source = new MessageBuilder(Message.Type.QNE, agent, cloud).sequence(12).with(UUID.randomUUID()).sequence(23).make();
 
         byte[] data = sz.toBytes(source);
         Message decoded = sz.fromBytes(data, Message.class);

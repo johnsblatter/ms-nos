@@ -79,14 +79,14 @@ public class Microservice {
             }
         });
 
-        Message message = new MessageBuilder(Message.Type.ENQ, agent, cloud).make();
+        Message message = new MessageBuilder(Message.Type.ENQ, agent, cloud).sequence(agent.getSeq()).make();
         agent.send(message);
 
         healthcheck.run();
     }
 
     public void publish(RestApi... api) throws MsnosException {
-        Message message = new MessageBuilder(Message.Type.QNE, agent, cloud).with(new QnePayload(name, api)).make();
+        Message message = new MessageBuilder(Message.Type.QNE, agent, cloud).sequence(agent.getSeq()).with(new QnePayload(name, api)).make();
         agent.send(message);
         localApis.addAll(Arrays.asList(api));
     }
@@ -106,7 +106,7 @@ public class Microservice {
     }
 
     private void processENQ() throws MsnosException {
-        Message message = new MessageBuilder(Message.Type.QNE, agent, cloud).with(new QnePayload(name, new HashSet<RestApi>(localApis))).make();
+        Message message = new MessageBuilder(Message.Type.QNE, agent, cloud).sequence(agent.getSeq()).with(new QnePayload(name, new HashSet<RestApi>(localApis))).make();
         agent.send(message);
     }
 

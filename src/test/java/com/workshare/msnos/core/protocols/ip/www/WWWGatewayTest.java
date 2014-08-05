@@ -1,29 +1,14 @@
 package com.workshare.msnos.core.protocols.ip.www;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.fail;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyLong;
-import static org.mockito.Matchers.anyObject;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.atLeastOnce;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.UUID;
-import java.util.concurrent.Executor;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-
+import com.workshare.msnos.core.Cloud;
+import com.workshare.msnos.core.Gateway.Listener;
+import com.workshare.msnos.core.Message;
+import com.workshare.msnos.core.Message.Status;
+import com.workshare.msnos.core.MessageBuilder;
+import com.workshare.msnos.core.Receipt;
+import com.workshare.msnos.core.serializers.WireJsonSerializer;
+import com.workshare.msnos.core.serializers.WireSerializer;
+import com.workshare.msnos.soup.threading.Multicaster;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.ParseException;
@@ -40,15 +25,23 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
-import com.workshare.msnos.core.Cloud;
-import com.workshare.msnos.core.Gateway.Listener;
-import com.workshare.msnos.core.Message;
-import com.workshare.msnos.core.Message.Status;
-import com.workshare.msnos.core.MessageBuilder;
-import com.workshare.msnos.core.Receipt;
-import com.workshare.msnos.core.serializers.WireJsonSerializer;
-import com.workshare.msnos.core.serializers.WireSerializer;
-import com.workshare.msnos.soup.threading.Multicaster;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import static org.junit.Assert.*;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyLong;
+import static org.mockito.Matchers.anyObject;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.*;
 
 public class WWWGatewayTest {
 
@@ -78,11 +71,11 @@ public class WWWGatewayTest {
         client = mock(HttpClient.class);
         response = mock(HttpResponse.class);
         when(response.getEntity()).thenReturn(new StringEntity(""));
-        when(client.execute(any(HttpUriRequest.class))).thenReturn(response );
+        when(client.execute(any(HttpUriRequest.class))).thenReturn(response);
 
         scheduler = mock(ScheduledExecutorService.class);
         serializer = mockWireSerializer();
-        
+
         rxMessages = new ArrayList<Message>();
         gate = new WWWGateway(client, scheduler, serializer, synchronousMulticaster());
         gate.addListener(cloud, new Listener() {
@@ -112,7 +105,7 @@ public class WWWGatewayTest {
         scheduledTask().run();
         assertNull(getLastPostToWWW());
     }
-    
+
     @Test
     public void shouldSendOneMessageOnSync() throws Exception {
         gate.send(cloud, message(uuid1));
@@ -146,7 +139,7 @@ public class WWWGatewayTest {
         gate.send(otherCloud, message(uuid2));
 
         scheduledTask().run();
-        
+
         List<HttpPost> requests = getAllRequestToWWW(HttpPost.class);
         assertEquals(2, requests.size());
         assertRequestsContains(requests, messagesRequestUrl(cloud));
@@ -159,26 +152,26 @@ public class WWWGatewayTest {
         scheduledTask().run();
 
         HttpGet request = getLastGetToWWW();
-        assertEquals(messagesRequestUrl(cloud),request.getURI().toString());
-        
+        assertEquals(messagesRequestUrl(cloud), request.getURI().toString());
+
     }
-    
+
     @Test
     public void shouldInvokeGetMessagesOnSyncStartingFromTheLastOne() throws Exception {
-        final Message message = new MessageBuilder(Message.Type.PIN, cloud, cloud).make();
+        final Message message = new MessageBuilder(Message.Type.PIN, cloud, cloud).sequence(12).make();
         mockGetResponse(message);
 
         scheduledTask().run();
         scheduledTask().run();
 
         HttpGet request = getLastGetToWWW();
-        assertEquals(messagesRequestUrl(cloud, message),request.getURI().toString());
+        assertEquals(messagesRequestUrl(cloud, message), request.getURI().toString());
     }
-    
+
     @Test
     public void shouldInvokeListenerOnReceivedMessages() throws Exception {
-        mockGetResponse(new MessageBuilder(Message.Type.PIN, cloud, cloud).make());
-        
+        mockGetResponse(new MessageBuilder(Message.Type.PIN, cloud, cloud).sequence(12 ).make());
+
         scheduledTask().run();
 
         assertEquals(1, rxMessages.size());
@@ -187,22 +180,23 @@ public class WWWGatewayTest {
     @Test
     public void shouldAvoidConcurrentSync() throws Exception {
         final AtomicInteger runs = new AtomicInteger(0);
-        when(client.execute(any(HttpUriRequest.class))).thenAnswer(new Answer<HttpResponse>(){
+        when(client.execute(any(HttpUriRequest.class))).thenAnswer(new Answer<HttpResponse>() {
             @Override
             public HttpResponse answer(InvocationOnMock invocation) throws Throwable {
                 runs.incrementAndGet();
                 sleep(250l);
                 return response;
-            }});
+            }
+        });
 
         waitFor(asyncRun(scheduledTask()), asyncRun(scheduledTask()), asyncRun(scheduledTask()));
-        
+
         assertEquals(1, runs.get());
     }
 
     @Test(expected = IOException.class)
     public void shouldBlowUpIfCannotContactTheServer() throws Exception {
-        when(client.execute(any(HttpUriRequest.class))).thenThrow(new IOException ("boom!") );
+        when(client.execute(any(HttpUriRequest.class))).thenThrow(new IOException("boom!"));
         gate = new WWWGateway(client, scheduler, serializer, synchronousMulticaster());
     }
 
@@ -252,8 +246,8 @@ public class WWWGatewayTest {
             if (request.getURI().toString().equalsIgnoreCase(url))
                 return;
         }
-        
-        fail("Request for url "+url+" not found!");
+
+        fail("Request for url " + url + " not found!");
     }
 
     private String toText(HttpEntity entity) throws ParseException, IOException {
@@ -275,7 +269,7 @@ public class WWWGatewayTest {
     private <T> T getLastRequestToWWW(Class<T> type) throws Exception {
         List<T> all = getAllRequestToWWW(type);
         if (all.size() > 0)
-            return all.get(all.size()-1);
+            return all.get(all.size() - 1);
         else
             return null;
     }
@@ -283,23 +277,24 @@ public class WWWGatewayTest {
     @SuppressWarnings("unchecked")
     private <T> List<T> getAllRequestToWWW(Class<T> type) throws Exception {
         List<T> result = new ArrayList<T>();
-        
+
         List<HttpUriRequest> requests = getLastRequestsToWWW();
         for (HttpUriRequest request : requests) {
             if (request.getClass() == type) {
                 result.add((T) request);
             }
         }
-        
+
         return result;
     }
+
     private List<HttpUriRequest> getLastRequestsToWWW() throws IOException, ClientProtocolException {
         try {
             ArgumentCaptor<HttpUriRequest> captor = ArgumentCaptor.forClass(HttpUriRequest.class);
             verify(client, atLeastOnce()).execute(captor.capture());
             return captor.getAllValues();
         } catch (Throwable any) {
-            return Collections.<HttpUriRequest>emptyList() ;
+            return Collections.<HttpUriRequest>emptyList();
         }
     }
 
@@ -314,12 +309,13 @@ public class WWWGatewayTest {
             }
         });
 
-        Answer<Message> answer = new Answer<Message>(){
+        Answer<Message> answer = new Answer<Message>() {
             @Override
             public Message answer(InvocationOnMock invocation) throws Throwable {
                 String text = (String) invocation.getArguments()[0];
                 return fromWireJson(text);
-            }};
+            }
+        };
         when(serializer.fromText(anyString(), (Class<?>) any())).thenAnswer(answer);
         return serializer;
     }
@@ -331,7 +327,7 @@ public class WWWGatewayTest {
     private Message fromWireJson(String text) {
         return new WireJsonSerializer().fromText(text, Message.class);
     }
-    
+
     private Multicaster<Listener, Message> synchronousMulticaster() {
         Executor executor = new Executor() {
             @Override
@@ -353,9 +349,9 @@ public class WWWGatewayTest {
     }
 
     private String messagesRequestUrl(final Cloud cloud, final Message message) {
-        String url = WWW_ROOT+"api/1.0/messages?cloud="+cloud.getIden().getUUID();
+        String url = WWW_ROOT + "api/1.0/messages?cloud=" + cloud.getIden().getUUID();
         if (message != null)
-            url = url+"&message="+message.getUuid().toString();
+            url = url + "&message=" + message.getUuid().toString();
         return url;
     }
 

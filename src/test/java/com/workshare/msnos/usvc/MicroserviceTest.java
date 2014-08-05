@@ -338,11 +338,11 @@ public class MicroserviceTest {
     }
 
     private Message newQNEMessage(RemoteAgent from, String name, RestApi... apis) {
-        return new MockMessageHelper(Message.Type.QNE, from.getIden(), cloud.getIden()).data(new QnePayload("content", apis)).make();
+        return new MockMessageHelper(Message.Type.QNE, from.getIden(), cloud.getIden()).sequence(12).data(new QnePayload("content", apis)).make();
     }
 
     private Message newFaultMessage(Agent agent) {
-        return new MessageBuilder(Message.Type.FLT, cloud, cloud).with(new FltPayload(agent.getIden())).make();
+        return new MessageBuilder(Message.Type.FLT, cloud, cloud).sequence(12).with(new FltPayload(agent.getIden())).make();
     }
 
     private Message getLastMessageSent() throws IOException {

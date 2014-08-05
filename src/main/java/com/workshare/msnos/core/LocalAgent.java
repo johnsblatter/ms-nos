@@ -27,20 +27,17 @@ public class LocalAgent implements Agent {
 
     public LocalAgent(UUID uuid) {
         this.iden = new Iden(Iden.Type.AGT, uuid);
-    }
-
-    LocalAgent(Iden iden, Cloud cloud) {
-        validate(iden, cloud);
-        this.iden = iden;
-        this.cloud = cloud;
+        seq = 1;
     }
 
     public LocalAgent(Iden iden, Cloud cloud, Set<Network> hosts) {
+        validate(iden, cloud);
         this.iden = iden;
         this.cloud = cloud;
         this.hosts = hosts;
+
     }
-    
+
     public LocalAgent withHosts(Set<Network> hosts) {
         return new LocalAgent(iden, cloud, hosts);
     }
@@ -119,7 +116,7 @@ public class LocalAgent implements Agent {
     private void processDiscovery(Message message) {
         log.debug("Processing discovery: {}", message);
         try {
-            send(new MessageBuilder(Message.Type.PRS, this, cloud).with(new Presence(true)).make());
+            send(new MessageBuilder(Message.Type.PRS, this, cloud).sequence(seq).with(new Presence(true)).make());
         } catch (MsnosException e) {
             log.warn("Could not send message. ", e);
         }
@@ -128,7 +125,7 @@ public class LocalAgent implements Agent {
     private void processPing(Message message) {
         log.debug("Processing ping: {} ", message);
         try {
-            send(new MessageBuilder(Message.Type.PON, this, cloud).make());
+            send(new MessageBuilder(Message.Type.PON, this, cloud).sequence(seq).make());
         } catch (MsnosException e) {
             log.warn("Could not send message. ", e);
         }

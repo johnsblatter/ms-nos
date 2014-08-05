@@ -136,8 +136,8 @@ public class Cloud implements Identifiable {
 
         final Status status = synchronizer.start(agent);
         try {
-            send(new MessageBuilder(Message.Type.PRS, agent, this).with(new Presence(true)).make());
-            send(new MessageBuilder(Message.Type.DSC, agent, this).make());
+            send(new MessageBuilder(Message.Type.PRS, agent, this).sequence(agent.getSeq()).with(new Presence(true)).make());
+            send(new MessageBuilder(Message.Type.DSC, agent, this).sequence(agent.getSeq()).make());
             synchronizer.wait(status);
         } finally {
             synchronizer.remove(status);
@@ -147,7 +147,7 @@ public class Cloud implements Identifiable {
     void onLeave(LocalAgent agent) throws MsnosException {
         checkCloudAlive();
 
-        send(new MessageBuilder(Message.Type.PRS, agent, this).with(new Presence(false)).make());
+        send(new MessageBuilder(Message.Type.PRS, agent, this).sequence(agent.getSeq()).with(new Presence(false)).make());
         log.debug("Local agent left: {}", agent);
         localAgents.remove(agent.getIden());
     }
@@ -242,7 +242,7 @@ public class Cloud implements Identifiable {
     public void removeFaultyAgent(RemoteAgent agent) {
         RemoteAgent result = remoteAgents.remove(agent.getIden());
         if (result != null)
-            dispatch(new MessageBuilder(Message.Type.FLT, this, this).with(new FltPayload(agent.getIden())).make());
+            dispatch(new MessageBuilder(Message.Type.FLT, this, this).with(iden.getUUID()).with(new FltPayload(agent.getIden())).make());
     }
 
     private Message sign(Message message) {

@@ -370,7 +370,7 @@ public class CloudTest {
         LocalAgent local = new LocalAgent(UUID.randomUUID());
         local.join(thisCloud);
 
-        simulateMessageFromNetwork(new MessageBuilder(Message.Type.APP, local, thisCloud).make());
+        simulateMessageFromNetwork(new MessageBuilder(Message.Type.APP, local, thisCloud).sequence(12).make());
 
         assertEquals(0, receivedMessages.size());
     }
@@ -506,7 +506,7 @@ public class CloudTest {
     }
 
     private Message simulateAgentJoiningCloud(Agent agent, Cloud cloud) {
-        Message message = (new MockMessageHelper(Message.Type.PRS, agent.getIden(), cloud.getIden()).data(new Presence(true)).make());
+        Message message = (new MockMessageHelper(Message.Type.PRS, agent.getIden(), cloud.getIden()).sequence(12).data(new Presence(true)).make());
         simulateMessageFromNetwork(message);
         return message;
     }
