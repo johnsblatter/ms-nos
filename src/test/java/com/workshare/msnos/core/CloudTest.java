@@ -91,7 +91,7 @@ public class CloudTest {
     public void after() throws Exception {
         SystemTime.reset();
         scheduler.shutdown();
-        storage.close();
+        
     }
 
     @Test

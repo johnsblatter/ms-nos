@@ -2,10 +2,7 @@ package com.workshare.msnos.core.storage;
 
 import com.workshare.msnos.core.Cloud;
 import com.workshare.msnos.core.Iden;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.*;
 
 import java.io.File;
 import java.io.IOException;
@@ -33,6 +30,7 @@ public class StorageTest {
         assertTrue(home.isDirectory());
 
         System.setProperty("user.home", home.toString());
+        System.out.println(home.toString());
     }
 
     @AfterClass
@@ -44,6 +42,11 @@ public class StorageTest {
     public void init() {
         cloud = mock(Cloud.class);
         when(cloud.getIden()).thenReturn(new Iden(Iden.Type.CLD, UUID.randomUUID()));
+    }
+
+    @After
+    public void cleanUp() {
+        home.delete();
     }
 
     @Test
