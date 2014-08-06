@@ -1,6 +1,5 @@
 package com.workshare.msnos.core;
 
-import com.workshare.msnos.core.Gateway.Listener;
 import com.workshare.msnos.core.Message.Status;
 import com.workshare.msnos.core.Message.Type;
 import com.workshare.msnos.core.cloud.JoinSynchronizer;
@@ -31,7 +30,6 @@ import java.util.concurrent.TimeUnit;
 import static com.workshare.msnos.core.Message.Type.*;
 import static org.junit.Assert.*;
 import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyInt;
 import static org.mockito.Mockito.*;
 
 public class CloudTest {
@@ -70,6 +68,7 @@ public class CloudTest {
 
         keystore = mock(KeysStore.class);
         Signer signer = new Signer(keystore);
+
 
         storage = mock(Storage.class);
         Set<UUID> set = new HashSet<UUID>();
@@ -536,7 +535,7 @@ public class CloudTest {
     }
 
     private void simulateMessageFromNetwork(final Message message) {
-        ArgumentCaptor<Listener> gateListener = ArgumentCaptor.forClass(Listener.class);
+        ArgumentCaptor<Gateway.Listener> gateListener = ArgumentCaptor.forClass(Gateway.Listener.class);
         verify(gate1).addListener(any(Cloud.class), gateListener.capture());
         gateListener.getValue().onMessage(message);
     }
