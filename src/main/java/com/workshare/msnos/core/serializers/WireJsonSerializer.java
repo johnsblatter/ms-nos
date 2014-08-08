@@ -199,7 +199,7 @@ public class WireJsonSerializer implements WireSerializer {
                 }
             }
 
-            return new MessageBuilder(type, from, to, seq)
+            return new MessageBuilder(MessageBuilder.Mode.RELAXED, type, from, to)
                     .with(hops)
                     .with(data)
                     .with(uuid)

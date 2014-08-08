@@ -23,4 +23,19 @@ public class MessageBuilderTest {
 
         assertEquals(32L, msg.getSeq());
     }
+
+    @Test
+    public void shouldPopulateUUIDFromTheCloud() throws Exception {
+        LocalAgent agent = mock(LocalAgent.class);
+        when(agent.getIden()).thenReturn(new Iden(Iden.Type.AGT, UUID.randomUUID()));
+
+        Cloud cloud = mock(Cloud.class);
+        when(cloud.getIden()).thenReturn(new Iden(Iden.Type.CLD, UUID.randomUUID()));
+        final UUID messageUUID = new UUID(111, 222);
+        when(cloud.generateNextMessageUUID()).thenReturn(messageUUID);
+
+        Message message = new MessageBuilder(Message.Type.APP, cloud, agent).make();
+
+        assertEquals(messageUUID, message.getUuid());
+    }
 }

@@ -4,10 +4,10 @@ import com.workshare.msnos.core.Message.Status;
 import com.workshare.msnos.core.Message.Type;
 import com.workshare.msnos.core.cloud.JoinSynchronizer;
 import com.workshare.msnos.core.cloud.Multicaster;
+import com.workshare.msnos.core.cloud.TimeClient;
 import com.workshare.msnos.core.payloads.FltPayload;
 import com.workshare.msnos.core.payloads.Presence;
 import com.workshare.msnos.core.protocols.ip.Network;
-import com.workshare.msnos.core.protocols.ip.udp.UDPGateway;
 import com.workshare.msnos.core.security.KeysStore;
 import com.workshare.msnos.core.security.Signer;
 import com.workshare.msnos.core.storage.Storage;
@@ -20,12 +20,10 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 import org.mockito.Mockito;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.*;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executor;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 import static com.workshare.msnos.core.Message.Type.*;
 import static org.junit.Assert.*;
@@ -55,6 +53,11 @@ public class CloudTest {
 
     @Before
     public void init() throws Exception {
+        File home = File.createTempFile("msnos-", ".tmp");
+        System.setProperty("user.home", home.toString());
+        home.delete();
+        home.mkdirs();
+
         scheduler = mock(ScheduledExecutorService.class);
 
         Receipt unknownReceipt = mock(Receipt.class);
@@ -69,12 +72,14 @@ public class CloudTest {
         keystore = mock(KeysStore.class);
         Signer signer = new Signer(keystore);
 
-
         storage = mock(Storage.class);
         Set<UUID> set = new HashSet<UUID>();
         when(storage.getUUIDsStore()).thenReturn(set);
 
-        thisCloud = new Cloud(MY_CLOUD.getUUID(), KEY_ID, signer, new HashSet<Gateway>(Arrays.asList(gate1, gate2)), synchro, synchronousMulticaster(), scheduler, storage);
+        TimeClient timeClient = mock(TimeClient.class);
+        when(timeClient.getTime()).thenReturn(1234L);
+
+        thisCloud = new Cloud(MY_CLOUD.getUUID(), KEY_ID, signer, new HashSet<Gateway>(Arrays.asList(gate1, gate2)), synchro, synchronousMulticaster(), scheduler, storage, timeClient);
         thisCloud.addListener(new Cloud.Listener() {
             @Override
             public void onMessage(Message message) {
@@ -84,24 +89,20 @@ public class CloudTest {
 
         receivedMessages = new ArrayList<Message>();
 
-        otherCloud = new Cloud(UUID.randomUUID(), null, Collections.<Gateway>emptySet(), synchro);
+        otherCloud = new Cloud(UUID.randomUUID(), KEY_ID, signer, Collections.<Gateway>emptySet(), synchro, synchronousMulticaster(), Executors.newSingleThreadScheduledExecutor(), mock(Storage.class), mock(TimeClient.class));
     }
 
     @After
     public void after() throws Exception {
         SystemTime.reset();
         scheduler.shutdown();
-        
     }
 
     @Test
     public void shouldCreateDefaultGateways() throws Exception {
-        thisCloud = new Cloud(UUID.randomUUID());
-
         Set<Gateway> gates = thisCloud.getGateways();
 
-        assertEquals(1, gates.size());
-        assertEquals(UDPGateway.class, gates.iterator().next().getClass());
+        assertEquals(2, gates.size());
     }
 
     @Test
@@ -465,18 +466,11 @@ public class CloudTest {
     }
 
     @Test
-    public void shouldStoreMessageIfNoEntryInStorage() throws Exception {
-        simulateMessageFromNetwork(new MessageBuilder(Type.APP, thisCloud, thisCloud).sequence(12).make());
+    public void shouldConstructUUIDWhenMessageFromCloud() throws Exception {
+        simulateMessageFromNetwork(new MessageBuilder(Type.APP, thisCloud, thisCloud).make());
 
-        assertEquals(1, thisCloud.getuuids().size());
-    }
-
-    @Test
-    public void shouldDiscardMessagesIfAlreadyReceived() throws Exception {
-        simulateMessageFromNetwork(new MessageBuilder(Type.APP, thisCloud, thisCloud).sequence(12).make());
-        simulateMessageFromNetwork(new MessageBuilder(Type.APP, thisCloud, thisCloud).sequence(12).make());
-
-        assertEquals(1, thisCloud.getuuids().size());
+        assertEquals(1234L, getLastMessageSentToCloudListeners().getUuid().getLeastSignificantBits());
+        assertEquals(thisCloud.getInstanceID(), getLastMessageSentToCloudListeners().getUuid().getMostSignificantBits());
     }
 
     private void simulateAgentJoiningCloudWithSeq(RemoteAgent remoteAgent, long seq) {
@@ -531,7 +525,7 @@ public class CloudTest {
     }
 
     private void simulateAgentLeavingCloud(RemoteAgent agent, Cloud cloud) {
-        simulateMessageFromNetwork(new MessageBuilder(PRS, agent.getIden(), cloud.getIden(), 1).with(2).reliable(false).with(new Presence(false)).make());
+        simulateMessageFromNetwork(new MessageBuilder(MessageBuilder.Mode.RELAXED, PRS, agent.getIden(), cloud.getIden()).sequence(12).reliable(false).with(new Presence(false)).make());
     }
 
     private void simulateMessageFromNetwork(final Message message) {
@@ -567,11 +561,11 @@ public class CloudTest {
 
 
     private Message newMessage(final Message.Type type, final Iden idenFrom, final Iden idenTo) {
-        return new MessageBuilder(type, idenFrom, idenTo, 1).with(1).reliable(false).make();
+        return new MessageBuilder(MessageBuilder.Mode.RELAXED, type, idenFrom, idenTo).sequence(1).with(1).reliable(false).make();
     }
 
     private Message newReliableMessage(final Message.Type type, final Iden idenFrom, final Iden idenTo) {
-        return new MessageBuilder(type, idenFrom, idenTo, 1).with(1).reliable(true).make();
+        return new MessageBuilder(MessageBuilder.Mode.RELAXED, type, idenFrom, idenTo).sequence(1).with(1).reliable(true).make();
     }
 
     private void assertNoMessagesSent() throws IOException {

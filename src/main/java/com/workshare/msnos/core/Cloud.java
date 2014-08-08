@@ -1,10 +1,7 @@
 package com.workshare.msnos.core;
 
-import com.workshare.msnos.core.cloud.AgentWatchdog;
-import com.workshare.msnos.core.cloud.AgentsList;
-import com.workshare.msnos.core.cloud.JoinSynchronizer;
+import com.workshare.msnos.core.cloud.*;
 import com.workshare.msnos.core.cloud.JoinSynchronizer.Status;
-import com.workshare.msnos.core.cloud.Multicaster;
 import com.workshare.msnos.core.payloads.FltPayload;
 import com.workshare.msnos.core.payloads.Presence;
 import com.workshare.msnos.core.security.Signer;
@@ -15,6 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.security.SecureRandom;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
@@ -35,11 +33,13 @@ public class Cloud implements Identifiable {
     private final AgentsList<LocalAgent> localAgents;
     private final AgentsList<RemoteAgent> remoteAgents;
 
+    transient private final long instanceID;
     transient private final Set<Gateway> gates;
     transient private final Multicaster caster;
     transient private final JoinSynchronizer synchronizer;
     transient private final Storage storage;
     transient private final Signer signer;
+    transient private final TimeClient timeclient;
     transient private final Internal internal;
 
     public class Internal {
@@ -61,35 +61,10 @@ public class Cloud implements Identifiable {
     }
 
     public Cloud(UUID uuid, String signid, Set<Gateway> gates, JoinSynchronizer synchronizer) {
-        this(uuid, signid, new Signer(), gates, synchronizer, new Multicaster(), ExecutorServices.newSingleThreadScheduledExecutor());
+        this(uuid, signid, new Signer(), gates, synchronizer, new Multicaster(), ExecutorServices.newSingleThreadScheduledExecutor(), new Storage(uuid), new TimeClient());
     }
 
-    public Cloud(UUID uuid, String signid, Signer signer, Set<Gateway> gates, JoinSynchronizer synchronizer, Multicaster multicaster, ScheduledExecutorService executor) {
-        this.iden = new Iden(Iden.Type.CLD, uuid);
-        this.localAgents = new AgentsList<LocalAgent>();
-        this.remoteAgents = new AgentsList<RemoteAgent>();
-
-        this.caster = multicaster;
-        this.gates = gates;
-        this.signer = signer;
-        this.signid = signid;
-        this.synchronizer = synchronizer;
-        this.storage = null;
-
-        for (Gateway gate : gates) {
-            gate.addListener(this, new Gateway.Listener() {
-                @Override
-                public void onMessage(Message message) {
-                    process(message);
-                }
-            });
-        }
-
-        this.internal = new Internal();
-        new AgentWatchdog(this, executor).start();
-    }
-
-    protected Cloud(UUID uuid, String signid, Signer signer, Set<Gateway> gates, JoinSynchronizer synchronizer, Multicaster multicaster, ScheduledExecutorService executor, Storage storage) {
+    public Cloud(UUID uuid, String signid, Signer signer, Set<Gateway> gates, JoinSynchronizer synchronizer, Multicaster multicaster, ScheduledExecutorService executor, Storage storage, TimeClient timeclient) {
         this.iden = new Iden(Iden.Type.CLD, uuid);
         this.localAgents = new AgentsList<LocalAgent>();
         this.remoteAgents = new AgentsList<RemoteAgent>();
@@ -100,12 +75,18 @@ public class Cloud implements Identifiable {
         this.signid = signid;
         this.synchronizer = synchronizer;
         this.storage = storage;
+        this.timeclient = timeclient;
+        this.instanceID = generateInstanceID();
 
         for (Gateway gate : gates) {
             gate.addListener(this, new Gateway.Listener() {
                 @Override
                 public void onMessage(Message message) {
-                    process(message);
+                    try {
+                        process(message);
+                    } catch (IOException e) {
+                        log.error("Cannot process message", e);
+                    }
                 }
             });
         }
@@ -113,7 +94,6 @@ public class Cloud implements Identifiable {
         this.internal = new Internal();
         new AgentWatchdog(this, executor).start();
     }
-
 
     @Override
     public String toString() {
@@ -125,8 +105,8 @@ public class Cloud implements Identifiable {
         return iden;
     }
 
-    public Set<UUID> getuuids() {
-        return storage.getUUIDsStore();
+    public long getInstanceID() {
+        return instanceID;
     }
 
     public Collection<RemoteAgent> getRemoteAgents() {
@@ -200,7 +180,7 @@ public class Cloud implements Identifiable {
         caster.removeListener(listener);
     }
 
-    private void process(Message message) {
+    private void process(Message message) throws IOException {
 
         if (isProcessable(message)) {
             proto.info("RX: {} {} {} {}", message.getType(), message.getFrom(), message.getTo(), message.getData());
@@ -217,16 +197,14 @@ public class Cloud implements Identifiable {
         synchronizer.process(message);
     }
 
-    private boolean isProcessable(Message message) {
+    private boolean isProcessable(Message message) throws IOException {
         if (isComingFromALocalAgent(message)) {
             log.debug("Skipped message sent from a local agent: {}", message);
             return false;
         }
 
-        if (fromCloudAndNotStored(message)) {
-            Set<UUID> store = storage.getUUIDsStore();
-            store.add(message.getUuid());
-        } else if (message.getFrom().getType() == Iden.Type.CLD) {
+        if (isFromCloudAndStored(message)) {
+            log.debug("Skipped message, from a cloud and previously received: {}", message);
             return false;
         }
 
@@ -253,8 +231,15 @@ public class Cloud implements Identifiable {
         return true;
     }
 
-    private boolean fromCloudAndNotStored(Message message) {
-        return message.getFrom().getType() == Iden.Type.CLD && !storage.getUUIDsStore().contains(message.getUuid());
+    private boolean isFromCloudAndStored(Message message) {
+        if (message.getFrom().getType() == Iden.Type.CLD && !storage.getUUIDsStore().contains(message.getUuid())) {
+            Set<UUID> store = storage.getUUIDsStore();
+            store.add(message.getUuid());
+            return false;
+        } else if (message.getFrom().getType() == Iden.Type.CLD) {
+            return true;
+        }
+        return false;
     }
 
     private boolean isOutOfSequence(Message message) {
@@ -288,6 +273,24 @@ public class Cloud implements Identifiable {
         RemoteAgent result = remoteAgents.remove(agent.getIden());
         if (result != null)
             dispatch(new MessageBuilder(Message.Type.FLT, this, this).with(iden.getUUID()).with(new FltPayload(agent.getIden())).make());
+    }
+
+    public UUID generateNextMessageUUID() {
+        UUID res = null;
+        try {
+            res = new UUID(instanceID, timeclient.getTime());
+        } catch (IOException e) {
+            log.error("IOException generating cloud stamp", e);
+        }
+
+        return res;
+    }
+
+    private long generateInstanceID() {
+        SecureRandom random = new SecureRandom();
+        byte bytes[] = new byte[20];
+        random.nextBytes(bytes);
+        return random.nextLong();
     }
 
     private Message sign(Message message) {

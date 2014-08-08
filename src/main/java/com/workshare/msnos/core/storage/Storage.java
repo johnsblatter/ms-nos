@@ -13,8 +13,6 @@ import java.util.UUID;
 
 public class Storage implements Closeable {
 
-    private static final File MSNOS_ROOT = new File(System.getProperty("user.home"), ".msnos");
-
     private final DB dbase;
     private final Set<UUID> uuids;
     private final Map<String, Object> keyval;
@@ -41,12 +39,13 @@ public class Storage implements Closeable {
     }
 
     private DB ensureDatabasePresent(UUID uuid) {
-        synchronized (MSNOS_ROOT) {
-            if (!MSNOS_ROOT.exists()) {
-                MSNOS_ROOT.mkdirs();
+        final File root = msnosRoot();
+        synchronized (Storage.class) {
+            if (!root.exists()) {
+                root.mkdirs();
             }
 
-            File dbFile = new File(MSNOS_ROOT, uuid.toString());
+            File dbFile = new File(root, uuid.toString());
             DB db = DBMaker.newFileDB(dbFile)
                     .mmapFileEnableIfSupported()
                     .asyncWriteEnable()
@@ -77,4 +76,9 @@ public class Storage implements Closeable {
             dbase.close();
         }
     }
+
+    private static File msnosRoot() {
+        return new File(System.getProperty("user.home"), ".msnos");
+    }
+
 }

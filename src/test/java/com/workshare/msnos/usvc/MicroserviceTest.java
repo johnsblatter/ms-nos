@@ -2,9 +2,13 @@ package com.workshare.msnos.usvc;
 
 import com.workshare.msnos.core.*;
 import com.workshare.msnos.core.cloud.JoinSynchronizer;
+import com.workshare.msnos.core.cloud.Multicaster;
+import com.workshare.msnos.core.cloud.TimeClient;
 import com.workshare.msnos.core.payloads.FltPayload;
 import com.workshare.msnos.core.payloads.QnePayload;
 import com.workshare.msnos.core.protocols.ip.Network;
+import com.workshare.msnos.core.security.Signer;
+import com.workshare.msnos.core.storage.Storage;
 import com.workshare.msnos.soup.time.SystemTime;
 import com.workshare.msnos.usvc.api.RestApi;
 import com.workshare.msnos.usvc.api.routing.strategies.CachingRoutingStrategy;
@@ -17,6 +21,7 @@ import org.mockito.Mockito;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.ScheduledExecutorService;
 
 import static org.junit.Assert.*;
 import static org.mockito.Matchers.any;
@@ -37,6 +42,7 @@ public class MicroserviceTest {
     public void prepare() throws Exception {
         cloud = Mockito.mock(Cloud.class);
         when(cloud.getIden()).thenReturn(new Iden(Iden.Type.CLD, new UUID(111, 111)));
+        when(cloud.generateNextMessageUUID()).thenReturn(UUID.randomUUID());
 
         localMicroservice = getLocalMicroservice();
 
@@ -51,7 +57,7 @@ public class MicroserviceTest {
     @Test
     public void shouldInternalAgentJoinTheCloudOnJoin() throws Exception {
         localMicroservice = new Microservice("jeff");
-        cloud = new Cloud(UUID.randomUUID(), null, mockGateways(), mock(JoinSynchronizer.class));
+        cloud = new Cloud(UUID.randomUUID(), " ", new Signer(), mockGateways(), mock(JoinSynchronizer.class), mock(Multicaster.class), mock(ScheduledExecutorService.class), mock(Storage.class), mock(TimeClient.class));
 
         localMicroservice.join(cloud);
 
@@ -342,7 +348,7 @@ public class MicroserviceTest {
     }
 
     private Message newFaultMessage(Agent agent) {
-        return new MessageBuilder(Message.Type.FLT, cloud, cloud).sequence(12).with(new FltPayload(agent.getIden())).make();
+        return new MessageBuilder(Message.Type.FLT, cloud, cloud).with(new FltPayload(agent.getIden())).make();
     }
 
     private Message getLastMessageSent() throws IOException {

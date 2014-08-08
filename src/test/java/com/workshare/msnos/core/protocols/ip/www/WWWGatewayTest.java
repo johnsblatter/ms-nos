@@ -1,13 +1,14 @@
 package com.workshare.msnos.core.protocols.ip.www;
 
-import com.workshare.msnos.core.Cloud;
+import com.workshare.msnos.core.*;
 import com.workshare.msnos.core.Gateway.Listener;
-import com.workshare.msnos.core.Message;
 import com.workshare.msnos.core.Message.Status;
-import com.workshare.msnos.core.MessageBuilder;
-import com.workshare.msnos.core.Receipt;
+import com.workshare.msnos.core.cloud.JoinSynchronizer;
+import com.workshare.msnos.core.cloud.TimeClient;
+import com.workshare.msnos.core.security.Signer;
 import com.workshare.msnos.core.serializers.WireJsonSerializer;
 import com.workshare.msnos.core.serializers.WireSerializer;
+import com.workshare.msnos.core.storage.Storage;
 import com.workshare.msnos.soup.threading.Multicaster;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
@@ -32,6 +33,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -64,7 +66,12 @@ public class WWWGatewayTest {
 
     @Before
     public void setup() throws Exception {
-        cloud = new Cloud(CLOUD_UUID);
+        JoinSynchronizer synchro = mock(JoinSynchronizer.class);
+
+        final TimeClient mockTime = mock(TimeClient.class);
+        when(mockTime.getTime()).thenReturn(1234L);
+
+        cloud = new Cloud(UUID.randomUUID(), "", new Signer(), Collections.<Gateway>emptySet(), synchro, mock(com.workshare.msnos.core.cloud.Multicaster.class), Executors.newSingleThreadScheduledExecutor(), mock(Storage.class), mockTime);
 
         System.setProperty(WWWGateway.SYSP_ADDRESS, WWW_ROOT);
 
@@ -134,7 +141,9 @@ public class WWWGatewayTest {
 
     @Test
     public void shouldExecuteTwoDifferentHttpCallsWhenSendingMessagesForTwoClouds() throws Exception {
-        Cloud otherCloud = new Cloud(UUID.randomUUID());
+        Cloud otherCloud = mock(Cloud.class);
+        when(otherCloud.getIden()).thenReturn(new Iden(Iden.Type.CLD, UUID.randomUUID()));
+
         gate.send(cloud, message(uuid1));
         gate.send(otherCloud, message(uuid2));
 
@@ -158,7 +167,7 @@ public class WWWGatewayTest {
 
     @Test
     public void shouldInvokeGetMessagesOnSyncStartingFromTheLastOne() throws Exception {
-        final Message message = new MessageBuilder(Message.Type.PIN, cloud, cloud).sequence(12).make();
+        final Message message = new MessageBuilder(Message.Type.PIN, cloud, cloud).make();
         mockGetResponse(message);
 
         scheduledTask().run();
@@ -170,7 +179,7 @@ public class WWWGatewayTest {
 
     @Test
     public void shouldInvokeListenerOnReceivedMessages() throws Exception {
-        mockGetResponse(new MessageBuilder(Message.Type.PIN, cloud, cloud).sequence(12).make());
+        mockGetResponse(new MessageBuilder(Message.Type.PIN, cloud, cloud).make());
 
         scheduledTask().run();
 

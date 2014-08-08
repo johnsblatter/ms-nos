@@ -31,6 +31,7 @@ public class AgentTest {
     public void before() throws Exception {
         cloud = mock(Cloud.class);
         when(cloud.getIden()).thenReturn(new Iden(Iden.Type.CLD, UUID.randomUUID()));
+        when(cloud.generateNextMessageUUID()).thenReturn(UUID.randomUUID());
 
         karl = new LocalAgent(UUID.randomUUID());
         karl.join(cloud);
@@ -63,7 +64,7 @@ public class AgentTest {
 
     @Test
     public void shouldSendPongWhenPingIsReceived() throws IOException {
-        simulateMessageFromCloud(new MessageBuilder(Message.Type.PIN, cloud, smith).sequence(12).make());
+        simulateMessageFromCloud(new MessageBuilder(Message.Type.PIN, cloud, smith).make());
         Message message = getLastMessageToCloud();
 
         assertNotNull(message);
@@ -73,7 +74,6 @@ public class AgentTest {
 
     @Test
     public void shouldSendUnreliableMessageThroughCloud() throws Exception {
-
         smith.send(new MessageBuilder(Message.Type.PIN, smith, karl).sequence(12).make());
 
         Message message = getLastMessageToCloud();
@@ -125,7 +125,7 @@ public class AgentTest {
     public void shouldUpdateAccessTimeWhenMessageIsReceived() {
         fakeSystemTime(123456790L);
 
-        Message message = new MessageBuilder(Message.Type.PIN, cloud.getIden(), smith.getIden(), 12).make();
+        Message message = new MessageBuilder(MessageBuilder.Mode.RELAXED, Message.Type.PIN, cloud.getIden(), smith.getIden()).sequence(12).make();
         simulateMessageFromCloud(message);
 
         assertEquals(123456790L, smith.getAccessTime());
