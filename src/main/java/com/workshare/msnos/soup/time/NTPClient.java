@@ -62,13 +62,13 @@ public class NTPClient {
     }
 
     private static ArrayList<String> defaultServerList() {
-        return new ArrayList<String>(Arrays.asList("time.nist.gov", "de.pool.ntp.org", "uk.pool.ntp.org", "0.pool.ntp.org", "1.pool.ntp.org", "2.pool.ntp.org", "3.pool.ntp.org"));
+        return new ArrayList<String>(Arrays.asList("time.nist.gov", "ntp1.inrim.it", "ntp1.ien.it"));
     }
 
     private static TimeTCPClient defaultTimeTCPClient() {
         TimeTCPClient client = new TimeTCPClient();
-        client.setConnectTimeout(Integer.getInteger("com.ws.nsnos.time.ntp.timeout.connect.millis", 4000));
-        client.setDefaultTimeout(Integer.getInteger("com.ws.nsnos.time.ntp.timeout.default.millis", 4000));
+        client.setConnectTimeout(Integer.getInteger("com.ws.nsnos.time.ntp.timeout.connect.millis", 5000));
+        client.setDefaultTimeout(Integer.getInteger("com.ws.nsnos.time.ntp.timeout.default.millis", 10000));
         return client;
     }
 
