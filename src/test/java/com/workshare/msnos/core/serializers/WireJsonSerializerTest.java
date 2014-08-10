@@ -1,33 +1,35 @@
 package com.workshare.msnos.core.serializers;
 
-import com.workshare.msnos.core.*;
-import com.workshare.msnos.core.cloud.JoinSynchronizer;
-import com.workshare.msnos.core.cloud.Multicaster;
-import com.workshare.msnos.core.cloud.TimeClient;
-import com.workshare.msnos.core.payloads.Presence;
-import com.workshare.msnos.core.payloads.QnePayload;
-import com.workshare.msnos.core.security.Signer;
-import com.workshare.msnos.core.storage.Storage;
-import com.workshare.msnos.usvc.api.RestApi;
-import org.junit.Before;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.mock;
 
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.UUID;
 import java.util.concurrent.ScheduledExecutorService;
 
-import static org.junit.Assert.assertEquals;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import org.junit.Before;
+import org.junit.Test;
+
+import com.workshare.msnos.core.Cloud;
+import com.workshare.msnos.core.Gateway;
+import com.workshare.msnos.core.Iden;
+import com.workshare.msnos.core.LocalAgent;
+import com.workshare.msnos.core.Message;
+import com.workshare.msnos.core.MessageBuilder;
+import com.workshare.msnos.core.NoopGateway;
+import com.workshare.msnos.core.Version;
+import com.workshare.msnos.core.cloud.JoinSynchronizer;
+import com.workshare.msnos.core.cloud.Multicaster;
+import com.workshare.msnos.core.payloads.Presence;
+import com.workshare.msnos.core.payloads.QnePayload;
+import com.workshare.msnos.core.security.Signer;
+import com.workshare.msnos.usvc.api.RestApi;
 
 public class WireJsonSerializerTest {
 
     private static final UUID CLOUD_UUID = UUID.randomUUID();
     private static final UUID AGENT_UUID = UUID.randomUUID();
-
-    private static final Iden CLOUD_IDEN = new Iden(Iden.Type.CLD, CLOUD_UUID);
-    private static final Iden AGENT_IDEN = new Iden(Iden.Type.AGT, AGENT_UUID);
 
     private WireJsonSerializer sz = new WireJsonSerializer();
     private Cloud cloud;
@@ -35,10 +37,7 @@ public class WireJsonSerializerTest {
 
     @Before
     public void before() throws Exception {
-        final TimeClient mock = mock(TimeClient.class);
-        when(mock.getTime()).thenReturn(1234L);
-
-        cloud = new Cloud(CLOUD_UUID, "1231", new Signer(), new HashSet<Gateway>(Arrays.asList(new NoopGateway())), mock(JoinSynchronizer.class), mock(Multicaster.class), mock(ScheduledExecutorService.class), mock(Storage.class), mock);
+        cloud = new Cloud(CLOUD_UUID, "1231", new Signer(), new HashSet<Gateway>(Arrays.asList(new NoopGateway())), mock(JoinSynchronizer.class), mock(Multicaster.class), mock(ScheduledExecutorService.class));
 
         agent = new LocalAgent(AGENT_UUID);
         agent.join(cloud);

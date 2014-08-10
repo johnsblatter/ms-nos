@@ -23,7 +23,6 @@
     <root>
         <level value="INFO"/>
 		<appender-ref ref="STANDARD"/>
-        <appender-ref ref="MESSAGES"/>
     </root>
 
 </configuration>

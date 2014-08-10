@@ -1,17 +1,23 @@
 package com.workshare.msnos.usvc;
 
-import com.workshare.msnos.core.*;
-import com.workshare.msnos.core.cloud.JoinSynchronizer;
-import com.workshare.msnos.core.cloud.Multicaster;
-import com.workshare.msnos.core.cloud.TimeClient;
-import com.workshare.msnos.core.payloads.FltPayload;
-import com.workshare.msnos.core.payloads.QnePayload;
-import com.workshare.msnos.core.protocols.ip.Network;
-import com.workshare.msnos.core.security.Signer;
-import com.workshare.msnos.core.storage.Storage;
-import com.workshare.msnos.soup.time.SystemTime;
-import com.workshare.msnos.usvc.api.RestApi;
-import com.workshare.msnos.usvc.api.routing.strategies.CachingRoutingStrategy;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ScheduledExecutorService;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -19,13 +25,25 @@ import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
-import java.io.IOException;
-import java.util.*;
-import java.util.concurrent.ScheduledExecutorService;
-
-import static org.junit.Assert.*;
-import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.*;
+import com.workshare.msnos.core.Agent;
+import com.workshare.msnos.core.Cloud;
+import com.workshare.msnos.core.Gateway;
+import com.workshare.msnos.core.Iden;
+import com.workshare.msnos.core.Identifiable;
+import com.workshare.msnos.core.Message;
+import com.workshare.msnos.core.MessageBuilder;
+import com.workshare.msnos.core.MockMessageHelper;
+import com.workshare.msnos.core.Receipt;
+import com.workshare.msnos.core.RemoteAgent;
+import com.workshare.msnos.core.cloud.JoinSynchronizer;
+import com.workshare.msnos.core.cloud.Multicaster;
+import com.workshare.msnos.core.payloads.FltPayload;
+import com.workshare.msnos.core.payloads.QnePayload;
+import com.workshare.msnos.core.protocols.ip.Network;
+import com.workshare.msnos.core.security.Signer;
+import com.workshare.msnos.soup.time.SystemTime;
+import com.workshare.msnos.usvc.api.RestApi;
+import com.workshare.msnos.usvc.api.routing.strategies.CachingRoutingStrategy;
 
 @SuppressWarnings("unused")
 public class MicroserviceTest {
@@ -57,7 +75,7 @@ public class MicroserviceTest {
     @Test
     public void shouldInternalAgentJoinTheCloudOnJoin() throws Exception {
         localMicroservice = new Microservice("jeff");
-        cloud = new Cloud(UUID.randomUUID(), " ", new Signer(), mockGateways(), mock(JoinSynchronizer.class), mock(Multicaster.class), mock(ScheduledExecutorService.class), mock(Storage.class), mock(TimeClient.class));
+        cloud = new Cloud(UUID.randomUUID(), " ", new Signer(), mockGateways(), mock(JoinSynchronizer.class), mock(Multicaster.class), mock(ScheduledExecutorService.class));
 
         localMicroservice.join(cloud);
 

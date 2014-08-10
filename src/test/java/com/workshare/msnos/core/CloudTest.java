@@ -1,18 +1,38 @@
 package com.workshare.msnos.core;
 
-import com.workshare.msnos.core.Message.Status;
-import com.workshare.msnos.core.Message.Type;
-import com.workshare.msnos.core.cloud.JoinSynchronizer;
-import com.workshare.msnos.core.cloud.Multicaster;
-import com.workshare.msnos.core.cloud.TimeClient;
-import com.workshare.msnos.core.payloads.FltPayload;
-import com.workshare.msnos.core.payloads.Presence;
-import com.workshare.msnos.core.protocols.ip.Network;
-import com.workshare.msnos.core.security.KeysStore;
-import com.workshare.msnos.core.security.Signer;
-import com.workshare.msnos.core.storage.Storage;
-import com.workshare.msnos.soup.json.Json;
-import com.workshare.msnos.soup.time.SystemTime;
+import static com.workshare.msnos.core.Message.Type.APP;
+import static com.workshare.msnos.core.Message.Type.FLT;
+import static com.workshare.msnos.core.Message.Type.PIN;
+import static com.workshare.msnos.core.Message.Type.PRS;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyInt;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -20,15 +40,19 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 import org.mockito.Mockito;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.*;
-import java.util.concurrent.*;
+import com.workshare.msnos.core.Message.Status;
+import com.workshare.msnos.core.Message.Type;
+import com.workshare.msnos.core.cloud.JoinSynchronizer;
+import com.workshare.msnos.core.cloud.Multicaster;
+import com.workshare.msnos.core.payloads.FltPayload;
+import com.workshare.msnos.core.payloads.Presence;
+import com.workshare.msnos.core.protocols.ip.Network;
+import com.workshare.msnos.core.security.KeysStore;
+import com.workshare.msnos.core.security.Signer;
+import com.workshare.msnos.soup.json.Json;
+import com.workshare.msnos.soup.time.SystemTime;
+import com.workshare.msnos.soup.time.NTPClient;
 
-import static com.workshare.msnos.core.Message.Type.*;
-import static org.junit.Assert.*;
-import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.*;
 
 public class CloudTest {
 
@@ -48,7 +72,6 @@ public class CloudTest {
     private ScheduledExecutorService scheduler;
     private List<Message> receivedMessages;
     private JoinSynchronizer synchro;
-    private Storage storage;
     private KeysStore keystore;
 
     @Before
@@ -72,14 +95,10 @@ public class CloudTest {
         keystore = mock(KeysStore.class);
         Signer signer = new Signer(keystore);
 
-        storage = mock(Storage.class);
-        Set<UUID> set = new HashSet<UUID>();
-        when(storage.getUUIDsStore()).thenReturn(set);
-
-        TimeClient timeClient = mock(TimeClient.class);
+        NTPClient timeClient = mock(NTPClient.class);
         when(timeClient.getTime()).thenReturn(1234L);
 
-        thisCloud = new Cloud(MY_CLOUD.getUUID(), KEY_ID, signer, new HashSet<Gateway>(Arrays.asList(gate1, gate2)), synchro, synchronousMulticaster(), scheduler, storage, timeClient);
+        thisCloud = new Cloud(MY_CLOUD.getUUID(), KEY_ID, signer, new HashSet<Gateway>(Arrays.asList(gate1, gate2)), synchro, synchronousMulticaster(), scheduler);
         thisCloud.addListener(new Cloud.Listener() {
             @Override
             public void onMessage(Message message) {
@@ -89,7 +108,7 @@ public class CloudTest {
 
         receivedMessages = new ArrayList<Message>();
 
-        otherCloud = new Cloud(UUID.randomUUID(), KEY_ID, signer, Collections.<Gateway>emptySet(), synchro, synchronousMulticaster(), Executors.newSingleThreadScheduledExecutor(), mock(Storage.class), mock(TimeClient.class));
+        otherCloud = new Cloud(UUID.randomUUID(), KEY_ID, signer, Collections.<Gateway>emptySet(), synchro, synchronousMulticaster(), Executors.newSingleThreadScheduledExecutor());
     }
 
     @After
@@ -467,9 +486,11 @@ public class CloudTest {
 
     @Test
     public void shouldConstructUUIDWhenMessageFromCloud() throws Exception {
+        fakeSystemTime(12345L);
+
         simulateMessageFromNetwork(new MessageBuilder(Type.APP, thisCloud, thisCloud).make());
 
-        assertEquals(1234L, getLastMessageSentToCloudListeners().getUuid().getLeastSignificantBits());
+        assertEquals(12345L, getLastMessageSentToCloudListeners().getUuid().getLeastSignificantBits());
         assertEquals(thisCloud.getInstanceID(), getLastMessageSentToCloudListeners().getUuid().getMostSignificantBits());
     }
 

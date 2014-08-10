@@ -1,15 +1,30 @@
 package com.workshare.msnos.core.protocols.ip.www;
 
-import com.workshare.msnos.core.*;
-import com.workshare.msnos.core.Gateway.Listener;
-import com.workshare.msnos.core.Message.Status;
-import com.workshare.msnos.core.cloud.JoinSynchronizer;
-import com.workshare.msnos.core.cloud.TimeClient;
-import com.workshare.msnos.core.security.Signer;
-import com.workshare.msnos.core.serializers.WireJsonSerializer;
-import com.workshare.msnos.core.serializers.WireSerializer;
-import com.workshare.msnos.core.storage.Storage;
-import com.workshare.msnos.soup.threading.Multicaster;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.fail;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyLong;
+import static org.mockito.Matchers.anyObject;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.ParseException;
@@ -26,24 +41,19 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.UUID;
-import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-
-import static org.junit.Assert.*;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyLong;
-import static org.mockito.Matchers.anyObject;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.*;
+import com.workshare.msnos.core.Cloud;
+import com.workshare.msnos.core.Gateway;
+import com.workshare.msnos.core.Gateway.Listener;
+import com.workshare.msnos.core.Iden;
+import com.workshare.msnos.core.Message;
+import com.workshare.msnos.core.Message.Status;
+import com.workshare.msnos.core.MessageBuilder;
+import com.workshare.msnos.core.Receipt;
+import com.workshare.msnos.core.cloud.JoinSynchronizer;
+import com.workshare.msnos.core.security.Signer;
+import com.workshare.msnos.core.serializers.WireJsonSerializer;
+import com.workshare.msnos.core.serializers.WireSerializer;
+import com.workshare.msnos.soup.threading.Multicaster;
 
 public class WWWGatewayTest {
 
@@ -68,10 +78,7 @@ public class WWWGatewayTest {
     public void setup() throws Exception {
         JoinSynchronizer synchro = mock(JoinSynchronizer.class);
 
-        final TimeClient mockTime = mock(TimeClient.class);
-        when(mockTime.getTime()).thenReturn(1234L);
-
-        cloud = new Cloud(UUID.randomUUID(), "", new Signer(), Collections.<Gateway>emptySet(), synchro, mock(com.workshare.msnos.core.cloud.Multicaster.class), Executors.newSingleThreadScheduledExecutor(), mock(Storage.class), mockTime);
+        cloud = new Cloud(CLOUD_UUID, "", new Signer(), Collections.<Gateway>emptySet(), synchro, mock(com.workshare.msnos.core.cloud.Multicaster.class), Executors.newSingleThreadScheduledExecutor());
 
         System.setProperty(WWWGateway.SYSP_ADDRESS, WWW_ROOT);
 

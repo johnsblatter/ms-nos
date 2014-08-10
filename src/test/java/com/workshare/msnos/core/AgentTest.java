@@ -52,7 +52,7 @@ public class AgentTest {
 
     @Test
     public void shouldSendPresenceWhenDiscoveryIsReceived() throws IOException {
-        Message discovery = new MockMessageHelper(Message.Type.DSC, cloud.getIden(), smith.getIden()).sequence(12).make();
+        Message discovery = new MessageBuilder(Message.Type.DSC, cloud, smith).make();
         simulateMessageFromCloud(discovery);
 
         Message message = getLastMessageToCloud();

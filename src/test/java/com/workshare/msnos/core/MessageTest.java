@@ -49,8 +49,4 @@ public class MessageTest {
 
         new MessageBuilder(Message.Type.APP, cloud, to).make();
     }
-
-    private UUID getUUID(Iden iden, long sequenceNumber) {
-        return UUID.fromString(iden.getUUID().toString() + sequenceNumber);
-    }
 }

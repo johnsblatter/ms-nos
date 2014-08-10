@@ -25,6 +25,11 @@ import com.workshare.msnos.integration.IntegrationActor.CommandPayload.Command;
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class CoreIT implements IntegrationActor {
 
+    static {
+        // do not use NTP in integration tests
+        System.setProperty("com.ws.nsnos.time.local", "true");
+    }
+
     private static LocalAgent masterAgent;
     private static Cloud masterCloud;
     
