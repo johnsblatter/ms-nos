@@ -1,45 +1,5 @@
 package com.workshare.msnos.core;
 
-import static com.workshare.msnos.core.Message.Type.APP;
-import static com.workshare.msnos.core.Message.Type.FLT;
-import static com.workshare.msnos.core.Message.Type.PIN;
-import static com.workshare.msnos.core.Message.Type.PRS;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyInt;
-import static org.mockito.Mockito.atLeastOnce;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.inOrder;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.ArgumentCaptor;
-import org.mockito.InOrder;
-import org.mockito.Mockito;
-
 import com.workshare.msnos.core.Message.Status;
 import com.workshare.msnos.core.Message.Type;
 import com.workshare.msnos.core.cloud.JoinSynchronizer;
@@ -50,8 +10,25 @@ import com.workshare.msnos.core.protocols.ip.Network;
 import com.workshare.msnos.core.security.KeysStore;
 import com.workshare.msnos.core.security.Signer;
 import com.workshare.msnos.soup.json.Json;
-import com.workshare.msnos.soup.time.SystemTime;
 import com.workshare.msnos.soup.time.NTPClient;
+import com.workshare.msnos.soup.time.SystemTime;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
+import org.mockito.Mockito;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.*;
+import java.util.concurrent.*;
+
+import static com.workshare.msnos.core.Message.Type.*;
+import static org.junit.Assert.*;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyInt;
+import static org.mockito.Mockito.*;
 
 
 public class CloudTest {
@@ -169,7 +146,6 @@ public class CloudTest {
 
         assertMessageSent(Message.Type.DSC, thisCloud.getIden(), remote.getIden(), null);
     }
-
 
     @Test
     public void shouldRemoveLocalAgentOnLeave() throws Exception {

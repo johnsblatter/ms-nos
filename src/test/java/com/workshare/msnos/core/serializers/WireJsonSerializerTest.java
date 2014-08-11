@@ -1,30 +1,24 @@
 package com.workshare.msnos.core.serializers;
 
-import static org.junit.Assert.assertEquals;
-import static org.mockito.Mockito.mock;
+import com.workshare.msnos.core.*;
+import com.workshare.msnos.core.cloud.JoinSynchronizer;
+import com.workshare.msnos.core.cloud.Multicaster;
+import com.workshare.msnos.core.payloads.Presence;
+import com.workshare.msnos.core.payloads.QnePayload;
+import com.workshare.msnos.core.security.Signer;
+import com.workshare.msnos.soup.time.SystemTime;
+import com.workshare.msnos.usvc.api.RestApi;
+import org.junit.Before;
+import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.UUID;
 import java.util.concurrent.ScheduledExecutorService;
 
-import org.junit.Before;
-import org.junit.Test;
-
-import com.workshare.msnos.core.Cloud;
-import com.workshare.msnos.core.Gateway;
-import com.workshare.msnos.core.Iden;
-import com.workshare.msnos.core.LocalAgent;
-import com.workshare.msnos.core.Message;
-import com.workshare.msnos.core.MessageBuilder;
-import com.workshare.msnos.core.NoopGateway;
-import com.workshare.msnos.core.Version;
-import com.workshare.msnos.core.cloud.JoinSynchronizer;
-import com.workshare.msnos.core.cloud.Multicaster;
-import com.workshare.msnos.core.payloads.Presence;
-import com.workshare.msnos.core.payloads.QnePayload;
-import com.workshare.msnos.core.security.Signer;
-import com.workshare.msnos.usvc.api.RestApi;
+import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class WireJsonSerializerTest {
 
@@ -147,7 +141,32 @@ public class WireJsonSerializerTest {
         assertEquals(getUUID(agent.getIden(), 23), decoded.getUuid());
     }
 
+    @Test
+    public void shouldCorrectlySerializeThenDeserializeUUID() throws Exception {
+        fakeSystemTime(12345678901221L);
+
+        Cloud mockCloud = mock(Cloud.class);
+        when(mockCloud.getIden()).thenReturn(new Iden(Iden.Type.CLD, UUID.randomUUID()));
+        when(mockCloud.generateNextMessageUUID()).thenReturn(new UUID(123, SystemTime.asMillis()));
+
+        Message source = new MessageBuilder(Message.Type.QNE, mockCloud, mockCloud).make();
+
+        byte[] data = sz.toBytes(source);
+        Message decoded = sz.fromBytes(data, Message.class);
+
+        assertEquals(SystemTime.asMillis(), decoded.getUuid().getLeastSignificantBits());
+    }
+
+    private void fakeSystemTime(final long time) {
+        SystemTime.setTimeSource(new SystemTime.TimeSource() {
+            @Override
+            public long millis() {
+                return time;
+            }
+        });
+    }
+
     private UUID getUUID(Iden iden, long sequenceNumber) {
-        return UUID.nameUUIDFromBytes((iden.getUUID().toString() + sequenceNumber).getBytes());
+        return new UUID(iden.getUUID().getMostSignificantBits(), sequenceNumber);
     }
 }

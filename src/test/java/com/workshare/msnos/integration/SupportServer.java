@@ -1,12 +1,5 @@
 package com.workshare.msnos.integration;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.util.Arrays;
-import java.util.UUID;
-
 import com.workshare.msnos.core.Cloud;
 import com.workshare.msnos.core.Cloud.Listener;
 import com.workshare.msnos.core.LocalAgent;
@@ -16,6 +9,13 @@ import com.workshare.msnos.core.MsnosException;
 import com.workshare.msnos.core.payloads.GenericPayload;
 import com.workshare.msnos.soup.json.Json;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.Arrays;
+import java.util.UUID;
+
 public class SupportServer implements IntegrationActor {
 
     protected LocalAgent masterAgent;
@@ -23,6 +23,10 @@ public class SupportServer implements IntegrationActor {
 
     protected LocalAgent testAgent;
     protected Cloud testCloud;
+
+    static {
+        System.setProperty("com.ws.nsnos.time.local", "true");
+    }
 
     public SupportServer() throws IOException {
         bootstrap();
@@ -36,7 +40,7 @@ public class SupportServer implements IntegrationActor {
                         try {
                             processCommand(CommandPayload.create((GenericPayload) payload));
                         } catch (MsnosException e) {
-                            log("Unexpected exception while processing a command from the test client! "+e.getMessage());
+                            log("Unexpected exception while processing a command from the test client! " + e.getMessage());
                         }
                 }
             }
@@ -77,7 +81,7 @@ public class SupportServer implements IntegrationActor {
     private void run() throws InterruptedException {
         final int total = 10;
         for (int i = 0; i < total; i++) {
-            log("Intergation test server is alive :) step "+(i+1)+" out of "+total);
+            log("Intergation test server is alive :) step " + (i + 1) + " out of " + total);
             Thread.sleep(5000L);
         }
 
@@ -91,8 +95,7 @@ public class SupportServer implements IntegrationActor {
             if ("now".equalsIgnoreCase(args[0])) {
                 okay = true;
                 runNow();
-            }
-            else if ("fork".equalsIgnoreCase(args[0])) {
+            } else if ("fork".equalsIgnoreCase(args[0])) {
                 okay = true;
                 truncateLogfile();
                 runFork();
@@ -103,7 +106,7 @@ public class SupportServer implements IntegrationActor {
             log("Invalid parameters specified: " + Arrays.asList(args));
             log("Please use either \"fork\" or \"now\"");
         }
-        
+
         log("");
     }
 
@@ -116,8 +119,8 @@ public class SupportServer implements IntegrationActor {
         log("Running forked");
         String javacmd = new File(new File(System.getProperty("java.home"), "bin"), "java").getAbsolutePath();
 
-        String[] args = new String[] { javacmd, "-cp", System.getProperty("java.class.path"),SupportServer.class.getCanonicalName(), "now" };
-        log("args: "+Arrays.asList(args));
+        String[] args = new String[]{javacmd, "-cp", System.getProperty("java.class.path"), SupportServer.class.getCanonicalName(), "now"};
+        log("args: " + Arrays.asList(args));
         Runtime.getRuntime().exec(args);
     }
 
@@ -136,8 +139,10 @@ public class SupportServer implements IntegrationActor {
     }
 
     private static void truncateLogfile() {
-        try {new FileWriter(logfile(), false).close();}
-        catch (Exception ignore) {}
+        try {
+            new FileWriter(logfile(), false).close();
+        } catch (Exception ignore) {
+        }
     }
 
     private static File logfile() {

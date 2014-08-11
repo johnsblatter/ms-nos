@@ -1,16 +1,5 @@
 package com.workshare.msnos.core;
 
-import java.io.IOException;
-import java.security.SecureRandom;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ScheduledExecutorService;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.workshare.msnos.core.cloud.AgentWatchdog;
 import com.workshare.msnos.core.cloud.AgentsList;
 import com.workshare.msnos.core.cloud.JoinSynchronizer;
@@ -22,6 +11,16 @@ import com.workshare.msnos.core.security.Signer;
 import com.workshare.msnos.soup.json.Json;
 import com.workshare.msnos.soup.threading.ExecutorServices;
 import com.workshare.msnos.soup.time.SystemTime;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.security.SecureRandom;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ScheduledExecutorService;
 
 public class Cloud implements Identifiable {
 
@@ -150,8 +149,8 @@ public class Cloud implements Identifiable {
 
         final Status status = synchronizer.start(agent);
         try {
-            send(new MessageBuilder(Message.Type.PRS, agent, this).sequence(agent.getSeq()).with(new Presence(true)).make());
-            send(new MessageBuilder(Message.Type.DSC, agent, this).sequence(agent.getSeq()).make());
+            send(new MessageBuilder(Message.Type.PRS, agent, this).with(new Presence(true)).make());
+            send(new MessageBuilder(Message.Type.DSC, agent, this).make());
             synchronizer.wait(status);
         } finally {
             synchronizer.remove(status);
@@ -161,7 +160,7 @@ public class Cloud implements Identifiable {
     void onLeave(LocalAgent agent) throws MsnosException {
         checkCloudAlive();
 
-        send(new MessageBuilder(Message.Type.PRS, agent, this).sequence(agent.getSeq()).with(new Presence(false)).make());
+        send(new MessageBuilder(Message.Type.PRS, agent, this).with(new Presence(false)).make());
         log.debug("Local agent left: {}", agent);
         localAgents.remove(agent.getIden());
     }
@@ -186,6 +185,9 @@ public class Cloud implements Identifiable {
             proto.info("RX: {} {} {} {}", message.getType(), message.getFrom(), message.getTo(), message.getData());
 
             boolean processed = message.getData().process(message, internal);
+
+            for (RemoteAgent agent : remoteAgents.list()) agent.setSeq(message.getSeq());
+
             if (!processed)
                 dispatch(message);
         } else {
@@ -193,7 +195,6 @@ public class Cloud implements Identifiable {
         }
 
         remoteAgents.touch(message.getFrom());
-        for (RemoteAgent agent : remoteAgents.list()) agent.setSeq(message.getSeq());
         synchronizer.process(message);
     }
 
@@ -238,7 +239,7 @@ public class Cloud implements Identifiable {
 
     private boolean isOutOfSequence(Message message) {
         for (RemoteAgent remote : getRemoteAgents()) {
-            if (message.getSeq() <= remote.getSeq()) {
+            if (message.getUuid().getLeastSignificantBits() < remote.getSeq()) {
                 return true;
             }
         }
@@ -266,7 +267,7 @@ public class Cloud implements Identifiable {
     public void removeFaultyAgent(RemoteAgent agent) {
         RemoteAgent result = remoteAgents.remove(agent.getIden());
         if (result != null)
-            dispatch(new MessageBuilder(Message.Type.FLT, this, this).with(iden.getUUID()).with(new FltPayload(agent.getIden())).make());
+            dispatch(new MessageBuilder(Message.Type.FLT, this, this).with(new FltPayload(agent.getIden())).make());
     }
 
     public UUID generateNextMessageUUID() {

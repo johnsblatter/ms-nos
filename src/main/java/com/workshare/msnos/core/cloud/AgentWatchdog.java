@@ -44,8 +44,7 @@ public class AgentWatchdog {
             if (agent.getAccessTime() < SystemTime.asMillis() - AGENT_TIMEOUT) {
                 log.debug("- sending ping to {}", agent.toString());
                 try {
-//                    FIXME FIXME FIXME
-                    cloud.send(new MessageBuilder(Message.Type.PIN, cloud, agent).with(agent.getIden().getUUID()).make());
+                    cloud.send(new MessageBuilder(Message.Type.PIN, cloud, agent).make());
                 } catch (IOException e) {
                     log.debug("Unexpected exception pinging agent " + agent, e);
                 }
