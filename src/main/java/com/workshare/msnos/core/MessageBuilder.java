@@ -24,7 +24,6 @@ public class MessageBuilder {
     private String sig = null;
     private String rnd = null;
 
-
     public MessageBuilder(Type type, Cloud from, Identifiable to) {
         this(type, from, to.getIden());
     }
@@ -54,6 +53,11 @@ public class MessageBuilder {
         return this;
     }
 
+    public MessageBuilder with(Payload data) {
+        this.data = data;
+        return this;
+    }
+
     public MessageBuilder with(int hops) {
         this.hops = hops;
         return this;
@@ -61,11 +65,6 @@ public class MessageBuilder {
 
     public MessageBuilder reliable(boolean reliable) {
         this.reliable = reliable;
-        return this;
-    }
-
-    public MessageBuilder with(Payload data) {
-        this.data = data;
         return this;
     }
 
@@ -92,6 +91,7 @@ public class MessageBuilder {
             throw new RuntimeException("Cannot build a message with no source");
         if (to == null)
             throw new RuntimeException("Cannot build a message with no destination");
+
         return new Message(type, from, to, hops, reliable, data, uuid, sig, rnd, seq);
     }
 }

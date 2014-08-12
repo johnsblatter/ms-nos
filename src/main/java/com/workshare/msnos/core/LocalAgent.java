@@ -117,7 +117,7 @@ public class LocalAgent implements Agent {
     private void processDiscovery(Message message) {
         log.debug("Processing discovery: {}", message);
         try {
-            send(new MessageBuilder(Message.Type.PRS, this, cloud).sequence(getSeq()).with(new Presence(true)).make());
+            send(new MessageBuilder(Message.Type.PRS, this, cloud).with(new Presence(true)).make());
         } catch (MsnosException e) {
             log.warn("Could not send message. ", e);
         }
@@ -126,7 +126,7 @@ public class LocalAgent implements Agent {
     private void processPing(Message message) {
         log.debug("Processing ping: {} ", message);
         try {
-            send(new MessageBuilder(Message.Type.PON, this, cloud).sequence(getSeq()).make());
+            send(new MessageBuilder(Message.Type.PON, this, cloud).make());
         } catch (MsnosException e) {
             log.warn("Could not send message. ", e);
         }
