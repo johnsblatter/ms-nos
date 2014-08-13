@@ -4,7 +4,10 @@ import com.workshare.msnos.core.*;
 import com.workshare.msnos.core.Message.Payload;
 import com.workshare.msnos.core.Message.Type;
 import com.workshare.msnos.integration.IntegrationActor.CommandPayload.Command;
-import org.junit.*;
+import org.junit.After;
+import org.junit.BeforeClass;
+import org.junit.FixMethodOrder;
+import org.junit.Test;
 import org.junit.runners.MethodSorters;
 
 import java.util.UUID;
@@ -41,7 +44,6 @@ public class CoreIT implements IntegrationActor {
             return testCloud.getRemoteAgents().size() == 1;
         }
     };
-
     private final Condition NO_AGENTS_IN_CLOUD = new Condition() {
         @Override
         public boolean verified() {
@@ -72,7 +74,6 @@ public class CoreIT implements IntegrationActor {
     public void s01_shouldSeeRemoteJoining() throws Exception {
         sendCommand(AGENT_JOIN);
         assertCondition(ONE_AGENT_IN_CLOUD);
-
     }
 
     @Test
@@ -92,7 +93,6 @@ public class CoreIT implements IntegrationActor {
         sendCommand(SELF_KILL);
         assertCondition(NO_AGENTS_IN_CLOUD);
     }
-
 
     private void assertCondition(final Condition condition) {
         assertTrue(waitForCondition(condition, 5000L));

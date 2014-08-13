@@ -435,7 +435,6 @@ public class CloudTest {
         simulateMessageFromNetwork(message);
 
         assertEquals(0, receivedMessages.size());
-
     }
 
     @Test
@@ -450,11 +449,11 @@ public class CloudTest {
     }
 
     @Test
-    public void shouldUpdateAllRemoteAgentsWhenNewProcessibleMessage() throws Exception {
+    public void shouldUpdateRemoteAgentsWhenNewProcessibleMessage() throws Exception {
         RemoteAgent remoteAgent = mockRemoteWithIden(new Iden(Iden.Type.AGT, UUID.randomUUID()));
         simulateAgentJoiningCloudWithSeq(remoteAgent, 42L);
 
-        Message msg = new MockMessageHelper(APP, SOMEONE, thisCloud.getIden()).sequence(52L).make();
+        Message msg = new MockMessageHelper(APP, remoteAgent.getIden(), thisCloud.getIden()).sequence(52L).make();
         simulateMessageFromNetwork(msg);
 
         assertEquals(Long.valueOf(52L), getRemoteAgent(thisCloud, remoteAgent.getIden()).getSeq());
@@ -470,7 +469,50 @@ public class CloudTest {
         assertEquals(thisCloud.getInstanceID(), getLastMessageSentToCloudListeners().getUuid().getMostSignificantBits());
     }
 
-    private void simulateAgentJoiningCloudWithSeq(RemoteAgent remoteAgent, long seq) {
+    @Test
+    public void shouldDiscardOldSequenceNumbers() throws Exception {
+        RemoteAgent remoteAgent1 = newRemoteAgent(thisCloud);
+        simulateAgentJoiningCloudWithSeq(remoteAgent1, 2L);
+
+        RemoteAgent remoteAgent2 = newRemoteAgent(thisCloud);
+        simulateAgentJoiningCloudWithSeq(remoteAgent2, 102L);
+
+        simulateMessageFromNetwork(new MockMessageHelper(APP, remoteAgent1.getIden(), thisCloud.getIden()).sequence(1).make());
+        simulateMessageFromNetwork(new MockMessageHelper(APP, remoteAgent2.getIden(), thisCloud.getIden()).sequence(101).make());
+
+        assertEquals(Long.valueOf(2), getRemoteAgent(thisCloud, remoteAgent1.getIden()).getSeq());
+        assertEquals(Long.valueOf(102), getRemoteAgent(thisCloud, remoteAgent2.getIden()).getSeq());
+    }
+
+    @Test
+    public void shouldDiscardMessagesSpecificToRemoteAgent() throws Exception {
+        RemoteAgent remoteAgent1 = newRemoteAgent(thisCloud);
+        simulateAgentJoiningCloudWithSeq(remoteAgent1, 102L);
+
+        RemoteAgent remoteAgent2 = newRemoteAgent(thisCloud);
+        simulateAgentJoiningCloudWithSeq(remoteAgent2, 2L);
+
+        receivedMessages.clear();
+
+        simulateMessageFromNetwork(new MockMessageHelper(APP, remoteAgent1.getIden(), thisCloud.getIden()).sequence(101).make());
+        simulateMessageFromNetwork(new MockMessageHelper(APP, remoteAgent2.getIden(), thisCloud.getIden()).sequence(1).make());
+
+        assertEquals(0, receivedMessages.size());
+    }
+
+    @Test
+    public void shouldNOTUpdateSeqOnNotProcessibleMessage() throws Exception {
+        RemoteAgent remoteAgent1 = newRemoteAgent(thisCloud);
+        simulateAgentJoiningCloudWithSeq(remoteAgent1, 102L);
+
+        receivedMessages.clear();
+
+        simulateMessageFromNetwork(new MockMessageHelper(APP, remoteAgent1.getIden(), thisCloud.getIden()).sequence(10).make());
+
+        assertEquals(getRemoteAgent(thisCloud, remoteAgent1.getIden()).getSeq(), Long.valueOf(102L));
+    }
+
+    private void simulateAgentJoiningCloudWithSeq(Agent remoteAgent, long seq) {
         Message message = (new MockMessageHelper(Type.PRS, remoteAgent.getIden(), thisCloud.getIden()).data(new Presence(true)).sequence(seq).make());
         simulateMessageFromNetwork(message);
     }

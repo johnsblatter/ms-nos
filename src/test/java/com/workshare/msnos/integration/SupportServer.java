@@ -89,8 +89,8 @@ public class SupportServer implements IntegrationActor {
     }
 
     public static void main(String[] args) throws Exception {
-
         boolean okay = false;
+
         if (args.length == 1) {
             if ("now".equalsIgnoreCase(args[0])) {
                 okay = true;

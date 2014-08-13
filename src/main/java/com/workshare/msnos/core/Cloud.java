@@ -180,14 +180,13 @@ public class Cloud implements Identifiable {
     }
 
     private void process(Message message) throws IOException {
-
         if (isProcessable(message)) {
             proto.info("RX: {} {} {} {}", message.getType(), message.getFrom(), message.getTo(), message.getData());
 
+            final RemoteAgent remoteAgent = remoteAgents.get(message.getFrom());
+            if (remoteAgent != null) remoteAgent.setSeq(message.getSeq());
+
             boolean processed = message.getData().process(message, internal);
-
-            for (RemoteAgent agent : remoteAgents.list()) agent.setSeq(message.getSeq());
-
             if (!processed)
                 dispatch(message);
         } else {
@@ -238,12 +237,8 @@ public class Cloud implements Identifiable {
     }
 
     private boolean isOutOfSequence(Message message) {
-        for (RemoteAgent remote : getRemoteAgents()) {
-            if (message.getUuid().getLeastSignificantBits() < remote.getSeq()) {
-                return true;
-            }
-        }
-        return false;
+        final RemoteAgent remoteAgent = remoteAgents.get(message.getFrom());
+        return remoteAgent != null && message.getSeq() < remoteAgent.getSeq();
     }
 
     private boolean isCorrectlySigned(Message message) {
