@@ -16,10 +16,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.security.SecureRandom;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ScheduledExecutorService;
 
 public class Cloud implements Identifiable {
@@ -35,6 +32,8 @@ public class Cloud implements Identifiable {
     private final String signid;
     private final AgentsList<LocalAgent> localAgents;
     private final AgentsList<RemoteAgent> remoteAgents;
+    private final Map<Long, Long> instanceMessages;
+
 
     transient private final long instanceID;
     transient private final Set<Gateway> gates;
@@ -69,6 +68,7 @@ public class Cloud implements Identifiable {
         this.iden = new Iden(Iden.Type.CLD, uuid);
         this.localAgents = new AgentsList<LocalAgent>();
         this.remoteAgents = new AgentsList<RemoteAgent>();
+        this.instanceMessages = new HashMap<Long, Long>();
 
         this.caster = multicaster;
         this.gates = gates;
@@ -106,6 +106,10 @@ public class Cloud implements Identifiable {
 
     public long getInstanceID() {
         return instanceID;
+    }
+
+    public Map<Long, Long> getInstanceMessages() {
+        return instanceMessages;
     }
 
     public Collection<RemoteAgent> getRemoteAgents() {
@@ -231,8 +235,21 @@ public class Cloud implements Identifiable {
         return true;
     }
 
-    // FIXME!!!
     private boolean isFromCloudAndStored(Message message) {
+        final long key = message.getUuid().getMostSignificantBits();
+        final long val = message.getUuid().getLeastSignificantBits();
+        final Iden.Type type = message.getFrom().getType();
+
+        if (type == Iden.Type.CLD && !instanceMessages.containsKey(key)) {
+            instanceMessages.put(key, val);
+            return false;
+        } else if (type == Iden.Type.CLD && instanceMessages.containsKey(key) && instanceMessages.get(key) < val) {
+            instanceMessages.put(key, val);
+            return false;
+        } else if (type == Iden.Type.CLD && instanceMessages.containsKey(key) && instanceMessages.get(key) > val) {
+            return true;
+        }
+
         return false;
     }
 

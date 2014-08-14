@@ -512,6 +512,65 @@ public class CloudTest {
         assertEquals(getRemoteAgent(thisCloud, remoteAgent1.getIden()).getSeq(), Long.valueOf(102L));
     }
 
+    @Test
+    public void shouldStoreMessagesFromInstancesNotReceivedBefore() throws Exception {
+        final Cloud mockCloud1 = createMockCloud(thisCloud.getIden().getUUID(), 1);
+        final Cloud mockCloud2 = createMockCloud(thisCloud.getIden().getUUID(), 2);
+
+        simulateMessageFromNetwork(new MessageBuilder(MessageBuilder.Mode.RELAXED, APP, mockCloud1.getIden(), thisCloud.getIden()).with(new UUID(mockCloud1.getInstanceID(), SystemTime.asMillis())).make());
+        simulateMessageFromNetwork(new MessageBuilder(MessageBuilder.Mode.RELAXED, APP, mockCloud2.getIden(), thisCloud.getIden()).with(new UUID(mockCloud2.getInstanceID(), SystemTime.asMillis())).make());
+
+        assertEquals(thisCloud.getInstanceMessages().size(), 2);
+    }
+
+    @Test
+    public void shouldAcceptNewMessageFromAnotherCloud() throws Exception {
+        Message first = simulateMessageFromOtherCloud("ONE", 42, 1);
+        Message secnd = simulateMessageFromOtherCloud("ONE", 99999999, 1);
+
+        assertEquals(receivedMessages.size(), 2);
+        assertTrue(receivedMessages.contains(first));
+        assertTrue(receivedMessages.contains(secnd));
+    }
+
+    @Test
+    public void shouldDiscardOldMessageFromAnotherCloud() throws Exception {
+        Message message = simulateMessageFromOtherCloud("ONE", 99999999, 1);
+        simulateMessageFromOtherCloud("ONE", 42, 1);
+
+        assertEquals(receivedMessages.size(), 1);
+        assertEquals(message, receivedMessages.get(0));
+    }
+
+    @Test
+    public void shouldDiscardOldMessagesFromMultipleOtherClouds() throws Exception {
+        Message fromOne = simulateMessageFromOtherCloud("ONE", 999999, 1);
+        Message fromTwo = simulateMessageFromOtherCloud("TWO", 999999, 2);
+
+        simulateMessageFromOtherCloud("ONE", 42, 1);
+        simulateMessageFromOtherCloud("TWO", 42, 2);
+
+        assertEquals(receivedMessages.size(), 2);
+        assertTrue(receivedMessages.contains(fromOne));
+        assertTrue(receivedMessages.contains(fromTwo));
+    }
+
+    private Message simulateMessageFromOtherCloud(String uuidString, int seq, int instance) {
+        Iden iden = new Iden(Iden.Type.CLD, UUID.nameUUIDFromBytes(uuidString.getBytes()));
+        final Message message = new MessageBuilder(MessageBuilder.Mode.RELAXED, APP, iden, thisCloud.getIden()).with(new UUID(instance, seq)).make();
+        simulateMessageFromNetwork(message);
+
+        return message;
+    }
+
+    private Cloud createMockCloud(UUID uuid, long id) {
+        Cloud testCloud = mock(Cloud.class);
+        Iden iden = new Iden(Iden.Type.CLD, uuid);
+        when(testCloud.getIden()).thenReturn(iden);
+        when(testCloud.getInstanceID()).thenReturn(id);
+        return testCloud;
+    }
+
     private void simulateAgentJoiningCloudWithSeq(Agent remoteAgent, long seq) {
         Message message = (new MockMessageHelper(Type.PRS, remoteAgent.getIden(), thisCloud.getIden()).data(new Presence(true)).sequence(seq).make());
         simulateMessageFromNetwork(message);
