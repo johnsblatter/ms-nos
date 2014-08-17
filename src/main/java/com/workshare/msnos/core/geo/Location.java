@@ -197,9 +197,37 @@ public class Location {
 
     @Override
     public String toString() {
-        return Json.toJsonString(this);
+        return "{\"location\":\""+computeLocationForToString()+"\", \"precision\":"+precision+"}";
     }
     
+    private String computeLocationForToString() {
+        StringBuilder sb = new StringBuilder();
+        if (continent != Place.NOWHERE)
+            appendPlaceForToString(sb, continent.getName());
+        
+        if (country != Place.NOWHERE)
+            appendPlaceForToString(sb, country.getName());
+
+        if (region != Place.NOWHERE)
+            appendPlaceForToString(sb, region.getName());
+
+        if (city != Place.NOWHERE)
+            appendPlaceForToString(sb, city.getName());
+
+        if (sb.length() == 0)
+            sb.append("unknown");
+
+        return sb.toString();
+    }
+
+    private void appendPlaceForToString(StringBuilder sb, String name) {
+        if (sb.length() > 0) {
+            sb.append(", ");
+        }
+            
+        sb.append(name);
+    }
+
     public static Location computeMostPreciseLocation(final Set<Network> networks) {
         LocationFactory locations = LocationFactory.DEFAULT;
         

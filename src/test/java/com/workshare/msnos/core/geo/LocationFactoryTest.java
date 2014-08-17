@@ -63,6 +63,4 @@ public class LocationFactoryTest {
         factory = LocationFactory.DEFAULT;
         database = null;
     }
-    
-
 }

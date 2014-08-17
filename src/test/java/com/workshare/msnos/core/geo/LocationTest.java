@@ -176,6 +176,24 @@ public class LocationTest {
         assertEquals(0, match.value());
     }
     
+    @Test
+    public void shouldToStringNicelyGoodLocation() {
+        Location loc = new Location (response(NORTH_AMERICA, UNITED_STATES, NEW_YORK, SYRACUSE));
+        assertEquals("{\"location\":\"North America, United States, New York, Syracuse\", \"precision\":15}", loc.toString());
+    }
+    
+    @Test
+    public void shouldToStringNicelyDecentLocation() {
+        Location loc = new Location (response(NORTH_AMERICA, UNITED_STATES, null, null));
+        assertEquals("{\"location\":\"North America, United States\", \"precision\":3}", loc.toString());
+    }
+    
+    @Test
+    public void shouldToStringNicelyUnknownLocation() {
+        Location loc = Location.UNKNOWN;
+        assertEquals("{\"location\":\"unknown\", \"precision\":0}", loc.toString());
+    }
+    
     private OmniResponse response(Continent continent) {
         return response(continent, null, null, null);
     }
@@ -225,7 +243,4 @@ public class LocationTest {
         when(region.getName()).thenReturn(name);
         return region;
     }
-    
-
-
 }
