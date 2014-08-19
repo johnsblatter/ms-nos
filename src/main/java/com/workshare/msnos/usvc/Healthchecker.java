@@ -1,10 +1,9 @@
 package com.workshare.msnos.usvc;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.workshare.msnos.usvc.api.RestApi;
 import com.workshare.msnos.usvc.api.RestApi.Type;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.HttpURLConnection;
@@ -48,7 +47,8 @@ public class Healthchecker {
                             handleWellMicroservice(remote);
                         }
                     } catch (IOException e) {
-                        log.error("Unable to health check restApi URL! ", e);
+                        log.error("Unable to health check restApi URL for " + remote);
+                        handleIllMicroservice(remote);
                     } finally {
                         if (connection != null) {
                             connection.disconnect();

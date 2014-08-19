@@ -53,6 +53,16 @@ public class RemoteMicroservice {
     }
 
     @Override
+    public String toString() {
+        return "RemoteMicroservice{" +
+                "agent=" + agent +
+                ", name='" + name + '\'' +
+                ", apis=" + apis +
+                ", location=" + location +
+                '}';
+    }
+
+    @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;

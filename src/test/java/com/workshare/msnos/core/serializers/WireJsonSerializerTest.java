@@ -3,6 +3,7 @@ package com.workshare.msnos.core.serializers;
 import com.workshare.msnos.core.*;
 import com.workshare.msnos.core.cloud.JoinSynchronizer;
 import com.workshare.msnos.core.cloud.Multicaster;
+import com.workshare.msnos.core.payloads.FltPayload;
 import com.workshare.msnos.core.payloads.Presence;
 import com.workshare.msnos.core.payloads.QnePayload;
 import com.workshare.msnos.core.security.Signer;
@@ -155,6 +156,16 @@ public class WireJsonSerializerTest {
         Message decoded = sz.fromBytes(data, Message.class);
 
         assertEquals(SystemTime.asMillis(), decoded.getUuid().getLeastSignificantBits());
+    }
+
+    @Test
+    public void shouldCorrectlyDeserializeFLTMessage() throws Exception {
+        Message source = new MessageBuilder(MessageBuilder.Mode.RELAXED, Message.Type.FLT, cloud.getIden(), cloud.getIden()).with(new FltPayload(agent.getIden())).with(UUID.randomUUID()).sequence(23).make();
+
+        byte[] data = sz.toBytes(source);
+        Message decoded = sz.fromBytes(data, Message.class);
+
+        assertEquals(source.getData(), decoded.getData());
     }
 
     private void fakeSystemTime(final long time) {

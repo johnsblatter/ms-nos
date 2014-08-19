@@ -1,40 +1,6 @@
 package com.workshare.msnos.usvc;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.atLeastOnce;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ScheduledExecutorService;
-
-import org.junit.After;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Mockito;
-
-import com.workshare.msnos.core.Agent;
-import com.workshare.msnos.core.Cloud;
-import com.workshare.msnos.core.Gateway;
-import com.workshare.msnos.core.Iden;
-import com.workshare.msnos.core.Identifiable;
-import com.workshare.msnos.core.Message;
-import com.workshare.msnos.core.MessageBuilder;
-import com.workshare.msnos.core.MockMessageHelper;
-import com.workshare.msnos.core.Receipt;
-import com.workshare.msnos.core.RemoteAgent;
+import com.workshare.msnos.core.*;
 import com.workshare.msnos.core.cloud.JoinSynchronizer;
 import com.workshare.msnos.core.cloud.Multicaster;
 import com.workshare.msnos.core.payloads.FltPayload;
@@ -44,6 +10,20 @@ import com.workshare.msnos.core.security.Signer;
 import com.workshare.msnos.soup.time.SystemTime;
 import com.workshare.msnos.usvc.api.RestApi;
 import com.workshare.msnos.usvc.api.routing.strategies.CachingRoutingStrategy;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mockito;
+
+import java.io.IOException;
+import java.util.*;
+import java.util.concurrent.ScheduledExecutorService;
+
+import static org.junit.Assert.*;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.*;
 
 @SuppressWarnings("unused")
 public class MicroserviceTest {
@@ -291,6 +271,15 @@ public class MicroserviceTest {
         assertNull(localMicroservice.searchApiById(1033l));
     }
 
+    @Test
+    public void shouldNOTAddMicroserviceToRemoteuServiceListIfPresent() throws Exception {
+        UUID uuid = new UUID(11, 22);
+        setupRemoteMicroserviceWithUUID("24.24.24.24", "content", "/files", uuid);
+        setupRemoteMicroserviceWithUUID("24.24.24.24", "content", "/files", uuid);
+
+        assertEquals(1, localMicroservice.getMicroServices().size());
+    }
+
     private RestApi[] getRestApis(RemoteMicroservice ms1) {
         Set<RestApi> apiSet = ms1.getApis();
         return apiSet.toArray(new RestApi[apiSet.size()]);
@@ -333,6 +322,14 @@ public class MicroserviceTest {
 
     private RemoteMicroservice setupRemoteMicroservice(String host, String name, String endpoint) {
         RemoteAgent agent = newRemoteAgent();
+        RestApi restApi = new RestApi(name, endpoint, 9999).onHost(host);
+        RemoteMicroservice remote = new RemoteMicroservice(name, agent, toSet(restApi));
+        return addRemoteAgentToCloudListAndMicroserviceToLocalList(name, remote, restApi);
+
+    }
+
+    private RemoteMicroservice setupRemoteMicroserviceWithUUID(String host, String name, String endpoint, UUID uuid) {
+        RemoteAgent agent = newRemoteAgentWithUUID(uuid);
         RestApi restApi = new RestApi(name, endpoint, 9999).onHost(host);
         RemoteMicroservice remote = new RemoteMicroservice(name, agent, toSet(restApi));
         return addRemoteAgentToCloudListAndMicroserviceToLocalList(name, remote, restApi);
@@ -402,6 +399,10 @@ public class MicroserviceTest {
 
     private RemoteAgent newRemoteAgent() {
         return newRemoteAgent(UUID.randomUUID());
+    }
+
+    private RemoteAgent newRemoteAgentWithUUID(UUID uuid) {
+        return newRemoteAgent(uuid);
     }
 
     private RemoteAgent newRemoteAgent(final UUID uuid, Network... hosts) {

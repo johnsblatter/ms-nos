@@ -3,10 +3,7 @@ package com.workshare.msnos.core.serializers;
 import com.google.gson.*;
 import com.workshare.msnos.core.*;
 import com.workshare.msnos.core.Message.Payload;
-import com.workshare.msnos.core.payloads.GenericPayload;
-import com.workshare.msnos.core.payloads.NullPayload;
-import com.workshare.msnos.core.payloads.Presence;
-import com.workshare.msnos.core.payloads.QnePayload;
+import com.workshare.msnos.core.payloads.*;
 import com.workshare.msnos.soup.json.Json;
 import com.workshare.msnos.soup.json.ThreadSafeGson;
 import org.slf4j.Logger;
@@ -104,6 +101,7 @@ public class WireJsonSerializer implements WireSerializer {
         }
     };
 
+
     private static final JsonSerializer<LocalAgent> ENC_AGENT = new JsonSerializer<LocalAgent>() {
         @Override
         public JsonElement serialize(LocalAgent agent, Type typeof, JsonSerializationContext context) {
@@ -192,6 +190,9 @@ public class WireJsonSerializer implements WireSerializer {
                         break;
                     case QNE:
                         data = (Payload) Json.fromJsonTree(dataJson, QnePayload.class);
+                        break;
+                    case FLT:
+                        data = new FltPayload(context.<Iden>deserialize(dataJson.getAsJsonObject().get("about"), Iden.class));
                         break;
                     default:
                         data = (dataJson == null ? NullPayload.INSTANCE : new GenericPayload(dataJson));

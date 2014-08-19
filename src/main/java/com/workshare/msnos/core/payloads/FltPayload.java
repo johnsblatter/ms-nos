@@ -28,6 +28,21 @@ public class FltPayload implements Message.Payload {
     }
 
     @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        FltPayload that = (FltPayload) o;
+
+        return !(about != null ? !about.equals(that.about) : that.about != null);
+    }
+
+    @Override
+    public int hashCode() {
+        return about != null ? about.hashCode() : 0;
+    }
+
+    @Override
     public boolean process(Message message, Internal internal) {
         return false;
     }

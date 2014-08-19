@@ -4,6 +4,7 @@ import com.workshare.msnos.core.*;
 import com.workshare.msnos.core.geo.Location;
 import com.workshare.msnos.core.payloads.FltPayload;
 import com.workshare.msnos.core.payloads.QnePayload;
+import com.workshare.msnos.soup.json.Json;
 import com.workshare.msnos.soup.threading.ExecutorServices;
 import com.workshare.msnos.usvc.api.RestApi;
 import com.workshare.msnos.usvc.api.routing.ApiRepository;
@@ -27,7 +28,6 @@ public class Microservice {
     private final Location location;
 
     private Cloud cloud;
-
 
     public Microservice(String name) {
         this(name, new LocalAgent(UUID.randomUUID()), ExecutorServices.newSingleThreadScheduledExecutor());
@@ -125,7 +125,10 @@ public class Microservice {
         String name = qnePayload.getName();
         RemoteMicroservice remote = new RemoteMicroservice(name, remoteAgent, new HashSet<RestApi>(qnePayload.getApis()));
 
-        microServices.add(remote);
+        if (!microServices.contains(remote)) {
+            microServices.add(remote);
+        }
+
         apis.register(remote);
     }
 
@@ -147,6 +150,11 @@ public class Microservice {
 
     public RestApi searchApi(String name, String path) throws Exception {
         return apis.searchApi(this, name, path);
+    }
+
+    @Override
+    public String toString() {
+        return Json.toJsonString(agent);
     }
 
     @Override
