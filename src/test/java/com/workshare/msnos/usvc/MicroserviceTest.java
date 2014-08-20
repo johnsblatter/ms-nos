@@ -272,12 +272,21 @@ public class MicroserviceTest {
     }
 
     @Test
-    public void shouldNOTAddMicroserviceToRemoteuServiceListIfPresent() throws Exception {
+    public void shouldUpdateMicroserviceIfPresent() throws Exception {
         UUID uuid = new UUID(11, 22);
-        setupRemoteMicroserviceWithUUID("24.24.24.24", "content", "/files", uuid);
-        setupRemoteMicroserviceWithUUID("24.24.24.24", "content", "/files", uuid);
+        RemoteMicroservice remoteMicroservice = setupRemoteMicroserviceWithAgentUUIDAndRestApi("24.24.24.24", "content", "/files", uuid, createRestApi("content", "/files"));
+        setupRemoteMicroserviceWithAgentUUIDAndRestApi("24.24.24.24", "content", "/files", uuid, createRestApi("content", "/healthcheck"));
 
         assertEquals(1, localMicroservice.getMicroServices().size());
+        assertEquals(2, getApis(remoteMicroservice).size());
+    }
+
+    private RestApi createRestApi(String name, String endpoint) {
+        return new RestApi(name, endpoint, 9999).onHost("24.24.24.24");
+    }
+
+    private Set<RestApi> getApis(RemoteMicroservice remoteMicroservice) {
+        return localMicroservice.getMicroServices().get(localMicroservice.getMicroServices().indexOf(remoteMicroservice)).getApis();
     }
 
     private RestApi[] getRestApis(RemoteMicroservice ms1) {
@@ -328,9 +337,8 @@ public class MicroserviceTest {
 
     }
 
-    private RemoteMicroservice setupRemoteMicroserviceWithUUID(String host, String name, String endpoint, UUID uuid) {
+    private RemoteMicroservice setupRemoteMicroserviceWithAgentUUIDAndRestApi(String host, String name, String endpoint, UUID uuid, RestApi restApi) {
         RemoteAgent agent = newRemoteAgentWithUUID(uuid);
-        RestApi restApi = new RestApi(name, endpoint, 9999).onHost(host);
         RemoteMicroservice remote = new RemoteMicroservice(name, agent, toSet(restApi));
         return addRemoteAgentToCloudListAndMicroserviceToLocalList(name, remote, restApi);
 

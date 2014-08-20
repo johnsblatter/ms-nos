@@ -12,6 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ScheduledExecutorService;
 
@@ -23,7 +24,7 @@ public class Microservice {
     private final LocalAgent agent;
     private final Healthchecker healthcheck;
     private final List<RestApi> localApis;
-    private final List<RemoteMicroservice> microServices;
+    private final Map<Iden, RemoteMicroservice> microServices;
     private final ApiRepository apis;
     private final Location location;
 
@@ -42,7 +43,7 @@ public class Microservice {
         this.agent = agent;
 
         this.localApis = new CopyOnWriteArrayList<RestApi>();
-        this.microServices = new CopyOnWriteArrayList<RemoteMicroservice>();
+        this.microServices = new ConcurrentHashMap<Iden, RemoteMicroservice>();
         this.healthcheck = new Healthchecker(this, executor);
         this.apis = new ApiRepository();
         this.location = Location.computeMostPreciseLocation(agent.getHosts());
@@ -59,7 +60,15 @@ public class Microservice {
     }
 
     public List<RemoteMicroservice> getMicroServices() {
-        return Collections.unmodifiableList(microServices);
+        return Collections.unmodifiableList(new ArrayList<RemoteMicroservice>(microServices.values()));
+    }
+
+    public RestApi searchApiById(long id) throws Exception {
+        return apis.searchApiById(id);
+    }
+
+    public RestApi searchApi(String name, String path) throws Exception {
+        return apis.searchApi(this, name, path);
     }
 
     public void join(Cloud nimbus) throws MsnosException {
@@ -122,34 +131,26 @@ public class Microservice {
             }
         }
 
-        String name = qnePayload.getName();
-        RemoteMicroservice remote = new RemoteMicroservice(name, remoteAgent, new HashSet<RestApi>(qnePayload.getApis()));
-
-        if (!microServices.contains(remote)) {
-            microServices.add(remote);
+        if (remoteAgent != null) {
+            RemoteMicroservice remote;
+            Iden remoteKey = remoteAgent.getIden();
+            if (microServices.containsKey(remoteKey)) {
+                remote = microServices.get(remoteKey);
+                remote.addApis(qnePayload.getApis());
+            } else {
+                remote = new RemoteMicroservice(qnePayload.getName(), remoteAgent, new HashSet<RestApi>(qnePayload.getApis()));
+                microServices.put(remoteKey, remote);
+            }
+            apis.register(remote);
         }
-
-        apis.register(remote);
     }
 
     private void processFault(Message message) {
-        FltPayload fault = (FltPayload) message.getData();
-        for (int i = 0; i < microServices.size(); i++) {
-            if (microServices.get(i).getAgent().getIden().equals(fault.getAbout())) {
-                RemoteMicroservice faulty = microServices.get(i);
-                microServices.remove(faulty);
-                apis.unregister(faulty);
-                break;
-            }
+        Iden about = ((FltPayload) message.getData()).getAbout();
+        if (microServices.containsKey(about)) {
+            apis.unregister(microServices.get(about));
+            microServices.remove(about);
         }
-    }
-
-    public RestApi searchApiById(long id) throws Exception {
-        return apis.searchApiById(id);
-    }
-
-    public RestApi searchApi(String name, String path) throws Exception {
-        return apis.searchApi(this, name, path);
     }
 
     @Override

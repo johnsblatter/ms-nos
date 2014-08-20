@@ -1,12 +1,12 @@
 package com.workshare.msnos.usvc;
 
-import java.util.HashSet;
-import java.util.Set;
-
 import com.workshare.msnos.core.RemoteAgent;
 import com.workshare.msnos.core.geo.Location;
 import com.workshare.msnos.core.protocols.ip.Network;
 import com.workshare.msnos.usvc.api.RestApi;
+
+import java.util.HashSet;
+import java.util.Set;
 
 public class RemoteMicroservice {
 
@@ -34,6 +34,12 @@ public class RemoteMicroservice {
             }
         }
         return result;
+    }
+
+    public void addApis(Set<RestApi> restApis) {
+        synchronized (apis) {
+            apis.addAll(ensureHostIsPresent(restApis));
+        }
     }
 
     public String getName() {
@@ -73,7 +79,6 @@ public class RemoteMicroservice {
     @Override
     public int hashCode() {
         int result = name.hashCode();
-        result = 31 * result + apis.hashCode();
         result = 31 * result + agent.hashCode();
         result = 31 * result + name.hashCode();
         return result;
