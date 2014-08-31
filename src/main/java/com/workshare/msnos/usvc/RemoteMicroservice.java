@@ -83,4 +83,17 @@ public class RemoteMicroservice {
         result = 31 * result + name.hashCode();
         return result;
     }
+
+    public void markWorking() {
+        agent.touch();
+        for (RestApi rest : getApis()) {
+            rest.markWorking();
+        }
+    }
+
+    public void markFaulty() {
+        for (RestApi rest : getApis()) {
+            rest.markFaulty();
+        }
+    }
 }

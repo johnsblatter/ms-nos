@@ -42,13 +42,13 @@ public class Healthchecker {
                         connection.setRequestMethod("HEAD");
                         int responseCode = connection.getResponseCode();
                         if (responseCode != 200) {
-                            handleIllMicroservice(remote);
+                            remote.markFaulty();
                         } else {
-                            handleWellMicroservice(remote);
+                            remote.markWorking();
                         }
                     } catch (IOException e) {
                         log.error("Unable to health check restApi URL for " + remote);
-                        handleIllMicroservice(remote);
+                        remote.markFaulty();
                     } finally {
                         if (connection != null) {
                             connection.disconnect();
@@ -56,18 +56,6 @@ public class Healthchecker {
                     }
                 }
             }
-        }
-    }
-
-    private void handleIllMicroservice(RemoteMicroservice remote) {
-        for (RestApi rest : remote.getApis()) {
-            rest.markFaulty();
-        }
-    }
-
-    private void handleWellMicroservice(RemoteMicroservice remote) {
-        for (RestApi rest : remote.getApis()) {
-            rest.markWorking();
         }
     }
 }

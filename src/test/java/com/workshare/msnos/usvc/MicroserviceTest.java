@@ -28,6 +28,8 @@ import static org.mockito.Mockito.*;
 @SuppressWarnings("unused")
 public class MicroserviceTest {
 
+    private static final long CURRENT_TIME = 12345L;
+    
     private Cloud cloud;
     private Microservice localMicroservice;
 
@@ -41,10 +43,11 @@ public class MicroserviceTest {
         cloud = Mockito.mock(Cloud.class);
         when(cloud.getIden()).thenReturn(new Iden(Iden.Type.CLD, new UUID(111, 111)));
         when(cloud.generateNextMessageUUID()).thenReturn(UUID.randomUUID());
-
-        localMicroservice = getLocalMicroservice();
-
-        fakeSystemTime(12345L);
+        
+        localMicroservice = new Microservice("fluffy");
+        localMicroservice.join(cloud);
+        
+        fakeSystemTime(CURRENT_TIME);
     }
 
     @After
@@ -229,7 +232,7 @@ public class MicroserviceTest {
     // FIXME  // TODO
     public void shouldFollowSelectionAlgorithmWhenRestApiMarkedAsFaulty() throws Exception {
         setupRemoteMicroserviceWithMultipleRestAPIs("25.25.25.25", "15.15.10.1", "content", "/files");
-        setupRemoteMicroserviceWithHost("10.10.10.10", "content", "/files");
+        setupRemoteMicroservice("10.10.10.10", "content", "/files");
 
         RestApi result1 = localMicroservice.searchApi("content", "/files");
         result1.markFaulty();
@@ -281,6 +284,17 @@ public class MicroserviceTest {
         assertEquals(2, getApis(remoteMicroservice).size());
     }
 
+    @Test
+    public void shouldMarkWorkingTouchTheUnderlyingAgent() throws Exception {
+        RemoteMicroservice service = setupRemoteMicroservice("content", "/files");
+
+        final long now = 987654L;
+        fakeSystemTime(now);
+        service.markWorking();
+
+        assertEquals(now, service.getAgent().getAccessTime());
+    }
+    
     private RestApi createRestApi(String name, String endpoint) {
         return new RestApi(name, endpoint, 9999).onHost("24.24.24.24");
     }
@@ -306,16 +320,6 @@ public class MicroserviceTest {
 
     private void assertAgentInMicroserviceList(Agent remoteAgent) {
         assertEquals(remoteAgent, localMicroservice.getMicroServices().iterator().next().getAgent());
-    }
-
-    private Microservice getLocalMicroservice() throws IOException {
-        Microservice uService1 = new Microservice("fluffy");
-        uService1.join(cloud);
-        return uService1;
-    }
-
-    private RemoteMicroservice setupRemoteMicroserviceWithHost(String host, String name, String endpoint) {
-        return setupRemoteMicroservice(host, name, endpoint);
     }
 
     private RemoteMicroservice setupRemoteMicroservice(String name, String endpoint) throws IOException {
