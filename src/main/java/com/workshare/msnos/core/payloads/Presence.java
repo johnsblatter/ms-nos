@@ -1,58 +1,46 @@
 package com.workshare.msnos.core.payloads;
 
-import com.workshare.msnos.core.Cloud;
-import com.workshare.msnos.core.Iden;
-import com.workshare.msnos.core.Message;
-import com.workshare.msnos.core.Message.Payload;
-import com.workshare.msnos.core.RemoteAgent;
-import com.workshare.msnos.core.protocols.ip.Network;
-import com.workshare.msnos.soup.json.Json;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.UUID;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.net.NetworkInterface;
-import java.net.SocketException;
-import java.util.Enumeration;
-import java.util.HashSet;
-import java.util.Set;
+import com.workshare.msnos.core.Cloud;
+import com.workshare.msnos.core.Gateways;
+import com.workshare.msnos.core.Iden;
+import com.workshare.msnos.core.LocalAgent;
+import com.workshare.msnos.core.Message;
+import com.workshare.msnos.core.Message.Payload;
+import com.workshare.msnos.core.MsnosException;
+import com.workshare.msnos.core.RemoteAgent;
+import com.workshare.msnos.core.protocols.ip.Endpoint;
+import com.workshare.msnos.soup.json.Json;
 
 public class Presence implements Message.Payload {
 
     private static Logger log = LoggerFactory.getLogger(Presence.class);
 
     private final boolean present;
-    private final Set<Network> networks;
+    private final Set<Endpoint> endpoints;
 
-    public Presence(boolean present) {
-        this(present, present ? getAllNetworks() : new HashSet<Network>());
+    Presence(boolean present, Set<Endpoint> endpoints) {
+        this.present = present;
+        this.endpoints = endpoints;
+        log.trace(present ? "Presence message created: {}" : "Absence message created: {}", this);
     }
 
-    Presence(boolean present, Set<Network> networks) {
-        this.present = present;
-        this.networks = networks;
-        log.trace(present ? "Presence message created: {}" : "Absence message created: {}", this);
+    public Presence(boolean present) throws MsnosException {
+        this(present, present ? Gateways.endpoints() : new HashSet<Endpoint>());
     }
 
     public boolean isPresent() {
         return present;
     }
 
-    private static Set<Network> getAllNetworks() {
-        Set<Network> nets = new HashSet<Network>();
-        try {
-            Enumeration<NetworkInterface> nics = NetworkInterface.getNetworkInterfaces();
-            while (nics.hasMoreElements()) {
-                NetworkInterface nic = nics.nextElement();
-                nets.addAll(Network.list(nic, true));
-            }
-        } catch (SocketException e) {
-            log.error("Socket Exception getting NIC info", e);
-        }
-        return nets;
-    }
-
-    public Set<Network> getNetworks() {
-        return networks;
+    public Set<Endpoint> getEndpoints() {
+        return endpoints;
     }
 
     @Override
@@ -62,17 +50,16 @@ public class Presence implements Message.Payload {
 
     @Override
     public Message.Payload[] split() {
-        Set<Network> netOne = new HashSet<Network>();
-        Set<Network> netTwo = new HashSet<Network>();
+        Set<Endpoint> netOne = new HashSet<Endpoint>();
+        Set<Endpoint> netTwo = new HashSet<Endpoint>();
 
         int i = 0;
-        for (Network net : networks) {
+        for (Endpoint ep : endpoints) {
             if (i++ % 2 == 0)
-                netOne.add(net);
+                netOne.add(ep);
             else
-                netTwo.add(net);
+                netTwo.add(ep);
         }
-
 
         return new Payload[]{
                 new Presence(present, netOne),
@@ -84,7 +71,7 @@ public class Presence implements Message.Payload {
     public int hashCode() {
         final int prime = 31;
         int result = 1;
-        result = prime * result + networks.hashCode();
+        result = prime * result + endpoints.hashCode();
         result = prime * result + (present ? 1231 : 1237);
         return result;
     }
@@ -93,7 +80,7 @@ public class Presence implements Message.Payload {
     public boolean equals(Object obj) {
         try {
             Presence other = (Presence) obj;
-            return networks.equals(other.networks) && present == other.present;
+            return endpoints.equals(other.endpoints) && present == other.present;
         } catch (Exception any) {
             return false;
         }
@@ -103,7 +90,7 @@ public class Presence implements Message.Payload {
     public boolean process(Message message, Cloud.Internal internal) {
         Iden from = message.getFrom();
 
-        RemoteAgent agent = new RemoteAgent(from.getUUID(), internal.cloud(), getNetworks());
+        RemoteAgent agent = new RemoteAgent(from.getUUID(), internal.cloud(), getEndpoints());
         agent.setSeq(message.getSeq());
 
         if (isPresent()) {
@@ -117,5 +104,8 @@ public class Presence implements Message.Payload {
         return true;
     }
 
+    public static Presence on(LocalAgent agent) {
+        return new Presence(true, agent.getEndpoints());
+    }
 
 }

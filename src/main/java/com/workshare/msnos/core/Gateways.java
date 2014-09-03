@@ -14,6 +14,7 @@ import org.apache.log4j.Logger;
 
 import com.workshare.msnos.core.Gateway.Listener;
 import com.workshare.msnos.core.MsnosException.Code;
+import com.workshare.msnos.core.protocols.ip.Endpoint;
 import com.workshare.msnos.core.protocols.ip.MulticastSocketFactory;
 import com.workshare.msnos.core.protocols.ip.udp.UDPGateway;
 import com.workshare.msnos.core.protocols.ip.udp.UDPServer;
@@ -41,6 +42,15 @@ public class Gateways {
 		}
 		
 		return all;
+	}
+	
+	public synchronized static Set<Endpoint> endpoints() throws MsnosException {
+        HashSet<Endpoint> points = new HashSet<Endpoint>();
+	    for (Gateway gate : all()) {
+            points.addAll(gate.endpoints().all());
+        }
+	    
+	    return points;
 	}
 
     private static void addGateway(final Gateway gateway) {

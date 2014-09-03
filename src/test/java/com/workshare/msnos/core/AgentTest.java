@@ -1,25 +1,27 @@
 package com.workshare.msnos.core;
 
-import com.workshare.msnos.core.payloads.Presence;
-import com.workshare.msnos.core.protocols.ip.Network;
-import com.workshare.msnos.soup.time.SystemTime;
+import static com.workshare.msnos.core.Message.Type.PIN;
+import static com.workshare.msnos.core.Message.Type.PON;
+import static com.workshare.msnos.core.Message.Type.PRS;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.io.IOException;
+import java.util.UUID;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
-import java.io.IOException;
-import java.net.NetworkInterface;
-import java.net.SocketException;
-import java.util.Enumeration;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.UUID;
-
-import static com.workshare.msnos.core.Message.Type.*;
-import static org.junit.Assert.*;
-import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.*;
+import com.workshare.msnos.core.payloads.Presence;
+import com.workshare.msnos.soup.time.SystemTime;
 
 public class AgentTest {
 
@@ -99,7 +101,7 @@ public class AgentTest {
 
     @Test
     public void presenceMessageShouldContainNetworkInfo() throws Exception {
-        smith.send(new MessageBuilder(Message.Type.PRS, smith, cloud).sequence(12).with(new Presence(true)).make());
+        smith.send(new MessageBuilder(Message.Type.PRS, smith, cloud).sequence(12).with(Presence.on(smith)).make());
 
         Message message = getLastMessageToCloud();
 
@@ -107,8 +109,8 @@ public class AgentTest {
         assertEquals(smith.getIden(), message.getFrom());
         assertEquals(PRS, message.getType());
 
-        assertNotNull(((Presence) message.getData()).getNetworks());
-        assertEquals(((Presence) message.getData()).getNetworks(), getNetworks());
+        assertNotNull(((Presence) message.getData()).getEndpoints());
+        assertEquals(((Presence) message.getData()).getEndpoints(), smith.getEndpoints());
     }
 
     @Test
@@ -138,9 +140,9 @@ public class AgentTest {
     }
 
     @Test
-    public void agentShouldStoreNetworkInformationAfterJoin() throws Exception {
+    public void agentShouldStoreEndpointsInformationAfterJoin() throws Exception {
         smith.join(cloud);
-        assertEquals(new Presence(true).getNetworks(), smith.getHosts());
+        assertEquals(Gateways.endpoints(), smith.getEndpoints());
     }
 
     @Test
@@ -168,20 +170,5 @@ public class AgentTest {
                 return time;
             }
         });
-    }
-
-    private static Set<Network> getNetworks() throws SocketException {
-        Set<Network> nets = new HashSet<Network>();
-        try {
-            Enumeration<NetworkInterface> nics = NetworkInterface.getNetworkInterfaces();
-            while (nics.hasMoreElements()) {
-                NetworkInterface nic = nics.nextElement();
-                nets.addAll(Network.list(nic, true));
-            }
-        } catch (SocketException e) {
-            System.out.println("AgentTest.getNetworks" + e);
-            throw e;
-        }
-        return nets;
     }
 }

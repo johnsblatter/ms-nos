@@ -1,12 +1,12 @@
 package com.workshare.msnos.core;
 
-import com.workshare.msnos.core.protocols.ip.Network;
-import com.workshare.msnos.soup.json.Json;
-import com.workshare.msnos.soup.time.SystemTime;
-
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
+
+import com.workshare.msnos.core.protocols.ip.Endpoint;
+import com.workshare.msnos.soup.json.Json;
+import com.workshare.msnos.soup.time.SystemTime;
 
 public class RemoteAgent implements Agent {
 
@@ -14,14 +14,14 @@ public class RemoteAgent implements Agent {
     private final Cloud cloud;
 
     private AtomicLong seq;
-    private Set<Network> hosts;
+    private Set<Endpoint> endpoints;
     private long accessTime;
 
 
-    public RemoteAgent(UUID uuid, Cloud cloud, Set<Network> networks) {
+    public RemoteAgent(UUID uuid, Cloud cloud, Set<Endpoint> endpoints) {
         this.iden = new Iden(Iden.Type.AGT, uuid);
         this.cloud = cloud;
-        this.hosts = networks;
+        this.endpoints = endpoints;
         this.seq = new AtomicLong();
     }
 
@@ -50,8 +50,8 @@ public class RemoteAgent implements Agent {
     }
 
     @Override
-    public Set<Network> getHosts() {
-        return hosts;
+    public Set<Endpoint> getEndpoints() {
+        return endpoints;
     }
 
     @Override

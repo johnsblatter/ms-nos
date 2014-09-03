@@ -16,7 +16,7 @@ public class Message {
         public boolean process(Message message, Cloud.Internal internal);
     }
 
-    public enum Status {UNKNOWN, PENDING, DELIVERED}
+    public enum Status {UNKNOWN, PENDING, DELIVERED, FAILED}
 
     public enum Type {PRS, DSC, APP, PIN, PON, ACK, ENQ, FLT, QNE}
 

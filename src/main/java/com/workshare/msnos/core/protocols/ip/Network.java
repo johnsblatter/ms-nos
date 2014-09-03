@@ -2,19 +2,23 @@ package com.workshare.msnos.core.protocols.ip;
 
 import java.net.InterfaceAddress;
 import java.net.NetworkInterface;
+import java.net.SocketException;
+import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /** 
- * A simplified view of an IP network
- * 
- * @author bossola
- *
+ * A simplified view of an IP on a Network
  */
 public class Network {
 
-	private final byte[] address;
+    private static Logger log = LoggerFactory.getLogger(Network.class);
+
+    private final byte[] address;
 	private final short prefix;
 
 	public Network(byte[] address, short prefix) {
@@ -99,6 +103,20 @@ public class Network {
         } catch (Exception ignore) {
             return false;
         }
+    }
+
+    public static Set<Network> listAll(boolean ipv4only) {
+        Set<Network> nets = new HashSet<Network>();
+        try {
+            Enumeration<NetworkInterface> nics = NetworkInterface.getNetworkInterfaces();
+            while (nics.hasMoreElements()) {
+                NetworkInterface nic = nics.nextElement();
+                nets.addAll(list(nic, ipv4only));
+            }
+        } catch (SocketException e) {
+            log.error("Socket Exception getting NIC info", e);
+        }
+        return nets;
     }
 
     public static Set<Network> list(NetworkInterface nic, boolean ipv4Only) {

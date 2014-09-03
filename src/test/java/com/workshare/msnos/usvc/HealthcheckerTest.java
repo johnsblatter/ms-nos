@@ -1,28 +1,42 @@
 package com.workshare.msnos.usvc;
 
-import com.sun.net.httpserver.HttpContext;
-import com.sun.net.httpserver.HttpExchange;
-import com.sun.net.httpserver.HttpHandler;
-import com.sun.net.httpserver.HttpServer;
-import com.workshare.msnos.core.*;
-import com.workshare.msnos.core.payloads.QnePayload;
-import com.workshare.msnos.core.protocols.ip.Network;
-import com.workshare.msnos.soup.time.SystemTime;
-import com.workshare.msnos.usvc.api.RestApi;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyInt;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.util.*;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.*;
+import com.sun.net.httpserver.HttpContext;
+import com.sun.net.httpserver.HttpExchange;
+import com.sun.net.httpserver.HttpHandler;
+import com.sun.net.httpserver.HttpServer;
+import com.workshare.msnos.core.Cloud;
+import com.workshare.msnos.core.Iden;
+import com.workshare.msnos.core.Message;
+import com.workshare.msnos.core.MockMessageHelper;
+import com.workshare.msnos.core.RemoteAgent;
+import com.workshare.msnos.core.payloads.QnePayload;
+import com.workshare.msnos.core.protocols.ip.Endpoint;
+import com.workshare.msnos.soup.time.SystemTime;
+import com.workshare.msnos.usvc.api.RestApi;
 
 @SuppressWarnings("restriction")
 public class HealthcheckerTest {
@@ -143,7 +157,7 @@ public class HealthcheckerTest {
     }
 
     private RemoteAgent newRemoteAgent() {
-        RemoteAgent remote = new RemoteAgent(UUID.randomUUID(), cloud, Collections.<Network>emptySet());
+        RemoteAgent remote = new RemoteAgent(UUID.randomUUID(), cloud, Collections.<Endpoint>emptySet());
         putRemoteAgentInCloudAgentsList(remote);
         return remote;
     }

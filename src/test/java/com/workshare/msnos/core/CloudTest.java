@@ -1,17 +1,38 @@
 package com.workshare.msnos.core;
 
-import com.workshare.msnos.core.Message.Status;
-import com.workshare.msnos.core.Message.Type;
-import com.workshare.msnos.core.cloud.JoinSynchronizer;
-import com.workshare.msnos.core.cloud.Multicaster;
-import com.workshare.msnos.core.payloads.FltPayload;
-import com.workshare.msnos.core.payloads.Presence;
-import com.workshare.msnos.core.protocols.ip.Network;
-import com.workshare.msnos.core.security.KeysStore;
-import com.workshare.msnos.core.security.Signer;
-import com.workshare.msnos.soup.json.Json;
-import com.workshare.msnos.soup.time.NTPClient;
-import com.workshare.msnos.soup.time.SystemTime;
+import static com.workshare.msnos.core.Message.Type.APP;
+import static com.workshare.msnos.core.Message.Type.FLT;
+import static com.workshare.msnos.core.Message.Type.PIN;
+import static com.workshare.msnos.core.Message.Type.PRS;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyInt;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -19,16 +40,18 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 import org.mockito.Mockito;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.*;
-import java.util.concurrent.*;
-
-import static com.workshare.msnos.core.Message.Type.*;
-import static org.junit.Assert.*;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyInt;
-import static org.mockito.Mockito.*;
+import com.workshare.msnos.core.Message.Status;
+import com.workshare.msnos.core.Message.Type;
+import com.workshare.msnos.core.cloud.JoinSynchronizer;
+import com.workshare.msnos.core.cloud.Multicaster;
+import com.workshare.msnos.core.payloads.FltPayload;
+import com.workshare.msnos.core.payloads.Presence;
+import com.workshare.msnos.core.protocols.ip.Endpoint;
+import com.workshare.msnos.core.security.KeysStore;
+import com.workshare.msnos.core.security.Signer;
+import com.workshare.msnos.soup.json.Json;
+import com.workshare.msnos.soup.time.NTPClient;
+import com.workshare.msnos.soup.time.SystemTime;
 
 
 public class CloudTest {
@@ -322,7 +345,7 @@ public class CloudTest {
     }
 
     @Test
-    public void shouldRemoveAgentsThatDoNOTRespondToPing() {
+    public void shouldRemoveAgentsThatDoNOTRespondToPing() throws Exception {
         fakeSystemTime(0L);
         RemoteAgent remoteAgent = newRemoteAgent(thisCloud);
         simulateAgentJoiningCloud(remoteAgent, thisCloud);
@@ -354,7 +377,7 @@ public class CloudTest {
         Presence presence = (Presence) simulateAgentJoiningCloud(remoteFrank, thisCloud).getData();
 
         RemoteAgent recordedFrank = getRemoteAgent(thisCloud, remoteFrank.getIden());
-        assertEquals(presence.getNetworks(), recordedFrank.getHosts());
+        assertEquals(presence.getEndpoints(), recordedFrank.getEndpoints());
     }
 
     @Test
@@ -571,7 +594,7 @@ public class CloudTest {
         return testCloud;
     }
 
-    private void simulateAgentJoiningCloudWithSeq(Agent remoteAgent, long seq) {
+    private void simulateAgentJoiningCloudWithSeq(Agent remoteAgent, long seq) throws MsnosException {
         Message message = (new MockMessageHelper(Type.PRS, remoteAgent.getIden(), thisCloud.getIden()).data(new Presence(true)).sequence(seq).make());
         simulateMessageFromNetwork(message);
     }
@@ -616,13 +639,13 @@ public class CloudTest {
         return value;
     }
 
-    private Message simulateAgentJoiningCloud(Agent agent, Cloud cloud) {
+    private Message simulateAgentJoiningCloud(Agent agent, Cloud cloud) throws MsnosException {
         Message message = (new MockMessageHelper(Message.Type.PRS, agent.getIden(), cloud.getIden()).sequence(12).data(new Presence(true)).make());
         simulateMessageFromNetwork(message);
         return message;
     }
 
-    private void simulateAgentLeavingCloud(RemoteAgent agent, Cloud cloud) {
+    private void simulateAgentLeavingCloud(RemoteAgent agent, Cloud cloud) throws MsnosException {
         simulateMessageFromNetwork(new MessageBuilder(MessageBuilder.Mode.RELAXED, PRS, agent.getIden(), cloud.getIden()).sequence(12).reliable(false).with(new Presence(false)).make());
     }
 
@@ -706,7 +729,7 @@ public class CloudTest {
     }
 
     private RemoteAgent newRemoteAgent(Cloud cloud) {
-        return new RemoteAgent(UUID.randomUUID(), cloud, Collections.<Network>emptySet());
+        return new RemoteAgent(UUID.randomUUID(), cloud, Collections.<Endpoint>emptySet());
     }
 
 }

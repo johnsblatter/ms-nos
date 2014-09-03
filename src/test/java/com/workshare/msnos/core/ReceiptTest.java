@@ -34,6 +34,14 @@ public class ReceiptTest {
     }
     
     @Test
+    public void shouldAwaitReturnImmediatelyForFailedStatus() throws Exception {
+        Receipt receipt = new SingleReceipt(Status.FAILED, MESSAGE);
+        long now = System.currentTimeMillis();
+        receipt.waitForDelivery(1, TimeUnit.SECONDS);
+        assertEquals(now/10, System.currentTimeMillis()/10, 0.1);
+    }
+    
+    @Test
     public void shouldAwaitReturnTrueForDeliveredStatus() throws Exception {
         Receipt receipt = new SingleReceipt(Status.DELIVERED, MESSAGE);
         assertTrue(receipt.waitForDelivery(1, TimeUnit.SECONDS));

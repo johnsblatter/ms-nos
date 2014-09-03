@@ -36,6 +36,7 @@ public class SingleReceipt implements Receipt {
             case DELIVERED:
                 return true;
 
+            case FAILED:
             case UNKNOWN:
                 return false;
 

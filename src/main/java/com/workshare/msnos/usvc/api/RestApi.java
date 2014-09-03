@@ -8,7 +8,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 public class RestApi {
 
-    public enum Type {HEALTHCHECK, PUBLIC, INTERNAL}
+    public enum Type {PUBLIC, INTERNAL, HEALTHCHECK, MSNOS_HTTP}
 
     private static final AtomicLong NEXT_ID = new AtomicLong(0);
 

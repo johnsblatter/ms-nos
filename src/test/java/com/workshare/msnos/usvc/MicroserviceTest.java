@@ -5,6 +5,8 @@ import com.workshare.msnos.core.cloud.JoinSynchronizer;
 import com.workshare.msnos.core.cloud.Multicaster;
 import com.workshare.msnos.core.payloads.FltPayload;
 import com.workshare.msnos.core.payloads.QnePayload;
+import com.workshare.msnos.core.protocols.ip.Endpoint;
+import com.workshare.msnos.core.protocols.ip.Endpoint.Type;
 import com.workshare.msnos.core.protocols.ip.Network;
 import com.workshare.msnos.core.security.Signer;
 import com.workshare.msnos.soup.time.SystemTime;
@@ -406,7 +408,7 @@ public class MicroserviceTest {
         for (int i = 0; i < nibbles.length; i++) {
             nibbles[i] = Byte.valueOf(tokens.get(i));
         }
-        return newRemoteAgent(UUID.randomUUID(), new Network(nibbles, suffix));
+        return newRemoteAgent(UUID.randomUUID(), new Endpoint(Type.UDP, new Network(nibbles, suffix)));
     }
 
     private RemoteAgent newRemoteAgent() {
@@ -417,8 +419,8 @@ public class MicroserviceTest {
         return newRemoteAgent(uuid);
     }
 
-    private RemoteAgent newRemoteAgent(final UUID uuid, Network... hosts) {
-        RemoteAgent remote = new RemoteAgent(uuid, cloud, new HashSet<Network>(Arrays.asList(hosts)));
+    private RemoteAgent newRemoteAgent(final UUID uuid, Endpoint... endpoints) {
+        RemoteAgent remote = new RemoteAgent(uuid, cloud, new HashSet<Endpoint>(Arrays.asList(endpoints)));
         putRemoteAgentInCloudAgentsList(remote);
         return remote;
     }

@@ -8,6 +8,7 @@ import com.maxmind.geoip2.record.City;
 import com.maxmind.geoip2.record.Continent;
 import com.maxmind.geoip2.record.Country;
 import com.maxmind.geoip2.record.Subdivision;
+import com.workshare.msnos.core.protocols.ip.Endpoint;
 import com.workshare.msnos.core.protocols.ip.Network;
 import com.workshare.msnos.soup.json.Json;
 
@@ -228,13 +229,13 @@ public class Location {
         sb.append(name);
     }
 
-    public static Location computeMostPreciseLocation(final Set<Network> networks) {
+    public static Location computeMostPreciseLocation(final Set<Endpoint> endpoints) {
         LocationFactory locations = LocationFactory.DEFAULT;
         
         Location res = UNKNOWN;
-        if (networks != null)
-            for (Network network : networks) {
-                Location loc = locations.make(network.getHostString());
+        if (endpoints != null)
+            for (Endpoint endpoint : endpoints) {
+                Location loc = locations.make(endpoint.getNetwork().getHostString());
                 if (loc.getPrecision() > res.getPrecision())
                     res = loc;
             }

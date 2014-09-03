@@ -46,7 +46,7 @@ public class Microservice {
         this.microServices = new ConcurrentHashMap<Iden, RemoteMicroservice>();
         this.healthcheck = new Healthchecker(this, executor);
         this.apis = new ApiRepository();
-        this.location = Location.computeMostPreciseLocation(agent.getHosts());
+        this.location = Location.computeMostPreciseLocation(agent.getEndpoints());
 
         this.cloud = null;
     }

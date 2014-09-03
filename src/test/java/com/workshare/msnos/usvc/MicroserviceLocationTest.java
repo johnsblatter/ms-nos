@@ -6,6 +6,8 @@ import com.workshare.msnos.core.LocalAgent;
 import com.workshare.msnos.core.RemoteAgent;
 import com.workshare.msnos.core.geo.Location;
 import com.workshare.msnos.core.geo.LocationFactory;
+import com.workshare.msnos.core.protocols.ip.Endpoint;
+import com.workshare.msnos.core.protocols.ip.Endpoint.Type;
 import com.workshare.msnos.core.protocols.ip.Network;
 import com.workshare.msnos.usvc.api.RestApi;
 import org.junit.Before;
@@ -36,7 +38,7 @@ public class MicroserviceLocationTest {
     public void shouldRemoteStoreServiceLocationWhenSingleHomed() {
 
         String host = "24.24.24.24";
-        RemoteAgent agent = new RemoteAgent(UUID.randomUUID(), cloud, networks(host));
+        RemoteAgent agent = new RemoteAgent(UUID.randomUUID(), cloud, endpoints(host));
         RemoteMicroservice remote = new RemoteMicroservice("wombats", agent, Collections.<RestApi>emptySet());
 
         Location expected = LocationFactory.DEFAULT.make(host);
@@ -48,7 +50,7 @@ public class MicroserviceLocationTest {
     @Test
     public void shouldRemoteStoreMostPreciseServiceLocationWhenMultiHomed() {
 
-        RemoteAgent agent = new RemoteAgent(UUID.randomUUID(), cloud, multiHomedNetworks(SYRACUSE));
+        RemoteAgent agent = new RemoteAgent(UUID.randomUUID(), cloud, multiHomedEndpoints(SYRACUSE));
         RemoteMicroservice remote = new RemoteMicroservice("wombats", agent, Collections.<RestApi>emptySet());
 
         Location expected = LocationFactory.DEFAULT.make(SYRACUSE);
@@ -61,7 +63,7 @@ public class MicroserviceLocationTest {
     public void shouldLocalStoreServiceLocationWhenSingleHomed() {
 
         LocalAgent agent = mock(LocalAgent.class);
-        when(agent.getHosts()).thenReturn(singleHomedNetworks(SYRACUSE));
+        when(agent.getEndpoints()).thenReturn(singleHomedEndpoints(SYRACUSE));
         Microservice micro = new Microservice("wombats", agent);
 
         Location expected = LocationFactory.DEFAULT.make(SYRACUSE);
@@ -74,7 +76,7 @@ public class MicroserviceLocationTest {
     public void shouldLocalStoreMostPreciseServiceLocationWhenMultiHomed() {
 
         LocalAgent agent = mock(LocalAgent.class);
-        when(agent.getHosts()).thenReturn(singleHomedNetworks(SYRACUSE));
+        when(agent.getEndpoints()).thenReturn(singleHomedEndpoints(SYRACUSE));
         Microservice micro = new Microservice("wombats", agent);
 
         Location expected = LocationFactory.DEFAULT.make(SYRACUSE);
@@ -83,23 +85,23 @@ public class MicroserviceLocationTest {
         assertEquals(expected, current);
     }
 
-    private Set<Network> multiHomedNetworks(String city) {
+    private Set<Endpoint> multiHomedEndpoints(String city) {
         final String country1 = "31.29.0.0";    // Kyrgyzstan, Asia
         final String country2 = "202.2.96.00";  // Tuvalu, Oceania
         final String city2 = "46.36.195.0";     // Antarctica, Antarctica (no region)
 
-        return networks(country1, "10.10.0.1", city2, city, country2);
+        return endpoints(country1, "10.10.0.1", city2, city, country2);
     }
 
-    private Set<Network> singleHomedNetworks(String host) {
-        return networks(host);
+    private Set<Endpoint> singleHomedEndpoints(String host) {
+        return endpoints(host);
     }
 
 
-    private Set<Network> networks(String... hosts) {
-        Set<Network> nets = new HashSet<Network>();
+    private Set<Endpoint> endpoints(String... hosts) {
+        Set<Endpoint> nets = new HashSet<Endpoint>();
         for (String host : hosts) {
-            nets.add(makeNetwork(host));
+            nets.add(new Endpoint(Type.UDP, makeNetwork(host)));
         }
         return nets;
     }

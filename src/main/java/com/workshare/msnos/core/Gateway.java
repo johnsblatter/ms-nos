@@ -1,9 +1,8 @@
 package com.workshare.msnos.core;
 
 import java.io.IOException;
-import java.util.Set;
 
-import com.workshare.msnos.core.protocols.ip.Endpoint;
+import com.workshare.msnos.core.protocols.ip.Endpoints;
 
 public interface Gateway {
 
@@ -13,7 +12,7 @@ public interface Gateway {
 
     public void addListener(Cloud cloud, Listener listener);
 
-    public Set<? extends Endpoint> endpoints();
+    public Endpoints endpoints();
 
     public Receipt send(Cloud cloud, Message message) throws IOException;
 

@@ -2,6 +2,7 @@ package com.workshare.msnos.usvc;
 
 import com.workshare.msnos.core.RemoteAgent;
 import com.workshare.msnos.core.geo.Location;
+import com.workshare.msnos.core.protocols.ip.Endpoint;
 import com.workshare.msnos.core.protocols.ip.Network;
 import com.workshare.msnos.usvc.api.RestApi;
 
@@ -19,14 +20,15 @@ public class RemoteMicroservice {
         this.name = name;
         this.agent = agent;
         this.apis = ensureHostIsPresent(apis);
-        this.location = Location.computeMostPreciseLocation(agent.getHosts());
+        this.location = Location.computeMostPreciseLocation(agent.getEndpoints());
     }
 
     private Set<RestApi> ensureHostIsPresent(Set<RestApi> apis) {
         Set<RestApi> result = new HashSet<RestApi>();
         for (RestApi api : apis) {
             if (api.getHost() == null || api.getHost().isEmpty()) {
-                for (Network network : agent.getHosts()) {
+                for (Endpoint endpoint : agent.getEndpoints()) {
+                    Network network = endpoint.getNetwork();
                     result.add(api.onHost(network.getHostString()));
                 }
             } else {
