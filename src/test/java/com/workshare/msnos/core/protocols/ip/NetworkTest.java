@@ -78,6 +78,12 @@ public class NetworkTest {
     }
 
     @Test
+    public void shouldComputeToStringWithNoNegativeDigitsPlease() {
+        Network net = new Network(new byte[] { 192-256, 168-256, 0, 1 }, (byte) 24);
+        assertTrue(net.toString().contains("192.168.0.1/24"));
+    }
+
+    @Test
     public void shouldComputeHashcode() {
         Network net1 = new Network(IPV4_ADDRESS2, NET_PREFIX);
         Network net2 = new Network(IPV4_ADDRESS1, NET_PREFIX);

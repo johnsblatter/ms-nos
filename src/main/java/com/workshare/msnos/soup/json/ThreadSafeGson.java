@@ -16,7 +16,7 @@ public class ThreadSafeGson {
 
     protected Gson newGson() {
         GsonBuilder builder = new GsonBuilder();
-        JsonSerializer<Cloud> serializer = new JsonSerializer<Cloud>() {
+        builder.registerTypeAdapter(Cloud.class, new JsonSerializer<Cloud>() {
             @Override
             public JsonElement serialize(Cloud src, Type typeOfSrc, JsonSerializationContext context) {
                 final JsonObject res = new JsonObject();
@@ -31,8 +31,14 @@ public class ThreadSafeGson {
 
                 return res;
             }
-        };
-        builder.registerTypeAdapter(Cloud.class, serializer);
+        });
+
+        builder.registerTypeAdapter(Byte.class, new JsonSerializer<Byte>() {
+            @Override
+            public JsonElement serialize(Byte src, Type typeOfSrc, JsonSerializationContext context) {
+                return new JsonPrimitive((int)(src&0xff));
+            }});
+
         return builder.create();
     }
 
