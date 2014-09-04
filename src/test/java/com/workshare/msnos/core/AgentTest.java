@@ -89,7 +89,7 @@ public class AgentTest {
     @Test
     public void shouldSendReliableMessageThroughCloud() throws Exception {
 
-        smith.send(new MessageBuilder(Message.Type.PIN, smith, karl).sequence(12).make().reliable());
+        smith.send(new MessageBuilder(Message.Type.PIN, smith, karl).sequence(12).reliable(true).make());
 
         Message message = getLastMessageToCloud();
         assertNotNull(message);

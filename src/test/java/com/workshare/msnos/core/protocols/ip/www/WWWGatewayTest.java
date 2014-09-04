@@ -73,7 +73,7 @@ public class WWWGatewayTest {
     public void setup() throws Exception {
         JoinSynchronizer synchro = mock(JoinSynchronizer.class);
 
-        cloud = new Cloud(CLOUD_UUID, "", new Signer(), Collections.<Gateway>emptySet(), synchro, mock(com.workshare.msnos.core.cloud.Multicaster.class), Executors.newSingleThreadScheduledExecutor());
+        cloud = new Cloud(CLOUD_UUID, "", new Signer(), Collections.<Gateway>emptySet(), synchro, mock(com.workshare.msnos.core.cloud.Multicaster.class), Executors.newSingleThreadScheduledExecutor(), null);
 
         System.setProperty(WWWGateway.SYSP_ADDRESS, WWW_ROOT);
 

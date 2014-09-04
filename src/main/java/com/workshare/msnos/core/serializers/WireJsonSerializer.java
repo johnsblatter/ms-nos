@@ -1,18 +1,39 @@
 package com.workshare.msnos.core.serializers;
 
-import com.google.gson.*;
-import com.workshare.msnos.core.*;
-import com.workshare.msnos.core.Message.Payload;
-import com.workshare.msnos.core.payloads.*;
-import com.workshare.msnos.soup.json.Json;
-import com.workshare.msnos.soup.json.ThreadSafeGson;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.lang.reflect.Type;
 import java.nio.charset.Charset;
 import java.util.Collections;
 import java.util.UUID;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonDeserializationContext;
+import com.google.gson.JsonDeserializer;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParseException;
+import com.google.gson.JsonPrimitive;
+import com.google.gson.JsonSerializationContext;
+import com.google.gson.JsonSerializer;
+import com.google.gson.JsonSyntaxException;
+import com.workshare.msnos.core.Cloud;
+import com.workshare.msnos.core.Gateway;
+import com.workshare.msnos.core.Iden;
+import com.workshare.msnos.core.LocalAgent;
+import com.workshare.msnos.core.Message;
+import com.workshare.msnos.core.Message.Payload;
+import com.workshare.msnos.core.MessageBuilder;
+import com.workshare.msnos.core.Version;
+import com.workshare.msnos.core.payloads.FltPayload;
+import com.workshare.msnos.core.payloads.GenericPayload;
+import com.workshare.msnos.core.payloads.NullPayload;
+import com.workshare.msnos.core.payloads.Presence;
+import com.workshare.msnos.core.payloads.QnePayload;
+import com.workshare.msnos.soup.json.Json;
+import com.workshare.msnos.soup.json.ThreadSafeGson;
 
 public class WireJsonSerializer implements WireSerializer {
 
@@ -45,8 +66,24 @@ public class WireJsonSerializer implements WireSerializer {
 
     @Override
     public byte[] toBytes(Object anyObject) {
-        return gson.toJson(anyObject).getBytes(Charset.forName("UTF-8"));
+        final String json = gson.toJson(anyObject);
+        return json.getBytes(Charset.forName("UTF-8"));
     }
+
+    private static final JsonSerializer<Boolean> ENC_BOOL = new JsonSerializer<Boolean>() {
+        @Override
+        public JsonElement serialize(Boolean value, Type typeof, JsonSerializationContext context) {
+            return new JsonPrimitive(value ? 1 : 0);
+        }
+    };
+
+    private static final JsonDeserializer<Boolean> DEC_BOOL = new JsonDeserializer<Boolean>() {
+        @Override
+        public Boolean deserialize(JsonElement json, Type typeof, JsonDeserializationContext context)
+                throws JsonParseException {
+            return json.getAsInt() == 0 ? Boolean.FALSE : Boolean.TRUE;
+        }
+    };
 
     private static final JsonSerializer<Byte> ENC_BYTE = new JsonSerializer<Byte>() {
         @Override
@@ -88,7 +125,12 @@ public class WireJsonSerializer implements WireSerializer {
     private static final JsonSerializer<Cloud> ENC_CLOUD = new JsonSerializer<Cloud>() {
         @Override
         public JsonElement serialize(Cloud cloud, Type typeof, JsonSerializationContext context) {
-            return serializeIden(cloud.getIden());
+            Iden iden = cloud.getIden();
+            String text = iden.getType() + ":" + serializeUUIDToShortString(iden.getUUID());
+            if (cloud.getInstanceID() != null)
+                text = text + ":" + Long.toString(cloud.getInstanceID(), 32);
+                
+            return new JsonPrimitive(text);
         }
     };
 
@@ -97,10 +139,24 @@ public class WireJsonSerializer implements WireSerializer {
         public Cloud deserialize(JsonElement json, Type typeof, JsonDeserializationContext context)
                 throws JsonParseException {
             try {
-                Iden iden = deserializeIden(json);
+                String text = json.getAsString();
+
+                int idx1 = text.indexOf(':');
+                int idx2 = text.indexOf(':',idx1+1);
+                idx2 = (idx2 > 0 ? idx2 : text.length());
+                
+                Iden.Type type = Iden.Type.valueOf(text.substring(0, idx1));
+                UUID uuid = deserializeUUIDFromShortString(text.substring(idx1 + 1, idx2));
+                Iden iden = new Iden(type, uuid);
+
+                Long instanceID = null;
+                if (idx2 != text.length()) {
+                    instanceID = Long.parseLong(text.substring(idx2 + 1), 32);
+                }
+                    
                 if (iden.getType() != Iden.Type.CLD)
                     throw new IllegalArgumentException("Unexpected type when converting cloud!");
-                return new Cloud(iden.getUUID(), null, Collections.<Gateway>emptySet(), null);
+                return new Cloud(iden.getUUID(), null, Collections.<Gateway>emptySet(), null, instanceID);
             } catch (Exception any) {
                 throw new JsonParseException(any);
             }
@@ -155,8 +211,8 @@ public class WireJsonSerializer implements WireSerializer {
             res.add("v", context.serialize(msg.getVersion()));
             res.add("fr", context.serialize(msg.getFrom()));
             res.add("to", context.serialize(msg.getTo()));
+            res.add("rx", context.serialize(msg.isReliable()));
             res.addProperty("hp", msg.getHops());
-            res.addProperty("rx", msg.isReliable());
             res.addProperty("ty", msg.getType().toString());
             res.addProperty("ss", msg.getSig());
             res.addProperty("rr", msg.getRnd());
@@ -183,7 +239,7 @@ public class WireJsonSerializer implements WireSerializer {
             final Iden from = context.deserialize(obj.get("fr").getAsJsonPrimitive(), Iden.class);
             final Iden to = context.deserialize(obj.get("to").getAsJsonPrimitive(), Iden.class);
             final int hops = obj.get("hp").getAsInt();
-            final boolean reliable = obj.get("hp").getAsBoolean();
+            final boolean reliable = context.deserialize(obj.get("rx"), Boolean.class);
             final String sig = getNullableString(obj, "ss");
             final String rnd = getNullableString(obj, "rr");
             final long seq = obj.get("sq").getAsLong();
@@ -193,13 +249,13 @@ public class WireJsonSerializer implements WireSerializer {
             if (dataJson != null) {
                 switch (type) {
                     case PRS:
-                        data = (Payload) Json.fromJsonTree(dataJson, Presence.class);
+                        data = (Payload) gson.fromJsonTree(dataJson, Presence.class);
                         break;
                     case QNE:
-                        data = (Payload) Json.fromJsonTree(dataJson, QnePayload.class);
+                        data = (Payload) gson.fromJsonTree(dataJson, QnePayload.class);
                         break;
                     case FLT:
-                        data = new FltPayload(context.<Iden>deserialize(dataJson.getAsJsonObject().get("about"), Iden.class));
+                        data = (Payload) gson.fromJsonTree(dataJson, FltPayload.class);
                         break;
                     default:
                         data = (dataJson == null ? NullPayload.INSTANCE : new GenericPayload(dataJson));
@@ -215,14 +271,21 @@ public class WireJsonSerializer implements WireSerializer {
                     .reliable(reliable)
                     .signed(sig, rnd)
                     .make();
-        }
+            }
     };
 
+      
     private static final ThreadSafeGson gson = new ThreadSafeGson() {
         protected Gson newGson() {
             GsonBuilder builder = new GsonBuilder();
 
+            builder.registerTypeAdapter(Boolean.class, ENC_BOOL);
+            builder.registerTypeAdapter(boolean.class, ENC_BOOL);
+            builder.registerTypeAdapter(Boolean.class, DEC_BOOL);
+            builder.registerTypeAdapter(boolean.class, DEC_BOOL);
+
             builder.registerTypeAdapter(Byte.class, ENC_BYTE);
+            builder.registerTypeAdapter(byte.class, ENC_BYTE);
 
             builder.registerTypeAdapter(Cloud.class, ENC_CLOUD);
             builder.registerTypeAdapter(Cloud.class, DEC_CLOUD);
@@ -289,5 +352,14 @@ public class WireJsonSerializer implements WireSerializer {
     private static final String getNullableString(final JsonObject obj, final String memberName) {
         final JsonElement jsonElement = obj.get(memberName);
         return (jsonElement == null) ? null : jsonElement.getAsString();
+    }
+    
+    static class Sample {
+        String name = "alfa";
+        boolean res = true;
+        
+        public String toString() {
+            return Json.toJsonString(this);
+        }
     }
 }
