@@ -23,39 +23,63 @@ import static org.mockito.Mockito.when;
 
 public class WireJsonSerializerTest {
 
-    private static final UUID CLOUD_UUID = UUID.randomUUID();
     private static final UUID AGENT_UUID = UUID.randomUUID();
 
-    private WireJsonSerializer sz = new WireJsonSerializer();
-    private Cloud cloud;
-    private LocalAgent agent;
+    private static final UUID CLOUD_UUID = UUID.randomUUID();
+    private static final Long CLOUD_INSTANCE_ID = 1274L;
 
+    private Cloud cloud;
+    private Cloud cloudWithId;
+    private LocalAgent agent;
+    private WireJsonSerializer sz = new WireJsonSerializer();
+    
     @Before
     public void before() throws Exception {
-        cloud = new Cloud(CLOUD_UUID, "1231", new Signer(), new HashSet<Gateway>(Arrays.asList(new NoopGateway())), mock(JoinSynchronizer.class), mock(Multicaster.class), mock(ScheduledExecutorService.class));
+        cloud = new Cloud(CLOUD_UUID, "1231", new Signer(), new HashSet<Gateway>(Arrays.asList(new NoopGateway())), mock(JoinSynchronizer.class), mock(Multicaster.class), mock(ScheduledExecutorService.class),null);
+        cloudWithId = new Cloud(CLOUD_UUID, "1231", new Signer(), new HashSet<Gateway>(Arrays.asList(new NoopGateway())), mock(JoinSynchronizer.class), mock(Multicaster.class), mock(ScheduledExecutorService.class),CLOUD_INSTANCE_ID);
 
         agent = new LocalAgent(AGENT_UUID);
         agent.join(cloud);
     }
 
     @Test
-    public void shouldSerializeCloudObject() throws Exception {
-        String expected = "\"CLD:" + toShortString(CLOUD_UUID) + "\"";
+    public void shouldSerializeCloud() throws Exception {
+        String expected = "\"CLD:" + toShortString(CLOUD_UUID)+"\"";
         String current = sz.toText(cloud);
 
         assertEquals(expected, current);
     }
 
-    private String toShortString(UUID uuid) {
-        return uuid.toString().replaceAll("-", "");
+
+    @Test
+    public void shouldSerializeCloudWithInstanceId() throws Exception {
+        String expected = "\"CLD:" + toShortString(CLOUD_UUID) + ":"+Long.toString(CLOUD_INSTANCE_ID,32)+"\"";
+        String current = sz.toText(cloudWithId);
+
+        assertEquals(expected, current);
     }
 
     @Test
     public void shouldDeserializeCloudObject() throws Exception {
         Cloud expected = cloud;
-        Cloud current = sz.fromText("\"CLD:" + toShortString(CLOUD_UUID) + "\"", Cloud.class);
+
+        final String text = "\"CLD:" + toShortString(CLOUD_UUID) + "\"";
+        Cloud current = sz.fromText(text, Cloud.class);
 
         assertEquals(expected.getIden(), current.getIden());
+        assertEquals(expected.getInstanceID(), current.getInstanceID());
+    }
+
+    @Test
+    public void shouldDeserializeCloudWithIstanceIdObject() throws Exception {
+        Cloud expected = cloudWithId;
+
+        final String text = "\"CLD:" + toShortString(CLOUD_UUID) + ":"+Long.toString(CLOUD_INSTANCE_ID,32)+"\"";
+        Cloud current = sz.fromText(text, Cloud.class);
+
+        assertEquals(expected.getIden(), current.getIden());
+        assertEquals(expected.getInstanceID(), current.getInstanceID());
+
     }
 
     @Test
@@ -168,6 +192,18 @@ public class WireJsonSerializerTest {
         assertEquals(source.getData(), decoded.getData());
     }
 
+    @Test
+    public void shouldSerializeBooleanCompact() throws Exception {
+        assertEquals("1", sz.toText(Boolean.TRUE));
+        assertEquals("0", sz.toText(Boolean.FALSE));
+    }
+
+    @Test
+    public void shouldDeserializeBooleanCompact() throws Exception {
+        assertEquals(Boolean.TRUE, sz.fromText("1", Boolean.class));
+        assertEquals(Boolean.FALSE, sz.fromText("0", Boolean.class));
+    }
+
     private void fakeSystemTime(final long time) {
         SystemTime.setTimeSource(new SystemTime.TimeSource() {
             @Override
@@ -180,4 +216,9 @@ public class WireJsonSerializerTest {
     private UUID getUUID(Iden iden, long sequenceNumber) {
         return new UUID(iden.getUUID().getMostSignificantBits(), sequenceNumber);
     }
+    
+    private String toShortString(UUID uuid) {
+        return uuid.toString().replaceAll("-", "");
+    }
+
 }

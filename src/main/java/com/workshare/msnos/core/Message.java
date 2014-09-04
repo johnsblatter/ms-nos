@@ -103,14 +103,6 @@ public class Message {
         return reliable;
     }
 
-    public Message reliable() {
-        return new Message(type, from, to, hops, true, data, uuid, sig, rnd, seq);
-    }
-
-    public Message data(Payload load) {
-        return new Message(type, from, to, hops, reliable, load, uuid, sig, rnd, seq);
-    }
-
     @Override
     public String toString() {
         return Json.toJsonString(this);
@@ -125,6 +117,10 @@ public class Message {
         } catch (Exception any) {
             return false;
         }
+    }
+
+    public Message data(Payload load) {
+        return new Message(type, from, to, hops, reliable, load, uuid, sig, rnd, seq);
     }
 
     public Message signed(String keyId, String signature) {

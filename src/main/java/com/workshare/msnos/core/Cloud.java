@@ -1,5 +1,18 @@
 package com.workshare.msnos.core;
 
+import java.io.IOException;
+import java.security.SecureRandom;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ScheduledExecutorService;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.workshare.msnos.core.cloud.AgentWatchdog;
 import com.workshare.msnos.core.cloud.AgentsList;
 import com.workshare.msnos.core.cloud.JoinSynchronizer;
@@ -11,18 +24,15 @@ import com.workshare.msnos.core.security.Signer;
 import com.workshare.msnos.soup.json.Json;
 import com.workshare.msnos.soup.threading.ExecutorServices;
 import com.workshare.msnos.soup.time.SystemTime;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-import java.security.SecureRandom;
-import java.util.*;
-import java.util.concurrent.ScheduledExecutorService;
 
 public class Cloud implements Identifiable {
 
-    private static Logger log = LoggerFactory.getLogger(Cloud.class);
-    private static Logger proto = LoggerFactory.getLogger("protocol");
+    private static final ScheduledExecutorService DEFAULT_SCHEDULER = ExecutorServices.newSingleThreadScheduledExecutor();
+    
+    private static final Logger log = LoggerFactory.getLogger(Cloud.class);
+    private static final Logger proto = LoggerFactory.getLogger("protocol");
+
+    private static final SecureRandom random = new SecureRandom();
 
     public static interface Listener {
         public void onMessage(Message message);
@@ -35,7 +45,7 @@ public class Cloud implements Identifiable {
     private final Map<Long, Long> instanceMessages;
 
 
-    transient private final long instanceID;
+    transient private final Long instanceID;
     transient private final Set<Gateway> gates;
     transient private final Multicaster caster;
     transient private final JoinSynchronizer synchronizer;
@@ -53,19 +63,21 @@ public class Cloud implements Identifiable {
     }
 
     public Cloud(UUID uuid) throws MsnosException {
-        this(uuid, null, Gateways.all(), new JoinSynchronizer());
+        this(uuid, null, Gateways.all(), new JoinSynchronizer(), null);
     }
 
     public Cloud(UUID uuid, String signid) throws MsnosException {
-        this(uuid, signid, Gateways.all(), new JoinSynchronizer());
+        this(uuid, signid, Gateways.all(), new JoinSynchronizer(), null);
     }
 
-    public Cloud(UUID uuid, String signid, Set<Gateway> gates, JoinSynchronizer synchronizer) {
-        this(uuid, signid, new Signer(), gates, synchronizer, new Multicaster(), ExecutorServices.newSingleThreadScheduledExecutor());
+    public Cloud(UUID uuid, String signid, Set<Gateway> gates, JoinSynchronizer synchronizer,  Long instanceId) {
+        this(uuid, signid, new Signer(), gates, synchronizer, new Multicaster(), DEFAULT_SCHEDULER, instanceId);
     }
 
-    public Cloud(UUID uuid, String signid, Signer signer, Set<Gateway> gates, JoinSynchronizer synchronizer, Multicaster multicaster, ScheduledExecutorService executor) {
+    public Cloud(UUID uuid, String signid, Signer signer, Set<Gateway> gates, JoinSynchronizer synchronizer, Multicaster multicaster, ScheduledExecutorService executor, Long instanceId) {
         this.iden = new Iden(Iden.Type.CLD, uuid);
+        this.instanceID = instanceId;
+
         this.localAgents = new AgentsList<LocalAgent>();
         this.remoteAgents = new AgentsList<RemoteAgent>();
         this.instanceMessages = new HashMap<Long, Long>();
@@ -75,7 +87,6 @@ public class Cloud implements Identifiable {
         this.signer = signer;
         this.signid = signid;
         this.synchronizer = synchronizer;
-        this.instanceID = generateInstanceID();
 
         for (Gateway gate : gates) {
             gate.addListener(this, new Gateway.Listener() {
@@ -104,7 +115,7 @@ public class Cloud implements Identifiable {
         return iden;
     }
 
-    public long getInstanceID() {
+    public Long getInstanceID() {
         return instanceID;
     }
 
@@ -282,15 +293,10 @@ public class Cloud implements Identifiable {
             dispatch(new MessageBuilder(Message.Type.FLT, this, this).with(new FltPayload(agent.getIden())).make());
     }
 
+    // FIXME: this is temporary until the new cloud instance is in place
     public UUID generateNextMessageUUID() {
-        return new UUID(instanceID, SystemTime.asMillis());
-    }
-
-    private long generateInstanceID() {
-        SecureRandom random = new SecureRandom();
-        byte bytes[] = new byte[20];
-        random.nextBytes(bytes);
-        return random.nextLong();
+//        return new UUID(instanceID, SystemTime.asMillis());
+        return UUID.randomUUID();
     }
 
     private Message sign(Message message) {
