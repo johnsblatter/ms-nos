@@ -1,14 +1,13 @@
 package com.workshare.msnos.usvc.api.routing;
 
-import java.util.Collection;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-
 import com.workshare.msnos.usvc.Microservice;
 import com.workshare.msnos.usvc.RemoteMicroservice;
 import com.workshare.msnos.usvc.api.RestApi;
 
-// TODO fix shouldFollowSelectionAlgorithmWhenRestApiMarkedAsFaulty in MicroserviceTest
+import java.util.Collection;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
 public class ApiRepository {
 
     private final Map<String, ApiList> remoteApis;
@@ -33,8 +32,8 @@ public class ApiRepository {
         }
         return null;
     }
-    
-    public RestApi searchApi(Microservice from, String name, String path) throws Exception {
+
+    public RestApi searchApi(Microservice from, String name, String path) {
         String key = name + path;
         ApiList apiList = getRemoteApis().get(key);
         return apiList == null ? null : apiList.get(from);

@@ -36,7 +36,7 @@ public class RemoteMicroservice {
         return result;
     }
 
-    public void addApis(Set<RestApi> restApis) {
+    protected void addApis(Set<RestApi> restApis) {
         synchronized (apis) {
             apis.addAll(ensureHostIsPresent(restApis));
         }

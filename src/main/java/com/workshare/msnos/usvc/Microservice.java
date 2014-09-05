@@ -67,7 +67,7 @@ public class Microservice {
         return apis.searchApiById(id);
     }
 
-    public RestApi searchApi(String name, String path) throws Exception {
+    public RestApi searchApi(String name, String path) {
         return apis.searchApi(this, name, path);
     }
 
