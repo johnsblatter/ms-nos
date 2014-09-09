@@ -73,6 +73,11 @@ public class MultiGatewayReceiptTest {
         assertTrue(res);
     }
 
+    @Test
+    public void shouldStoreMessageUuid() throws Exception {
+        assertEquals(MESSAGE.getUuid(), multi.getMessageUuid());
+    }
+
 
     private Receipt createMockReceipt(final Status status) throws Exception {
         Receipt value = mock(Receipt.class);

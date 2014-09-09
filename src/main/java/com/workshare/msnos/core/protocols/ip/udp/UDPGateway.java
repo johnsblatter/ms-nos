@@ -7,6 +7,7 @@ import java.net.InetSocketAddress;
 import java.net.MulticastSocket;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -21,7 +22,10 @@ import com.workshare.msnos.core.Message.Status;
 import com.workshare.msnos.core.Receipt;
 import com.workshare.msnos.core.SingleReceipt;
 import com.workshare.msnos.core.protocols.ip.Endpoint;
+import com.workshare.msnos.core.protocols.ip.Endpoints;
 import com.workshare.msnos.core.protocols.ip.MulticastSocketFactory;
+import com.workshare.msnos.core.protocols.ip.Endpoint.Type;
+import com.workshare.msnos.core.protocols.ip.Network;
 import com.workshare.msnos.core.serializers.WireSerializer;
 import com.workshare.msnos.soup.threading.Multicaster;
 
@@ -41,12 +45,14 @@ public class UDPGateway implements Gateway {
     private final Multicaster<Listener, Message> caster;
     private final WireSerializer sz;
     private final int packetSize;
+    private final Endpoints endpoints;
 
     public UDPGateway(MulticastSocketFactory sockets, UDPServer server, Multicaster<Listener, Message> caster) throws IOException {
         this.caster = caster;
         this.sz = server.serializer();
         this.packetSize = Integer.getInteger(SYSP_UDP_PACKET_SIZE, 512);
-
+        this.endpoints = createEndpoints();
+        
         loadPorts();
         openSocket(sockets);
         startServer(server);
@@ -96,9 +102,8 @@ public class UDPGateway implements Gateway {
     }
 
     @Override
-    public Set<? extends Endpoint> endpoints() {
-        // TODO Auto-generated method stub
-        return null;
+    public Endpoints endpoints() {
+        return endpoints;
     }
 
     @Override
@@ -175,4 +180,15 @@ public class UDPGateway implements Gateway {
     public WireSerializer serializer() {
         return sz;
     }
+    
+    private Endpoints createEndpoints() {
+        Set<Network> nets = Network.listAll(true);
+        Set<Endpoint> ends = new HashSet<Endpoint>();
+        for (Network net : nets) {
+            ends.add(new Endpoint(Type.UDP, net));
+        }
+        return Endpoint.create(ends);
+        
+    }
+
 }

@@ -1,19 +1,20 @@
 package com.workshare.msnos.core;
 
-import com.workshare.msnos.core.Cloud.Listener;
-import com.workshare.msnos.core.payloads.Presence;
-import com.workshare.msnos.core.protocols.ip.Network;
-import com.workshare.msnos.soup.json.Json;
-import com.workshare.msnos.soup.time.SystemTime;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import static com.workshare.msnos.core.Message.Type.DSC;
+import static com.workshare.msnos.core.Message.Type.PIN;
 
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 
-import static com.workshare.msnos.core.Message.Type.DSC;
-import static com.workshare.msnos.core.Message.Type.PIN;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.workshare.msnos.core.Cloud.Listener;
+import com.workshare.msnos.core.payloads.Presence;
+import com.workshare.msnos.core.protocols.ip.Endpoint;
+import com.workshare.msnos.soup.json.Json;
+import com.workshare.msnos.soup.time.SystemTime;
 
 public class LocalAgent implements Agent {
 
@@ -24,7 +25,7 @@ public class LocalAgent implements Agent {
 
     private Cloud cloud;
     private Listener listener;
-    private Set<Network> hosts;
+    private Set<Endpoint> endpoints;
 
     public LocalAgent(UUID uuid) {
         Iden iden = new Iden(Iden.Type.AGT, uuid);
@@ -34,13 +35,9 @@ public class LocalAgent implements Agent {
         this.seq = new AtomicLong(SystemTime.asMillis());
     }
 
-    public void setHosts(Set<Network> hosts) {
-        this.hosts = hosts;
-    }
-
     @Override
-    public Set<Network> getHosts() {
-        return hosts;
+    public Set<Endpoint> getEndpoints() {
+        return endpoints;
     }
 
     @Override
@@ -78,7 +75,7 @@ public class LocalAgent implements Agent {
                 process(message);
             }
         });
-        setHosts(new Presence(true).getNetworks());
+        this.endpoints = Gateways.endpoints();
         return this;
     }
 

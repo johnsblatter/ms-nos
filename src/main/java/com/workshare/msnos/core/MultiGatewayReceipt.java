@@ -11,9 +11,12 @@ import com.workshare.msnos.core.Message.Status;
 
 public class MultiGatewayReceipt implements Receipt {
 
-    private Set<Receipt> receipts = Collections.newSetFromMap(new ConcurrentHashMap<Receipt, Boolean>());
+    private final Set<Receipt> receipts;
+    private final UUID messageUuid;
 
     public MultiGatewayReceipt(Message message, Receipt... someReceipts) {
+        this.messageUuid = message.getUuid();
+        this.receipts = Collections.newSetFromMap(new ConcurrentHashMap<Receipt, Boolean>());
         receipts.addAll(Arrays.asList(someReceipts));
     }
     
@@ -26,7 +29,7 @@ public class MultiGatewayReceipt implements Receipt {
     }
 
     public UUID getMessageUuid() {
-        return null;
+        return messageUuid;
     }
 
     public Status getStatus() {

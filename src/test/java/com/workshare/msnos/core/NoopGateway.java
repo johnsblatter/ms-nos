@@ -1,11 +1,10 @@
 package com.workshare.msnos.core;
 
 import java.io.IOException;
-import java.util.Collections;
-import java.util.Set;
 
 import com.workshare.msnos.core.Message.Status;
 import com.workshare.msnos.core.protocols.ip.Endpoint;
+import com.workshare.msnos.core.protocols.ip.Endpoints;
 
 public class NoopGateway implements Gateway {
 
@@ -14,8 +13,8 @@ public class NoopGateway implements Gateway {
 	}
 
 	@Override
-	public Set<? extends Endpoint> endpoints() {
-		return Collections.emptySet();
+	public Endpoints endpoints() {
+		return Endpoint.create();
 	}
 
 	@Override

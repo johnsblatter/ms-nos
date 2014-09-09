@@ -1,15 +1,15 @@
 package com.workshare.msnos.core;
 
-import com.workshare.msnos.core.protocols.ip.Network;
-
 import java.util.Set;
+
+import com.workshare.msnos.core.protocols.ip.Endpoint;
 
 public interface Agent extends Identifiable {
     Iden getIden();
 
     Cloud getCloud();
 
-    Set<Network> getHosts();
+    Set<Endpoint> getEndpoints();
 
     Long getSeq();
 

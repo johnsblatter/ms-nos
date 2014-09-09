@@ -11,32 +11,33 @@ import org.junit.Test;
 import org.mockito.Mockito;
 
 import com.workshare.msnos.core.Message.Payload;
+import com.workshare.msnos.core.protocols.ip.Endpoint;
 import com.workshare.msnos.core.protocols.ip.Network;
 
 public class PresencePayloadTest {
 
     @Test
     public void shouldSplitNetworksCollectionOnSplit() {
-        Network alfa = Mockito.mock(Network.class);
-        Network beta = Mockito.mock(Network.class);
-        Set<Network> networks = new HashSet<Network>(Arrays.asList(alfa, beta));
-        Presence payload = new Presence(true, networks);
+        Endpoint alfa = Mockito.mock(Endpoint.class);
+        Endpoint beta = Mockito.mock(Endpoint.class);
+        Set<Endpoint> endpoints = new HashSet<Endpoint>(Arrays.asList(alfa, beta));
+        Presence payload = new Presence(true, endpoints);
 
         Payload[] loads = payload.split();
         assertEquals(2, loads.length);
 
-        Set<Network> newNets = new HashSet<Network>();
-        newNets.add(getNet(loads[0]));
-        newNets.add(getNet(loads[1]));
-        assertEquals(payload.getNetworks(), newNets);
+        Set<Endpoint> newdpoints = new HashSet<Endpoint>();
+        newdpoints.add(getEndpoint(loads[0]));
+        newdpoints.add(getEndpoint(loads[1]));
+        assertEquals(payload.getEndpoints(), newdpoints);
     }
 
     @Test
-    public void shouldKeepPresenceFlahOnSplit() {
-        Network alfa = Mockito.mock(Network.class);
-        Network beta = Mockito.mock(Network.class);
-        Set<Network> networks = new HashSet<Network>(Arrays.asList(alfa, beta));
-        Presence payload = new Presence(true, networks);
+    public void shouldKeepPresenceFlagOnSplit() {
+        Endpoint alfa = Mockito.mock(Endpoint.class);
+        Endpoint beta = Mockito.mock(Endpoint.class);
+        Set<Endpoint> endpoints = new HashSet<Endpoint>(Arrays.asList(alfa, beta));
+        Presence payload = new Presence(true, endpoints);
 
         Payload[] loads = payload.split();
         for (Payload load : loads) {
@@ -44,9 +45,9 @@ public class PresencePayloadTest {
         }
     }
 
-    private Network getNet(Payload payload) {
+    private Endpoint getEndpoint(Payload payload) {
         Presence load = (Presence) payload;
-        Set<Network> nets = load.getNetworks();
+        Set<Endpoint> nets = load.getEndpoints();
         if (nets.size() == 1)
             return nets.iterator().next();
         else

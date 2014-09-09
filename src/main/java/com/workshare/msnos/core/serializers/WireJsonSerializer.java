@@ -48,6 +48,13 @@ public class WireJsonSerializer implements WireSerializer {
         return gson.toJson(anyObject).getBytes(Charset.forName("UTF-8"));
     }
 
+    private static final JsonSerializer<Byte> ENC_BYTE = new JsonSerializer<Byte>() {
+        @Override
+        public JsonElement serialize(Byte value, Type typeof, JsonSerializationContext context) {
+            return new JsonPrimitive((int)(value&0xff));
+        }
+    };
+
     private static final JsonSerializer<UUID> ENC_UUID = new JsonSerializer<UUID>() {
         @Override
         public JsonElement serialize(UUID uuid, Type typeof, JsonSerializationContext context) {
@@ -214,6 +221,8 @@ public class WireJsonSerializer implements WireSerializer {
     private static final ThreadSafeGson gson = new ThreadSafeGson() {
         protected Gson newGson() {
             GsonBuilder builder = new GsonBuilder();
+
+            builder.registerTypeAdapter(Byte.class, ENC_BYTE);
 
             builder.registerTypeAdapter(Cloud.class, ENC_CLOUD);
             builder.registerTypeAdapter(Cloud.class, DEC_CLOUD);

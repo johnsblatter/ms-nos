@@ -10,9 +10,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-/**
- * A simplified view of an IP on a Network
- */
+
 public class Network {
 
     private static Logger log = LoggerFactory.getLogger(Network.class);
@@ -116,17 +114,20 @@ public class Network {
 
     public static Set<Network> listAll(boolean ipv4only) {
         Set<Network> nets = new HashSet<Network>();
-        AddressResolver resolver = new AddressResolver();
         try {
             Enumeration<NetworkInterface> nics = NetworkInterface.getNetworkInterfaces();
             while (nics.hasMoreElements()) {
                 NetworkInterface nic = nics.nextElement();
-                nets.addAll(list(nic, ipv4only, resolver));
+                nets.addAll(list(nic, ipv4only));
             }
         } catch (SocketException e) {
             log.error("Socket Exception getting NIC info", e);
         }
         return nets;
+    }
+
+    public static Set<Network> list(NetworkInterface nic, boolean ipv4Only) {
+        return list(nic, ipv4Only, new AddressResolver());
     }
 
     public static Set<Network> list(NetworkInterface nic, boolean ipv4Only, AddressResolver resolver) {
