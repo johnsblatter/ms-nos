@@ -5,6 +5,7 @@ import com.workshare.msnos.core.Iden;
 import com.workshare.msnos.core.Message;
 import com.workshare.msnos.core.Message.Payload;
 import com.workshare.msnos.core.RemoteAgent;
+import com.workshare.msnos.core.protocols.ip.AddressResolver;
 import com.workshare.msnos.core.protocols.ip.Network;
 import com.workshare.msnos.soup.json.Json;
 import org.slf4j.Logger;
@@ -43,7 +44,7 @@ public class Presence implements Message.Payload {
             Enumeration<NetworkInterface> nics = NetworkInterface.getNetworkInterfaces();
             while (nics.hasMoreElements()) {
                 NetworkInterface nic = nics.nextElement();
-                nets.addAll(Network.list(nic, true));
+                nets.addAll(Network.list(nic, true, new AddressResolver()));
             }
         } catch (SocketException e) {
             log.error("Socket Exception getting NIC info", e);

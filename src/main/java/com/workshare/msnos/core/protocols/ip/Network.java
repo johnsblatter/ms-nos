@@ -1,28 +1,31 @@
 package com.workshare.msnos.core.protocols.ip;
 
-import java.net.InterfaceAddress;
-import java.net.NetworkInterface;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.net.*;
+import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-/** 
- * A simplified view of an IP network
- * 
- * @author bossola
- *
+/**
+ * A simplified view of an IP on a Network
  */
 public class Network {
 
-	private final byte[] address;
-	private final short prefix;
+    private static Logger log = LoggerFactory.getLogger(Network.class);
 
-	public Network(byte[] address, short prefix) {
-		this.address = address;
-		this.prefix = prefix;
-	}
+    private final byte[] address;
+    private final short prefix;
 
-    public Network(InterfaceAddress inetAddress)  {
+    public Network(byte[] address, short prefix) {
+        this.address = address;
+        this.prefix = prefix;
+    }
+
+    public Network(InterfaceAddress inetAddress) {
         this(inetAddress.getAddress().getAddress(), inetAddress.getNetworkPrefixLength());
     }
 
@@ -31,26 +34,36 @@ public class Network {
     }
 
     public byte[] getAddress() {
-	    return this.address;
-	}
+        return this.address;
+    }
 
     public short getPrefix() {
         return this.prefix;
     }
 
-	public byte[] getNetmask() {
-		byte[] netmask = new byte[address.length];
+    public boolean isPrivate() {
+        InetAddress inetAddress = null;
+        try {
+            inetAddress = InetAddress.getByAddress(address);
+        } catch (UnknownHostException e) {
+            log.error("Unknown host exception when getting by address ", e);
+        }
+        return inetAddress.isSiteLocalAddress();
+    }
+
+    public byte[] getNetmask() {
+        byte[] netmask = new byte[address.length];
         int fullmask = prefix > 0 ? 0x00 - (1 << ((8 * address.length) - prefix)) : 0xFFFFFFFF;
         for (int i = 0; i < address.length; i++) {
-        	int shift = 8 * (address.length - i - 1);
-        	int bytemask = fullmask;
-        	bytemask >>= shift;
-        	bytemask &= 0xff;
-        	netmask[i] = (byte) bytemask;
+            int shift = 8 * (address.length - i - 1);
+            int bytemask = fullmask;
+            bytemask >>= shift;
+            bytemask &= 0xff;
+            netmask[i] = (byte) bytemask;
         }
-        
+
         return netmask;
-	}
+    }
 
 
     public String getHostString() {
@@ -61,13 +74,13 @@ public class Network {
             int x = (int) (address[i] & 0xff);
             sb.append(x);
         }
-   
+
         return sb.toString();
     }
 
     @Override
     public String toString() {
-        return getHostString()+"/"+prefix;
+        return getHostString() + "/" + prefix;
     }
 
     // TODO: dumb implementation, should be improved
@@ -101,14 +114,36 @@ public class Network {
         }
     }
 
-    public static Set<Network> list(NetworkInterface nic, boolean ipv4Only) {
+    public static Set<Network> listAll(boolean ipv4only) {
+        Set<Network> nets = new HashSet<Network>();
+        AddressResolver resolver = new AddressResolver();
+        try {
+            Enumeration<NetworkInterface> nics = NetworkInterface.getNetworkInterfaces();
+            while (nics.hasMoreElements()) {
+                NetworkInterface nic = nics.nextElement();
+                nets.addAll(list(nic, ipv4only, resolver));
+            }
+        } catch (SocketException e) {
+            log.error("Socket Exception getting NIC info", e);
+        }
+        return nets;
+    }
+
+    public static Set<Network> list(NetworkInterface nic, boolean ipv4Only, AddressResolver resolver) {
         Set<Network> lans = new HashSet<Network>();
         final List<InterfaceAddress> nicAddresses = nic.getInterfaceAddresses();
         for (InterfaceAddress nicAddress : nicAddresses) {
             if (!nicAddress.getAddress().isLoopbackAddress()) {
                 final Network net = new Network(nicAddress);
                 if (!ipv4Only || net.isIpv4())
-                    lans.add(net);
+                    if (net.isPrivate())
+                        try {
+                            lans.add(resolver.findPublicIP());
+                        } catch (IOException e) {
+                            log.error("IOException trying to find public IP ", e);
+                        }
+                    else
+                        lans.add(net);
             }
         }
         return lans;

@@ -28,6 +28,8 @@ import static org.mockito.Mockito.*;
 @SuppressWarnings("unused")
 public class MicroserviceTest {
 
+    private static final long CURRENT_TIME = 12345L;
+
     private Cloud cloud;
     private Microservice localMicroservice;
 
@@ -45,6 +47,10 @@ public class MicroserviceTest {
         localMicroservice = getLocalMicroservice();
 
         fakeSystemTime(12345L);
+        localMicroservice = new Microservice("fluffy");
+        localMicroservice.join(cloud);
+
+        fakeSystemTime(CURRENT_TIME);
     }
 
     @After
@@ -272,6 +278,14 @@ public class MicroserviceTest {
     }
 
     @Test
+    public void shouldNOTSelectApisExposedBySelf() throws Exception {
+        localMicroservice.publish(new RestApi("test", "alfa", 1234));
+        RemoteMicroservice remoteMicroservice = setupRemoteMicroservice("test", "alfa");
+
+        assertEquals(getRestApis(remoteMicroservice)[0], localMicroservice.searchApi("test", "alfa"));
+    }
+
+    @Test
     public void shouldUpdateMicroserviceIfPresent() throws Exception {
         UUID uuid = new UUID(11, 22);
         RemoteMicroservice remoteMicroservice = setupRemoteMicroserviceWithAgentUUIDAndRestApi("24.24.24.24", "content", "/files", uuid, createRestApi("content", "/files"));
@@ -330,8 +344,12 @@ public class MicroserviceTest {
     }
 
     private RemoteMicroservice setupRemoteMicroservice(String host, String name, String endpoint) {
+        return setupRemoteMicroservice(host, name, endpoint, 9999);
+    }
+
+    private RemoteMicroservice setupRemoteMicroservice(String host, String name, String endpoint, int port) {
         RemoteAgent agent = newRemoteAgent();
-        RestApi restApi = new RestApi(name, endpoint, 9999).onHost(host);
+        RestApi restApi = new RestApi(name, endpoint, port).onHost(host);
         RemoteMicroservice remote = new RemoteMicroservice(name, agent, toSet(restApi));
         return addRemoteAgentToCloudListAndMicroserviceToLocalList(name, remote, restApi);
 

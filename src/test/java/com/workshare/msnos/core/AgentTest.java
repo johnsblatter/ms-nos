@@ -1,6 +1,7 @@
 package com.workshare.msnos.core;
 
 import com.workshare.msnos.core.payloads.Presence;
+import com.workshare.msnos.core.protocols.ip.AddressResolver;
 import com.workshare.msnos.core.protocols.ip.Network;
 import com.workshare.msnos.soup.time.SystemTime;
 import org.junit.After;
@@ -29,6 +30,7 @@ public class AgentTest {
 
     @Before
     public void before() throws Exception {
+        System.setProperty("public.ip", "132.1.0.2");
         cloud = mock(Cloud.class);
         when(cloud.getIden()).thenReturn(new Iden(Iden.Type.CLD, UUID.randomUUID()));
         when(cloud.generateNextMessageUUID()).thenReturn(UUID.randomUUID());
@@ -176,7 +178,7 @@ public class AgentTest {
             Enumeration<NetworkInterface> nics = NetworkInterface.getNetworkInterfaces();
             while (nics.hasMoreElements()) {
                 NetworkInterface nic = nics.nextElement();
-                nets.addAll(Network.list(nic, true));
+                nets.addAll(Network.list(nic, true, new AddressResolver()));
             }
         } catch (SocketException e) {
             System.out.println("AgentTest.getNetworks" + e);
