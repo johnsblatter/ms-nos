@@ -53,6 +53,7 @@ public class MicroserviceTest {
 
     @After
     public void after() {
+        System.clearProperty("high.priority.mode");
         SystemTime.reset();
     }
 
@@ -302,6 +303,19 @@ public class MicroserviceTest {
         service.markWorking();
 
         assertEquals(now, service.getAgent().getAccessTime());
+    }
+
+    @Test
+    public void shouldPublishRestApisWithHighPriorityWhenSet() throws Exception {
+        System.setProperty("high.priority.mode", "true");
+
+        localMicroservice.publish(new RestApi("test", "path", 9999));
+
+        assertEquals(RestApi.Priority.HIGH, getLastPublishedRestApi().getPriority());
+    }
+
+    private RestApi getLastPublishedRestApi() throws IOException {
+        return ((QnePayload) getLastMessageSent().getData()).getApis().iterator().next();
     }
 
     private RestApi createRestApi(String name, String endpoint) {

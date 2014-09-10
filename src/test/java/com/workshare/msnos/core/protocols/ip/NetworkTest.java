@@ -24,7 +24,6 @@ public class NetworkTest {
     private static final byte NET_PREFIX = (byte) 24;
     private static final byte[] IPV4_ADDRESS1 = new byte[]{110, 0, 1, 1};
     private static final byte[] IPV4_ADDRESS2 = new byte[]{120, 0, 0, 1};
-    private static final byte[] PUBLIC_IPV_4_ADDRESS = new byte[]{123, 32, 14, 1};
     private static final byte[] IPV6_ADDRESS1 = new byte[]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16};
 
     private static final byte FF = (byte) 255;
@@ -117,7 +116,7 @@ public class NetworkTest {
 
     @Test
     public void shouldTellIfIPIsPublic() throws Exception {
-        InterfaceAddress adapter = mockInterfaceAddress(PUBLIC_IPV_4_ADDRESS, NET_PREFIX);
+        InterfaceAddress adapter = mockInterfaceAddress(IPV4_ADDRESS1, NET_PREFIX);
 
         Network network = new Network(adapter);
         assertFalse(network.isPrivate());

@@ -95,9 +95,19 @@ public class Microservice {
     }
 
     public void publish(RestApi... api) throws MsnosException {
-        Message message = new MessageBuilder(Message.Type.QNE, agent, cloud).with(new QnePayload(name, api)).make();
+        String mode = System.getProperty("high.priority.mode");
+        List<RestApi> restApis = Arrays.asList(api);
+
+        if (mode != null && mode.equals("true")) {
+            for (RestApi restApi : api) {
+                Collections.replaceAll(restApis, restApi, restApi.withHighPriority());
+            }
+        }
+
+        Message message = new MessageBuilder(Message.Type.QNE, agent, cloud).with(new QnePayload(name, restApis.toArray(new RestApi[restApis.size()]))).make();
+
         agent.send(message);
-        localApis.addAll(Arrays.asList(api));
+        localApis.addAll(restApis);
     }
 
     private void process(Message message) throws MsnosException {

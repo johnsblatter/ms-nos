@@ -44,7 +44,7 @@ public class Network {
         try {
             inetAddress = InetAddress.getByAddress(address);
         } catch (UnknownHostException e) {
-            log.error("Unknown host exception when getting by address ", e);
+            log.error("Unknown host exception when checking if an address is private ", e);
         }
         return inetAddress.isSiteLocalAddress();
     }

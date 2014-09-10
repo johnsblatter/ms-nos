@@ -10,6 +10,8 @@ public class RestApi {
 
     public enum Type {PUBLIC, INTERNAL, HEALTHCHECK, MSNOS_HTTP}
 
+    public enum Priority {HIGH, NORMAL}
+
     private static final AtomicLong NEXT_ID = new AtomicLong(0);
 
     private final String name;
@@ -18,6 +20,7 @@ public class RestApi {
     private final int port;
     private final boolean sessionAffinity;
     private final Type type;
+    private final Priority priority;
 
     private final transient AtomicInteger tempFaults;
     private final transient long id;
@@ -34,6 +37,10 @@ public class RestApi {
     }
 
     public RestApi(String name, String path, int port, String host, Type type, boolean sessionAffinity) {
+        this(name, path, port, host, type, sessionAffinity, Priority.NORMAL);
+    }
+
+    public RestApi(String name, String path, int port, String host, Type type, boolean sessionAffinity, Priority priority) {
         if (path == null) {
             throw new IllegalArgumentException("path cannot be null");
         }
@@ -44,24 +51,29 @@ public class RestApi {
         this.host = host;
         this.sessionAffinity = sessionAffinity;
         this.type = type;
+        this.priority = priority;
         this.id = NEXT_ID.getAndIncrement();
         tempFaults = new AtomicInteger();
     }
 
     public RestApi asHealthCheck() {
-        return new RestApi(name, path, port, host, Type.HEALTHCHECK, sessionAffinity);
+        return new RestApi(name, path, port, host, Type.HEALTHCHECK, sessionAffinity, priority);
     }
 
     public RestApi asInternal() {
-        return new RestApi(name, path, port, host, Type.INTERNAL, sessionAffinity);
+        return new RestApi(name, path, port, host, Type.INTERNAL, sessionAffinity, priority);
+    }
+
+    public RestApi withHighPriority() {
+        return new RestApi(name, path, port, host, type, sessionAffinity, Priority.HIGH);
     }
 
     public RestApi onHost(String host) {
-        return new RestApi(name, path, port, host, type, sessionAffinity);
+        return new RestApi(name, path, port, host, type, sessionAffinity, priority);
     }
 
     public RestApi withAffinity() {
-        return new RestApi(name, path, port, host, type, true);
+        return new RestApi(name, path, port, host, type, true, priority);
     }
 
     public boolean hasAffinity() {
@@ -87,6 +99,10 @@ public class RestApi {
 
     public int getTempFaults() {
         return tempFaults.get();
+    }
+
+    public Priority getPriority() {
+        return priority;
     }
 
     public String getName() {
