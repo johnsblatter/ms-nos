@@ -51,7 +51,7 @@ public class LocalAgent implements Agent {
     }
 
     @Override
-    public Long getSeq() {
+    public Long getNextSequence() {
         return seq.incrementAndGet();
     }
 

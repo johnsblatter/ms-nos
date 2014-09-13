@@ -30,12 +30,12 @@ public class MessageBuilder {
 
     public MessageBuilder(Type type, Cloud from, Iden to) {
         this(Mode.STRICT, type, from.getIden(), to);
-        this.uuid = from.generateNextMessageUUID();
+        this.seq = from.getNextSequence();
     }
 
     public MessageBuilder(Type type, LocalAgent from, Identifiable to) {
         this(Mode.STRICT, type, from.getIden(), to.getIden());
-        this.seq = from.getSeq();
+        this.seq = from.getNextSequence();
     }
 
     public MessageBuilder(Mode mode, Type type, Iden from, Iden to) {
@@ -63,6 +63,14 @@ public class MessageBuilder {
         return this;
     }
 
+    public MessageBuilder sequence(long seqnum) {
+        if (isStrict())
+            throw new IllegalArgumentException("Cannot accept a sequence number, it's taken from the source!");
+
+        this.seq = seqnum;
+        return this;
+    }
+    
     public MessageBuilder reliable(boolean reliable) {
         this.reliable = reliable;
         return this;
@@ -71,14 +79,6 @@ public class MessageBuilder {
     public MessageBuilder signed(String sig, String rnd) {
         this.sig = sig;
         this.rnd = rnd;
-        return this;
-    }
-
-    public MessageBuilder sequence(long seq) {
-        if (isStrict() && from.getType() == Iden.Type.CLD)
-            throw new IllegalArgumentException("Cannot accept a sequence if the message is from a cloud!");
-
-        this.seq = seq;
         return this;
     }
 
@@ -94,4 +94,5 @@ public class MessageBuilder {
 
         return new Message(type, from, to, hops, reliable, data, uuid, sig, rnd, seq);
     }
+
 }

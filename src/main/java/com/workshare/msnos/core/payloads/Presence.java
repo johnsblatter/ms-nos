@@ -1,18 +1,21 @@
 package com.workshare.msnos.core.payloads;
 
-import com.workshare.msnos.core.*;
-import com.workshare.msnos.core.Message.Payload;
-import com.workshare.msnos.core.protocols.ip.Endpoint;
-import com.workshare.msnos.core.protocols.ip.Network;
-import com.workshare.msnos.soup.json.Json;
+import java.util.HashSet;
+import java.util.Set;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.net.NetworkInterface;
-import java.net.SocketException;
-import java.util.Enumeration;
-import java.util.HashSet;
-import java.util.Set;
+import com.workshare.msnos.core.Cloud;
+import com.workshare.msnos.core.Gateways;
+import com.workshare.msnos.core.Iden;
+import com.workshare.msnos.core.LocalAgent;
+import com.workshare.msnos.core.Message;
+import com.workshare.msnos.core.Message.Payload;
+import com.workshare.msnos.core.MsnosException;
+import com.workshare.msnos.core.RemoteAgent;
+import com.workshare.msnos.core.protocols.ip.Endpoint;
+import com.workshare.msnos.soup.json.Json;
 
 public class Presence implements Message.Payload {
 
@@ -29,20 +32,6 @@ public class Presence implements Message.Payload {
 
     public Presence(boolean present) throws MsnosException {
         this(present, present ? Gateways.endpoints() : new HashSet<Endpoint>());
-    }
-
-    private static Set<Network> getAllNetworks() {
-        Set<Network> nets = new HashSet<Network>();
-        try {
-            Enumeration<NetworkInterface> nics = NetworkInterface.getNetworkInterfaces();
-            while (nics.hasMoreElements()) {
-                NetworkInterface nic = nics.nextElement();
-                nets.addAll(Network.list(nic, true));
-            }
-        } catch (SocketException e) {
-            log.error("Socket Exception getting NIC info", e);
-        }
-        return nets;
     }
 
     public boolean isPresent() {
@@ -101,7 +90,7 @@ public class Presence implements Message.Payload {
         Iden from = message.getFrom();
 
         RemoteAgent agent = new RemoteAgent(from.getUUID(), internal.cloud(), getEndpoints());
-        agent.setSeq(message.getSeq());
+        agent.accept(message);
 
         if (isPresent()) {
             log.debug("Discovered new agent from network: {}", agent.toString());

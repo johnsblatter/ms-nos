@@ -33,20 +33,8 @@ public class MessageTest {
     }
 
     @Test
-    public void shouldGenerateUUIDFromSeqIfUUIDEmpty() throws Exception {
-        int sequenceNumber = 19;
-        Message msg = new MessageBuilder(MessageBuilder.Mode.RELAXED, Message.Type.APP, AGENT_IDEN, CLOUD_IDEN).sequence(sequenceNumber).make();
+    public void shouldGenerateUUIDIfUUIDEmpty() throws Exception {
+        Message msg = new MessageBuilder(MessageBuilder.Mode.RELAXED, Message.Type.APP, AGENT_IDEN, CLOUD_IDEN).make();
         assertNotNull(msg.getUuid());
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void shouldNotConstructIfNoUUIDOrSequence() throws Exception {
-        Cloud cloud = mock(Cloud.class);
-        when(cloud.getIden()).thenReturn(new Iden(Iden.Type.CLD, UUID.randomUUID()));
-
-        Iden to = mock(Iden.class);
-        when(to.getUUID()).thenReturn(UUID.randomUUID());
-
-        new MessageBuilder(Message.Type.APP, cloud, to).make();
     }
 }

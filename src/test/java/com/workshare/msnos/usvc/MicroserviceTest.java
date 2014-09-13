@@ -1,17 +1,22 @@
 package com.workshare.msnos.usvc;
 
-import com.workshare.msnos.core.*;
-import com.workshare.msnos.core.cloud.JoinSynchronizer;
-import com.workshare.msnos.core.cloud.Multicaster;
-import com.workshare.msnos.core.payloads.FltPayload;
-import com.workshare.msnos.core.payloads.QnePayload;
-import com.workshare.msnos.core.protocols.ip.Endpoint;
-import com.workshare.msnos.core.protocols.ip.Endpoint.Type;
-import com.workshare.msnos.core.protocols.ip.Network;
-import com.workshare.msnos.core.security.Signer;
-import com.workshare.msnos.soup.time.SystemTime;
-import com.workshare.msnos.usvc.api.RestApi;
-import com.workshare.msnos.usvc.api.routing.strategies.CachingRoutingStrategy;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -19,13 +24,26 @@ import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
-import java.io.IOException;
-import java.util.*;
-import java.util.concurrent.ScheduledExecutorService;
-
-import static org.junit.Assert.*;
-import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.*;
+import com.workshare.msnos.core.Agent;
+import com.workshare.msnos.core.Cloud;
+import com.workshare.msnos.core.Gateway;
+import com.workshare.msnos.core.Iden;
+import com.workshare.msnos.core.Identifiable;
+import com.workshare.msnos.core.Message;
+import com.workshare.msnos.core.MessageBuilder;
+import com.workshare.msnos.core.MockMessageHelper;
+import com.workshare.msnos.core.Receipt;
+import com.workshare.msnos.core.RemoteAgent;
+import com.workshare.msnos.core.RemoteEntity;
+import com.workshare.msnos.core.cloud.JoinSynchronizer;
+import com.workshare.msnos.core.payloads.FltPayload;
+import com.workshare.msnos.core.payloads.QnePayload;
+import com.workshare.msnos.core.protocols.ip.Endpoint;
+import com.workshare.msnos.core.protocols.ip.Endpoint.Type;
+import com.workshare.msnos.core.protocols.ip.Network;
+import com.workshare.msnos.soup.time.SystemTime;
+import com.workshare.msnos.usvc.api.RestApi;
+import com.workshare.msnos.usvc.api.routing.strategies.CachingRoutingStrategy;
 
 @SuppressWarnings("unused")
 public class MicroserviceTest {
@@ -43,11 +61,10 @@ public class MicroserviceTest {
     public void prepare() throws Exception {
         cloud = Mockito.mock(Cloud.class);
         when(cloud.getIden()).thenReturn(new Iden(Iden.Type.CLD, new UUID(111, 111)));
-        when(cloud.generateNextMessageUUID()).thenReturn(UUID.randomUUID());
 
-        fakeSystemTime(12345L);
         localMicroservice = new Microservice("fluffy");
         localMicroservice.join(cloud);
+        
         fakeSystemTime(CURRENT_TIME);
     }
 
@@ -60,7 +77,7 @@ public class MicroserviceTest {
     @Test
     public void shouldInternalAgentJoinTheCloudOnJoin() throws Exception {
         localMicroservice = new Microservice("jeff");
-        cloud = new Cloud(UUID.randomUUID(), " ", new Signer(), mockGateways(), mock(JoinSynchronizer.class), mock(Multicaster.class), mock(ScheduledExecutorService.class), null);
+        cloud = new Cloud(UUID.randomUUID(), " ", mockGateways(), mock(JoinSynchronizer.class),null);
 
         localMicroservice.join(cloud);
 
@@ -175,7 +192,7 @@ public class MicroserviceTest {
 
     @Test
     public void shouldCreateBoundRestApisWhenRestApiNotBound() throws Exception {
-        RemoteAgent remoteAgent = newRemoteAgentWithFakeHosts("10.10.10.10", (short) 15);
+        RemoteEntity remoteAgent = newRemoteAgentWithFakeHosts("10.10.10.10", (short) 15);
 
         RestApi unboundApi = new RestApi("test", "/test", 9999);
         simulateMessageFromCloud(newQNEMessage(remoteAgent, "content", unboundApi));
@@ -397,7 +414,7 @@ public class MicroserviceTest {
         return new MockMessageHelper(Message.Type.ENQ, from.getIden(), to.getIden()).make();
     }
 
-    private Message newQNEMessage(RemoteAgent from, String name, RestApi... apis) {
+    private Message newQNEMessage(RemoteEntity from, String name, RestApi... apis) {
         return new MockMessageHelper(Message.Type.QNE, from.getIden(), cloud.getIden()).sequence(12).data(new QnePayload("content", apis)).make();
     }
 
@@ -426,7 +443,7 @@ public class MicroserviceTest {
         });
     }
 
-    private RemoteAgent newRemoteAgentWithFakeHosts(String address, short suffix) throws Exception {
+    private RemoteEntity newRemoteAgentWithFakeHosts(String address, short suffix) throws Exception {
         List<String> tokens = Arrays.asList(address.split("\\."));
         if (tokens.size() > 4) throw new Exception("Split too large, not correct network address");
         byte[] nibbles = new byte[tokens.size()];

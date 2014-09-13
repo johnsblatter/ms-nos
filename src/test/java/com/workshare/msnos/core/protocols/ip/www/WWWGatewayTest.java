@@ -18,7 +18,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -47,7 +46,6 @@ import com.workshare.msnos.core.Message.Status;
 import com.workshare.msnos.core.MessageBuilder;
 import com.workshare.msnos.core.Receipt;
 import com.workshare.msnos.core.cloud.JoinSynchronizer;
-import com.workshare.msnos.core.security.Signer;
 import com.workshare.msnos.core.serializers.WireJsonSerializer;
 import com.workshare.msnos.core.serializers.WireSerializer;
 import com.workshare.msnos.soup.threading.Multicaster;
@@ -71,9 +69,7 @@ public class WWWGatewayTest {
     
     @Before
     public void setup() throws Exception {
-        JoinSynchronizer synchro = mock(JoinSynchronizer.class);
-
-        cloud = new Cloud(CLOUD_UUID, "", new Signer(), Collections.<Gateway>emptySet(), synchro, mock(com.workshare.msnos.core.cloud.Multicaster.class), Executors.newSingleThreadScheduledExecutor(), null);
+        cloud = new Cloud(CLOUD_UUID, " ", Collections.<Gateway>emptySet(), mock(JoinSynchronizer.class),null);
 
         System.setProperty(WWWGateway.SYSP_ADDRESS, WWW_ROOT);
 

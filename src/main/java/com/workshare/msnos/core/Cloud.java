@@ -4,19 +4,19 @@ import java.io.IOException;
 import java.security.SecureRandom;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.workshare.msnos.core.cloud.AgentWatchdog;
-import com.workshare.msnos.core.cloud.AgentsList;
+import com.workshare.msnos.core.cloud.IdentifiablesList;
 import com.workshare.msnos.core.cloud.JoinSynchronizer;
 import com.workshare.msnos.core.cloud.JoinSynchronizer.Status;
+import com.workshare.msnos.core.cloud.MessagePreProcessors;
 import com.workshare.msnos.core.cloud.Multicaster;
 import com.workshare.msnos.core.payloads.FltPayload;
 import com.workshare.msnos.core.payloads.Presence;
@@ -40,12 +40,12 @@ public class Cloud implements Identifiable {
 
     private final Iden iden;
     private final String signid;
-    private final AgentsList<LocalAgent> localAgents;
-    private final AgentsList<RemoteAgent> remoteAgents;
-    private final Map<Long, Long> instanceMessages;
+    private final IdentifiablesList<LocalAgent> localAgents;
+    private final IdentifiablesList<RemoteAgent> remoteAgents;
+    private final IdentifiablesList<RemoteEntity> remoteClouds;
+    private final AtomicLong seq;
 
-
-    transient private final Long instanceID;
+    transient private final MessagePreProcessors validators;
     transient private final Set<Gateway> gates;
     transient private final Multicaster caster;
     transient private final JoinSynchronizer synchronizer;
@@ -53,8 +53,20 @@ public class Cloud implements Identifiable {
     transient private final Internal internal;
 
     public class Internal {
-        public AgentsList<RemoteAgent> remoteAgents() {
+        public IdentifiablesList<LocalAgent> localAgents() {
+            return localAgents;
+        }
+
+        public IdentifiablesList<RemoteAgent> remoteAgents() {
             return remoteAgents;
+        }
+
+        public IdentifiablesList<RemoteEntity> remoteClouds() {
+            return remoteClouds;
+        }
+
+        public Message sign(Message message) {
+            return Cloud.this.sign(message);
         }
 
         public Cloud cloud() {
@@ -63,25 +75,25 @@ public class Cloud implements Identifiable {
     }
 
     public Cloud(UUID uuid) throws MsnosException {
-        this(uuid, null, Gateways.all(), new JoinSynchronizer(), null);
+        this(uuid, null);
     }
 
     public Cloud(UUID uuid, String signid) throws MsnosException {
-        this(uuid, signid, Gateways.all(), new JoinSynchronizer(), null);
+        this(uuid, signid, Gateways.all(), new JoinSynchronizer(), random.nextLong());
     }
 
     public Cloud(UUID uuid, String signid, Set<Gateway> gates, JoinSynchronizer synchronizer,  Long instanceId) {
         this(uuid, signid, new Signer(), gates, synchronizer, new Multicaster(), DEFAULT_SCHEDULER, instanceId);
     }
 
-    public Cloud(UUID uuid, String signid, Signer signer, Set<Gateway> gates, JoinSynchronizer synchronizer, Multicaster multicaster, ScheduledExecutorService executor, Long instanceId) {
-        this.iden = new Iden(Iden.Type.CLD, uuid);
-        this.instanceID = instanceId;
+    Cloud(UUID uuid, String signid, Signer signer, Set<Gateway> gates, JoinSynchronizer synchronizer, Multicaster multicaster, ScheduledExecutorService executor, Long instanceId) {
+        this.iden = new Iden(Iden.Type.CLD, uuid, instanceId);
 
-        this.localAgents = new AgentsList<LocalAgent>();
-        this.remoteAgents = new AgentsList<RemoteAgent>();
-        this.instanceMessages = new HashMap<Long, Long>();
+        this.localAgents = new IdentifiablesList<LocalAgent>();
+        this.remoteAgents = new IdentifiablesList<RemoteAgent>();
+        this.remoteClouds = new IdentifiablesList<RemoteEntity>(); 
 
+        this.seq = new AtomicLong(SystemTime.asMillis());
         this.caster = multicaster;
         this.gates = gates;
         this.signer = signer;
@@ -100,8 +112,10 @@ public class Cloud implements Identifiable {
                 }
             });
         }
-
+        
         this.internal = new Internal();
+        this.validators = new MessagePreProcessors(this.internal);
+        
         new AgentWatchdog(this, executor).start();
     }
 
@@ -115,12 +129,8 @@ public class Cloud implements Identifiable {
         return iden;
     }
 
-    public Long getInstanceID() {
-        return instanceID;
-    }
-
-    public Map<Long, Long> getInstanceMessages() {
-        return instanceMessages;
+    public Long getNextSequence() {
+        return seq.incrementAndGet();
     }
 
     public Collection<RemoteAgent> getRemoteAgents() {
@@ -195,108 +205,37 @@ public class Cloud implements Identifiable {
     }
 
     private void process(Message message) throws IOException {
-        if (isProcessable(message)) {
+        if (validators.isValid(message)) {
             proto.info("RX: {} {} {} {}", message.getType(), message.getFrom(), message.getTo(), message.getData());
-
-            final RemoteAgent remoteAgent = remoteAgents.get(message.getFrom());
-            if (remoteAgent != null) remoteAgent.setSeq(message.getSeq());
 
             boolean processed = message.getData().process(message, internal);
             if (!processed)
-                dispatch(message);
+                caster.dispatch(message);
+            
+            postProcess(message);
         } else {
             proto.debug("NN: {} {} {} {}", message.getType(), message.getFrom(), message.getTo(), message.getData());
         }
+    }
 
-        remoteAgents.touch(message.getFrom());
+    private void postProcess(Message message) {
+        final Iden from = message.getFrom();
+
+        touch(remoteAgents.get(from));
+        touch(remoteClouds.get(from));
+
         synchronizer.process(message);
     }
 
-    private boolean isProcessable(Message message) throws IOException {
-        if (isComingFromALocalAgent(message)) {
-            log.debug("Skipped message sent from a local agent: {}", message);
-            return false;
-        }
-
-        if (isFromCloudAndStored(message)) {
-            log.debug("Skipped message, from a cloud and previously received: {}", message);
-            return false;
-        }
-
-        if (isAddressedToARemoteAgent(message)) {
-            log.debug("Skipped message addressed to a remote agent: {}", message);
-            return false;
-        }
-
-        if (isOutOfSequence(message)) {
-            log.debug("Skipped message sent out of order: {} ", message);
-            return false;
-        }
-
-        if (!isAddressedToTheLocalCloud(message)) {
-            log.debug("Skipped message addressed to another cloud: {}", message);
-            return false;
-        }
-
-        if (!isCorrectlySigned(message)) {
-            log.debug("Skipped message incorrectly signed: {} - key: ", message, signid);
-            return false;
-        }
-
-        return true;
+    private void touch(RemoteEntity entity) {
+        if (entity != null)
+            entity.touch();
     }
 
-    private boolean isFromCloudAndStored(Message message) {
-        final long key = message.getUuid().getMostSignificantBits();
-        final long val = message.getUuid().getLeastSignificantBits();
-        final Iden.Type type = message.getFrom().getType();
-
-        if (type == Iden.Type.CLD && !instanceMessages.containsKey(key)) {
-            instanceMessages.put(key, val);
-            return false;
-        } else if (type == Iden.Type.CLD && instanceMessages.containsKey(key) && instanceMessages.get(key) < val) {
-            instanceMessages.put(key, val);
-            return false;
-        } else if (type == Iden.Type.CLD && instanceMessages.containsKey(key) && instanceMessages.get(key) > val) {
-            return true;
-        }
-
-        return false;
-    }
-
-    private boolean isOutOfSequence(Message message) {
-        final RemoteAgent remoteAgent = remoteAgents.get(message.getFrom());
-        return remoteAgent != null && message.getSeq() < remoteAgent.getSeq();
-    }
-
-    private boolean isCorrectlySigned(Message message) {
-        Message signed = sign(message);
-        return parseNull(message.getSig()).equals(parseNull(signed.getSig()));
-    }
-
-    private boolean isAddressedToARemoteAgent(Message message) {
-        return remoteAgents.containsKey(message.getTo());
-    }
-
-    private boolean isComingFromALocalAgent(Message message) {
-        return localAgents.containsKey(message.getFrom());
-    }
-
-    private boolean isAddressedToTheLocalCloud(Message message) {
-        final Iden to = message.getTo();
-        return to.equals(iden) || localAgents.containsKey(to);
-    }
-
-    public void removeFaultyAgent(RemoteAgent agent) {
-        RemoteAgent result = remoteAgents.remove(agent.getIden());
+    public void removeFaultyAgent(RemoteEntity agent) {
+        RemoteEntity result = remoteAgents.remove(agent.getIden());
         if (result != null)
-            dispatch(new MessageBuilder(Message.Type.FLT, this, this).with(new FltPayload(agent.getIden())).make());
-    }
-
-    // FIXME: this is temporary until the new cloud instance is in place
-    public UUID generateNextMessageUUID() {
-//        return new UUID(instanceID, SystemTime.asMillis());
-        return UUID.randomUUID();
+            caster.dispatch(new MessageBuilder(Message.Type.FLT, this, this).with(new FltPayload(agent.getIden())).make());
     }
 
     private Message sign(Message message) {
@@ -309,13 +248,5 @@ public class Cloud implements Identifiable {
             return message;
         }
     }
-
-    private void dispatch(Message message) {
-        caster.dispatch(message);
-    }
-
-    private String parseNull(String signature) {
-        return (signature == null ? "" : signature);
-    }
-
 }
+

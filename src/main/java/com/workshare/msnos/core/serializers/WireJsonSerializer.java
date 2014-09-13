@@ -2,7 +2,6 @@ package com.workshare.msnos.core.serializers;
 
 import java.lang.reflect.Type;
 import java.nio.charset.Charset;
-import java.util.Collections;
 import java.util.UUID;
 
 import org.slf4j.Logger;
@@ -19,10 +18,7 @@ import com.google.gson.JsonPrimitive;
 import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
 import com.google.gson.JsonSyntaxException;
-import com.workshare.msnos.core.Cloud;
-import com.workshare.msnos.core.Gateway;
 import com.workshare.msnos.core.Iden;
-import com.workshare.msnos.core.LocalAgent;
 import com.workshare.msnos.core.Message;
 import com.workshare.msnos.core.Message.Payload;
 import com.workshare.msnos.core.MessageBuilder;
@@ -110,7 +106,7 @@ public class WireJsonSerializer implements WireSerializer {
     private static final JsonSerializer<Iden> ENC_IDEN = new JsonSerializer<Iden>() {
         @Override
         public JsonElement serialize(Iden iden, Type typeof, JsonSerializationContext context) {
-            return serializeIden(iden);
+            return serializeIden(iden, true);
         }
     };
 
@@ -119,67 +115,6 @@ public class WireJsonSerializer implements WireSerializer {
         public Iden deserialize(JsonElement json, Type typeof, JsonDeserializationContext context)
                 throws JsonParseException {
             return deserializeIden(json);
-        }
-    };
-
-    private static final JsonSerializer<Cloud> ENC_CLOUD = new JsonSerializer<Cloud>() {
-        @Override
-        public JsonElement serialize(Cloud cloud, Type typeof, JsonSerializationContext context) {
-            Iden iden = cloud.getIden();
-            String text = iden.getType() + ":" + serializeUUIDToShortString(iden.getUUID());
-            if (cloud.getInstanceID() != null)
-                text = text + ":" + Long.toString(cloud.getInstanceID(), 32);
-                
-            return new JsonPrimitive(text);
-        }
-    };
-
-    private static final JsonDeserializer<Cloud> DEC_CLOUD = new JsonDeserializer<Cloud>() {
-        @Override
-        public Cloud deserialize(JsonElement json, Type typeof, JsonDeserializationContext context)
-                throws JsonParseException {
-            try {
-                String text = json.getAsString();
-
-                int idx1 = text.indexOf(':');
-                int idx2 = text.indexOf(':',idx1+1);
-                idx2 = (idx2 > 0 ? idx2 : text.length());
-                
-                Iden.Type type = Iden.Type.valueOf(text.substring(0, idx1));
-                UUID uuid = deserializeUUIDFromShortString(text.substring(idx1 + 1, idx2));
-                Iden iden = new Iden(type, uuid);
-
-                Long instanceID = null;
-                if (idx2 != text.length()) {
-                    instanceID = Long.parseLong(text.substring(idx2 + 1), 32);
-                }
-                    
-                if (iden.getType() != Iden.Type.CLD)
-                    throw new IllegalArgumentException("Unexpected type when converting cloud!");
-                return new Cloud(iden.getUUID(), null, Collections.<Gateway>emptySet(), null, instanceID);
-            } catch (Exception any) {
-                throw new JsonParseException(any);
-            }
-
-        }
-    };
-
-
-    private static final JsonSerializer<LocalAgent> ENC_AGENT = new JsonSerializer<LocalAgent>() {
-        @Override
-        public JsonElement serialize(LocalAgent agent, Type typeof, JsonSerializationContext context) {
-            return serializeIden(agent.getIden());
-        }
-    };
-
-    private static final JsonDeserializer<LocalAgent> DEC_AGENT = new JsonDeserializer<LocalAgent>() {
-        @Override
-        public LocalAgent deserialize(JsonElement json, Type typeof, JsonDeserializationContext context)
-                throws JsonParseException {
-            Iden iden = deserializeIden(json);
-            if (iden.getType() != Iden.Type.AGT)
-                throw new IllegalArgumentException("Unexpected type when converting cloud!");
-            return new LocalAgent(iden.getUUID());
         }
     };
 
@@ -210,14 +145,14 @@ public class WireJsonSerializer implements WireSerializer {
             final JsonObject res = new JsonObject();
             res.add("v", context.serialize(msg.getVersion()));
             res.add("fr", context.serialize(msg.getFrom()));
-            res.add("to", context.serialize(msg.getTo()));
+            res.add("to", serializeIden(msg.getTo(), false));
             res.add("rx", context.serialize(msg.isReliable()));
             res.addProperty("hp", msg.getHops());
             res.addProperty("ty", msg.getType().toString());
             res.addProperty("ss", msg.getSig());
             res.addProperty("rr", msg.getRnd());
-            res.addProperty("sq", msg.getSeq());
-            if (msg.getSeq() == 0) res.add("id", context.serialize(msg.getUuid()));
+            res.addProperty("sq", msg.getSequence());
+            if (msg.getSequence() == 0) res.add("id", context.serialize(msg.getUuid()));
             if (!(msg.getData() instanceof NullPayload))
                 res.add("dt", context.serialize(msg.getData()));
 
@@ -239,7 +174,7 @@ public class WireJsonSerializer implements WireSerializer {
             final Iden from = context.deserialize(obj.get("fr").getAsJsonPrimitive(), Iden.class);
             final Iden to = context.deserialize(obj.get("to").getAsJsonPrimitive(), Iden.class);
             final int hops = obj.get("hp").getAsInt();
-            final boolean reliable = context.deserialize(obj.get("rx"), Boolean.class);
+            final Boolean reliable = context.deserialize(obj.get("rx"), Boolean.class);
             final String sig = getNullableString(obj, "ss");
             final String rnd = getNullableString(obj, "rr");
             final long seq = obj.get("sq").getAsLong();
@@ -287,12 +222,6 @@ public class WireJsonSerializer implements WireSerializer {
             builder.registerTypeAdapter(Byte.class, ENC_BYTE);
             builder.registerTypeAdapter(byte.class, ENC_BYTE);
 
-            builder.registerTypeAdapter(Cloud.class, ENC_CLOUD);
-            builder.registerTypeAdapter(Cloud.class, DEC_CLOUD);
-
-            builder.registerTypeAdapter(LocalAgent.class, ENC_AGENT);
-            builder.registerTypeAdapter(LocalAgent.class, DEC_AGENT);
-
             builder.registerTypeAdapter(Iden.class, ENC_IDEN);
             builder.registerTypeAdapter(Iden.class, DEC_IDEN);
 
@@ -309,21 +238,30 @@ public class WireJsonSerializer implements WireSerializer {
         }
     };
 
-    private static final JsonPrimitive serializeIden(Iden iden) {
-        return new JsonPrimitive(iden.getType() + ":" + serializeUUIDToShortString(iden.getUUID()));
+    private static final JsonPrimitive serializeIden(Iden iden, boolean includeSuid) {
+        String text = iden.getType() + ":" + serializeUUIDToShortString(iden.getUUID());
+        if (includeSuid && iden.getSuid() != null)
+            text = text + ":" + Long.toString(iden.getSuid(), 32);
+            
+        return new JsonPrimitive(text);
     }
 
     private static final Iden deserializeIden(JsonElement json) {
-        try {
-            String text = json.getAsString();
-            int idx = text.indexOf(':');
+        String text = json.getAsString();
 
-            Iden.Type type = Iden.Type.valueOf(text.substring(0, idx));
-            UUID uuid = deserializeUUIDFromShortString(text.substring(idx + 1));
-            return new Iden(type, uuid);
-        } catch (Exception any) {
-            throw new JsonParseException(any);
+        int idx1 = text.indexOf(':');
+        int idx2 = text.indexOf(':',idx1+1);
+        idx2 = (idx2 > 0 ? idx2 : text.length());
+        
+        Iden.Type type = Iden.Type.valueOf(text.substring(0, idx1));
+        UUID uuid = deserializeUUIDFromShortString(text.substring(idx1 + 1, idx2));
+
+        Long suid = null;
+        if (idx2 != text.length()) {
+            suid = Long.parseLong(text.substring(idx2 + 1), 32);
         }
+
+        return new Iden(type, uuid, suid);
     }
 
     private static String serializeUUIDToShortString(UUID uuid) {

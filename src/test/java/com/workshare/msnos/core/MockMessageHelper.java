@@ -22,7 +22,7 @@ public class MockMessageHelper {
     private Message.Payload payload;
     private String sig;
     private String rnd;
-    private long seq;
+    private long seq=1;
 
     public MockMessageHelper(Message.Type type, Iden from, Iden to) {
         this.type = type;
@@ -52,7 +52,7 @@ public class MockMessageHelper {
         when(message.getSig()).thenReturn(sig);
         when(message.getUuid()).thenReturn(uuid);
         when(message.getRnd()).thenReturn(rnd);
-        when(message.getSeq()).thenReturn(seq);
+        when(message.getSequence()).thenReturn(seq);
         when(message.getType()).thenReturn(type);
         when(message.getFrom()).thenReturn(from);
         when(message.getTo()).thenReturn(to);
