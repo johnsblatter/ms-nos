@@ -33,7 +33,6 @@ public class AgentTest {
     public void before() throws Exception {
         cloud = mock(Cloud.class);
         when(cloud.getIden()).thenReturn(new Iden(Iden.Type.CLD, UUID.randomUUID()));
-        when(cloud.generateNextMessageUUID()).thenReturn(UUID.randomUUID());
 
         karl = new LocalAgent(UUID.randomUUID());
         karl.join(cloud);
@@ -76,7 +75,7 @@ public class AgentTest {
 
     @Test
     public void shouldSendUnreliableMessageThroughCloud() throws Exception {
-        smith.send(new MessageBuilder(Message.Type.PIN, smith, karl).sequence(12).make());
+        smith.send(new MessageBuilder(Message.Type.PIN, smith, karl).make());
 
         Message message = getLastMessageToCloud();
         assertNotNull(message);
@@ -89,7 +88,7 @@ public class AgentTest {
     @Test
     public void shouldSendReliableMessageThroughCloud() throws Exception {
 
-        smith.send(new MessageBuilder(Message.Type.PIN, smith, karl).sequence(12).reliable(true).make());
+        smith.send(new MessageBuilder(Message.Type.PIN, smith, karl).reliable(true).make());
 
         Message message = getLastMessageToCloud();
         assertNotNull(message);
@@ -101,7 +100,7 @@ public class AgentTest {
 
     @Test
     public void presenceMessageShouldContainNetworkInfo() throws Exception {
-        smith.send(new MessageBuilder(Message.Type.PRS, smith, cloud).sequence(12).with(Presence.on(smith)).make());
+        smith.send(new MessageBuilder(Message.Type.PRS, smith, cloud).with(Presence.on(smith)).make());
 
         Message message = getLastMessageToCloud();
 
@@ -127,7 +126,7 @@ public class AgentTest {
     public void shouldUpdateAccessTimeWhenMessageIsReceived() {
         fakeSystemTime(123456790L);
 
-        Message message = new MessageBuilder(MessageBuilder.Mode.RELAXED, Message.Type.PIN, cloud.getIden(), smith.getIden()).sequence(12).make();
+        Message message = new MessageBuilder(MessageBuilder.Mode.RELAXED, Message.Type.PIN, cloud.getIden(), smith.getIden()).make();
         simulateMessageFromCloud(message);
 
         assertEquals(123456790L, smith.getAccessTime());
@@ -149,7 +148,7 @@ public class AgentTest {
     public void shouldCreateSequenceNumberOnCreation() throws Exception {
         smith.send(new MessageBuilder(Message.Type.PIN, smith, cloud).make());
         Message toCloud = getLastMessageToCloud();
-        assertEquals(Long.valueOf(smith.getSeq() - 1), Long.valueOf(toCloud.getSeq()));
+        assertEquals(Long.valueOf(smith.getNextSequence() - 1), Long.valueOf(toCloud.getSequence()));
     }
 
     private Message getLastMessageToCloud() throws IOException {

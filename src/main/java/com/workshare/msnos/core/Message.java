@@ -39,9 +39,6 @@ public class Message {
         if (reliable && to.getType() == Iden.Type.CLD) {
             throw new IllegalArgumentException("Cannot create a reliable message to the whole cloud!");
         }
-        if (seq == 0 && uuid == null) {
-            throw new IllegalArgumentException("Unable to construct message without UUID or Sequence number!");
-        }
 
         this.uuid = uuid == null ? new UUID(from.getUUID().getMostSignificantBits(), seq) : uuid;
         this.type = type;
@@ -53,13 +50,14 @@ public class Message {
         this.rnd = (sig == null ? null : (rnd == null ? new BigInteger(130, random).toString(32) : rnd));
         this.seq = seq;
 
+        // TODO this can be achieved in a much better way (i.e. type.getPayload(this) here or in the builder)
         if (type == Type.PON)
             this.data = new PongPayload();
         else
             this.data = (data == null ? NullPayload.INSTANCE : data);
     }
 
-    public long getSeq() {
+    public long getSequence() {
         return seq;
     }
 

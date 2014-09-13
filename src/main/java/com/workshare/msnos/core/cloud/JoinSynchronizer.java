@@ -61,8 +61,9 @@ public class JoinSynchronizer {
                 Thread.interrupted();
             }
 
-            if (latch.getCount() > 0)
-                throw new MsnosException("Unsuccessful cloud join for agent " + agent, MsnosException.Code.JOIN_FAILED);
+            if (latch.getCount() > 0) {
+                log.info("No response by anybody else in this cloud :( are we alone?");
+            }
 
             log.debug("Join synchronisation successful");
         }

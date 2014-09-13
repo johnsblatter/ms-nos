@@ -44,7 +44,6 @@ public class MicroserviceTest {
     public void prepare() throws Exception {
         cloud = Mockito.mock(Cloud.class);
         when(cloud.getIden()).thenReturn(new Iden(Iden.Type.CLD, new UUID(111, 111)));
-        when(cloud.generateNextMessageUUID()).thenReturn(UUID.randomUUID());
         
         localMicroservice = new Microservice("fluffy");
         localMicroservice.join(cloud);
@@ -60,7 +59,7 @@ public class MicroserviceTest {
     @Test
     public void shouldInternalAgentJoinTheCloudOnJoin() throws Exception {
         localMicroservice = new Microservice("jeff");
-        cloud = new Cloud(UUID.randomUUID(), " ", new Signer(), mockGateways(), mock(JoinSynchronizer.class), mock(Multicaster.class), mock(ScheduledExecutorService.class), null);
+        cloud = new Cloud(UUID.randomUUID(), " ", mockGateways(), mock(JoinSynchronizer.class),null);
 
         localMicroservice.join(cloud);
 
@@ -175,7 +174,7 @@ public class MicroserviceTest {
 
     @Test
     public void shouldCreateBoundRestApisWhenRestApiNotBound() throws Exception {
-        RemoteAgent remoteAgent = newRemoteAgentWithFakeHosts("10.10.10.10", (short) 15);
+        RemoteEntity remoteAgent = newRemoteAgentWithFakeHosts("10.10.10.10", (short) 15);
 
         RestApi unboundApi = new RestApi("test", "/test", 9999);
         simulateMessageFromCloud(newQNEMessage(remoteAgent, "content", unboundApi));
@@ -372,7 +371,7 @@ public class MicroserviceTest {
         return new MockMessageHelper(Message.Type.ENQ, from.getIden(), to.getIden()).make();
     }
 
-    private Message newQNEMessage(RemoteAgent from, String name, RestApi... apis) {
+    private Message newQNEMessage(RemoteEntity from, String name, RestApi... apis) {
         return new MockMessageHelper(Message.Type.QNE, from.getIden(), cloud.getIden()).sequence(12).data(new QnePayload("content", apis)).make();
     }
 
@@ -401,7 +400,7 @@ public class MicroserviceTest {
         });
     }
 
-    private RemoteAgent newRemoteAgentWithFakeHosts(String address, short suffix) throws Exception {
+    private RemoteEntity newRemoteAgentWithFakeHosts(String address, short suffix) throws Exception {
         List<String> tokens = Arrays.asList(address.split("\\."));
         if (tokens.size() > 4) throw new Exception("Split too large, not correct network address");
         byte[] nibbles = new byte[tokens.size()];

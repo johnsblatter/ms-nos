@@ -2,7 +2,6 @@ package com.workshare.msnos.core.payloads;
 
 import java.util.HashSet;
 import java.util.Set;
-import java.util.UUID;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,6 +14,7 @@ import com.workshare.msnos.core.Message;
 import com.workshare.msnos.core.Message.Payload;
 import com.workshare.msnos.core.MsnosException;
 import com.workshare.msnos.core.RemoteAgent;
+import com.workshare.msnos.core.RemoteEntity;
 import com.workshare.msnos.core.protocols.ip.Endpoint;
 import com.workshare.msnos.soup.json.Json;
 
@@ -91,7 +91,7 @@ public class Presence implements Message.Payload {
         Iden from = message.getFrom();
 
         RemoteAgent agent = new RemoteAgent(from.getUUID(), internal.cloud(), getEndpoints());
-        agent.setSeq(message.getSeq());
+        agent.accept(message);
 
         if (isPresent()) {
             log.debug("Discovered new agent from network: {}", agent.toString());

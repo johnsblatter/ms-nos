@@ -3,7 +3,7 @@ package com.workshare.msnos.core.cloud;
 import com.workshare.msnos.core.Cloud;
 import com.workshare.msnos.core.Message;
 import com.workshare.msnos.core.MessageBuilder;
-import com.workshare.msnos.core.RemoteAgent;
+import com.workshare.msnos.core.RemoteEntity;
 import com.workshare.msnos.soup.time.SystemTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,7 +40,7 @@ public class AgentWatchdog {
 
     private void probeQuietAgents() {
         log.trace("Probing quite agents...");
-        for (RemoteAgent agent : cloud.getRemoteAgents()) {
+        for (RemoteEntity agent : cloud.getRemoteAgents()) {
             if (agent.getAccessTime() < SystemTime.asMillis() - AGENT_TIMEOUT) {
                 log.debug("- sending ping to {}", agent.toString());
                 try {

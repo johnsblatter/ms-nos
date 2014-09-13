@@ -11,7 +11,7 @@ public interface Agent extends Identifiable {
 
     Set<Endpoint> getEndpoints();
 
-    Long getSeq();
+    Long getNextSequence();
 
     long getAccessTime();
 

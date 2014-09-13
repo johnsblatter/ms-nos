@@ -9,10 +9,16 @@ public class Iden {
 
     private final Type type;
     private final UUID uuid;
+    private final Long suid;
 
     public Iden(Type type, UUID uuid) {
+        this(type, uuid, null);
+    }
+
+    public Iden(Type type, UUID uuid, Long suid) {
         this.type = type;
         this.uuid = uuid;
+        this.suid = suid;
     }
 
     public Type getType() {
@@ -21,6 +27,10 @@ public class Iden {
 
     public UUID getUUID() {
         return uuid;
+    }
+
+    public Long getSuid() {
+        return suid;
     }
 
     @Override

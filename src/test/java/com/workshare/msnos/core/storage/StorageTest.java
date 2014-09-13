@@ -35,7 +35,7 @@ public class StorageTest {
 
     @AfterClass
     public static void termAll() throws IOException {
-        home.delete();
+        delete(home);
     }
 
     @Before
@@ -46,7 +46,7 @@ public class StorageTest {
 
     @After
     public void cleanUp() {
-        home.delete();
+        delete(home);
     }
 
     @Test
@@ -123,7 +123,7 @@ public class StorageTest {
         assertTrue(entry.isFile());
     }
 
-    private void delete(final File folder) {
+    private static void delete(final File folder) {
         if (folder.isDirectory()) {
             File[] files = folder.listFiles();
             if (files != null) {
