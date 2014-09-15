@@ -1,22 +1,19 @@
 package com.workshare.msnos.usvc.api.routing;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.workshare.msnos.core.geo.LocationFactory;
 import com.workshare.msnos.usvc.Microservice;
 import com.workshare.msnos.usvc.RemoteMicroservice;
 import com.workshare.msnos.usvc.api.RestApi;
-import com.workshare.msnos.usvc.api.routing.strategies.CachingRoutingStrategy;
-import com.workshare.msnos.usvc.api.routing.strategies.CompositeStrategy;
-import com.workshare.msnos.usvc.api.routing.strategies.LocationBasedStrategy;
-import com.workshare.msnos.usvc.api.routing.strategies.RoundRobinRoutingStrategy;
+import com.workshare.msnos.usvc.api.routing.strategies.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class ApiList {
 
@@ -30,7 +27,7 @@ public class ApiList {
     private final RoutingStrategy routing;
     private final LocationFactory locations;
 
-    public ApiList()  {
+    public ApiList() {
         this(defaultRoutingStrategy(), LocationFactory.DEFAULT);
     }
 
@@ -99,21 +96,28 @@ public class ApiList {
         try {
             res = routing.select(from, endpoints).get(0);
         } catch (Throwable justInCaseSizeChanged) {
-            log.warn("Unexpected error selecting API using round robin - "+toString(justInCaseSizeChanged));
+            log.warn("Unexpected error selecting API using round robin - " + toString(justInCaseSizeChanged));
             res = endpoints.size() > 0 ? endpoints.get(0) : null;
         }
         return res == null ? null : res.api();
     }
-    
+
     private String toString(Throwable ex) {
         if (ex.getMessage() == null)
             return ex.getClass().getSimpleName();
         else
-            return ex.getClass().getSimpleName()+": "+ex.getMessage();
+            return ex.getClass().getSimpleName() + ": " + ex.getMessage();
     }
 
     static RoutingStrategy defaultRoutingStrategy() {
-        final CompositeStrategy composite = new CompositeStrategy(new LocationBasedStrategy(), new RoundRobinRoutingStrategy());
+        boolean mode = Boolean.getBoolean("high.priority.mode");
+        List<RoutingStrategy> strategies = new ArrayList<RoutingStrategy>(Arrays.asList(new SkipFaultiesRoutingStrategy(), new LocationBasedStrategy(), new RoundRobinRoutingStrategy()));
+
+        if (mode) {
+            strategies.add(1, new PriorityRoutingStrategy());
+        }
+
+        final CompositeStrategy composite = new CompositeStrategy(strategies.toArray(new RoutingStrategy[strategies.size()]));
         return new CachingRoutingStrategy(composite);
     }
 }

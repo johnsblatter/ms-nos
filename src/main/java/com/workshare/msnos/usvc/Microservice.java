@@ -95,12 +95,17 @@ public class Microservice {
     }
 
     public void publish(RestApi... api) throws MsnosException {
-        String mode = System.getProperty("high.priority.mode");
+        boolean mode = Boolean.getBoolean("high.priority.mode");
         List<RestApi> restApis = Arrays.asList(api);
 
-        if (mode != null && mode.equals("true")) {
-            for (RestApi restApi : api) {
-                Collections.replaceAll(restApis, restApi, restApi.withHighPriority());
+        if (mode) {
+            Integer priority = Integer.getInteger("priority.level");
+            if (priority != null) {
+                for (RestApi restApi : api) {
+                    Collections.replaceAll(restApis, restApi, restApi.withPriority(priority));
+                }
+            } else {
+                log.error("Priority level not set, unable to publish RestApis with priority. Publish apis with no priority level.");
             }
         }
 

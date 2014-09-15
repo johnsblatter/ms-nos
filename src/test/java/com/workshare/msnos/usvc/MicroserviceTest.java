@@ -321,14 +321,14 @@ public class MicroserviceTest {
 
         assertEquals(now, service.getAgent().getAccessTime());
     }
-
     @Test
     public void shouldPublishRestApisWithHighPriorityWhenSet() throws Exception {
         System.setProperty("high.priority.mode", "true");
+        System.setProperty("priority.level", "5");
 
         localMicroservice.publish(new RestApi("test", "path", 9999));
 
-        assertEquals(RestApi.Priority.HIGH, getLastPublishedRestApi().getPriority());
+        assertEquals(5, getLastPublishedRestApi().getPriority());
     }
 
     private RestApi getLastPublishedRestApi() throws IOException {

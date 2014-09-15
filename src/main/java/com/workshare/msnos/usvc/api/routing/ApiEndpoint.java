@@ -5,7 +5,7 @@ import com.workshare.msnos.usvc.RemoteMicroservice;
 import com.workshare.msnos.usvc.api.RestApi;
 
 public class ApiEndpoint {
-    
+
     private final RemoteMicroservice remote;
     private final RestApi api;
     private final Location location;
@@ -36,8 +36,12 @@ public class ApiEndpoint {
         return api.isFaulty();
     }
 
+    public int priority() {
+        return api.getPriority();
+    }
+
     @Override
     public String toString() {
-        return remote.getName() + "::" + api.getName()+"@"+location;
+        return remote.getName() + "::" + api.getName() + "@" + location;
     }
 }
