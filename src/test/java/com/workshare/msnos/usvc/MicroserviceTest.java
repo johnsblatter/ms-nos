@@ -1,40 +1,6 @@
 package com.workshare.msnos.usvc;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.atLeastOnce;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
-
-import org.junit.After;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Mockito;
-
-import com.workshare.msnos.core.Agent;
-import com.workshare.msnos.core.Cloud;
-import com.workshare.msnos.core.Gateway;
-import com.workshare.msnos.core.Iden;
-import com.workshare.msnos.core.Identifiable;
-import com.workshare.msnos.core.Message;
-import com.workshare.msnos.core.MessageBuilder;
-import com.workshare.msnos.core.MockMessageHelper;
-import com.workshare.msnos.core.Receipt;
-import com.workshare.msnos.core.RemoteAgent;
-import com.workshare.msnos.core.RemoteEntity;
+import com.workshare.msnos.core.*;
 import com.workshare.msnos.core.cloud.JoinSynchronizer;
 import com.workshare.msnos.core.payloads.FltPayload;
 import com.workshare.msnos.core.payloads.QnePayload;
@@ -44,6 +10,19 @@ import com.workshare.msnos.core.protocols.ip.Network;
 import com.workshare.msnos.soup.time.SystemTime;
 import com.workshare.msnos.usvc.api.RestApi;
 import com.workshare.msnos.usvc.api.routing.strategies.CachingRoutingStrategy;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mockito;
+
+import java.io.IOException;
+import java.util.*;
+
+import static org.junit.Assert.*;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.*;
 
 @SuppressWarnings("unused")
 public class MicroserviceTest {
@@ -64,7 +43,7 @@ public class MicroserviceTest {
 
         localMicroservice = new Microservice("fluffy");
         localMicroservice.join(cloud);
-        
+
         fakeSystemTime(CURRENT_TIME);
     }
 
@@ -77,7 +56,7 @@ public class MicroserviceTest {
     @Test
     public void shouldInternalAgentJoinTheCloudOnJoin() throws Exception {
         localMicroservice = new Microservice("jeff");
-        cloud = new Cloud(UUID.randomUUID(), " ", mockGateways(), mock(JoinSynchronizer.class),null);
+        cloud = new Cloud(UUID.randomUUID(), " ", mockGateways(), mock(JoinSynchronizer.class), null);
 
         localMicroservice.join(cloud);
 
@@ -165,7 +144,7 @@ public class MicroserviceTest {
         result1.markFaulty();
 
         RestApi result2 = localMicroservice.searchApi("content", endpoint);
-        assertFalse(result2.equals(result1));
+        assertNotEquals(result2.getId(), result1.getId());
     }
 
     @Test
@@ -321,6 +300,7 @@ public class MicroserviceTest {
 
         assertEquals(now, service.getAgent().getAccessTime());
     }
+
     @Test
     public void shouldPublishRestApisWithHighPriorityWhenSet() throws Exception {
         System.setProperty("high.priority.mode", "true");

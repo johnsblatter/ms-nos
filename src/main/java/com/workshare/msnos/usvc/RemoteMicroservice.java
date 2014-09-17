@@ -62,12 +62,7 @@ public class RemoteMicroservice {
 
     @Override
     public String toString() {
-        return "RemoteMicroservice{" +
-                "agent=" + agent +
-                ", name='" + name + '\'' +
-                ", apis=" + apis +
-                ", location=" + location +
-                '}';
+        return String.format("name: '%s', apis: %s, location: %s", name, apis, location);
     }
 
     @Override

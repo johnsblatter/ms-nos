@@ -105,7 +105,7 @@ public class Microservice {
                     Collections.replaceAll(restApis, restApi, restApi.withPriority(priority));
                 }
             } else {
-                log.error("Priority level not set, unable to publish RestApis with priority. Publish apis with no priority level.");
+                log.error("Priority level not set, unable to publish RestApis with priority. Publishing apis with no priority level.");
             }
         }
 

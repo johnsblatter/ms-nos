@@ -136,15 +136,17 @@ public class Network {
         for (InterfaceAddress nicAddress : nicAddresses) {
             if (!nicAddress.getAddress().isLoopbackAddress()) {
                 final Network net = new Network(nicAddress);
-                if (!ipv4Only || net.isIpv4())
+                if (!ipv4Only || net.isIpv4()) {
                     if (net.isPrivate())
                         try {
-                            lans.add(resolver.findPublicIP());
+                            Network publicIP = resolver.findPublicIP();
+                            if (publicIP != null)
+                                lans.add(publicIP);
                         } catch (IOException e) {
                             log.error("IOException trying to find public IP ", e);
                         }
-                    else
-                        lans.add(net);
+                    lans.add(net);
+                }
             }
         }
         return lans;

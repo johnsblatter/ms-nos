@@ -1,19 +1,26 @@
 package com.workshare.msnos.usvc.api.routing;
 
+import com.workshare.msnos.soup.threading.ConcurrentBuildingMap;
 import com.workshare.msnos.usvc.Microservice;
 import com.workshare.msnos.usvc.RemoteMicroservice;
 import com.workshare.msnos.usvc.api.RestApi;
 
 import java.util.Collection;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.Set;
+import java.util.concurrent.CopyOnWriteArraySet;
 
 public class ApiRepository {
 
     private final Map<String, ApiList> remoteApis;
 
     public ApiRepository() {
-        this.remoteApis = new ConcurrentHashMap<String, ApiList>();
+        this.remoteApis = new ConcurrentBuildingMap<String, ApiList>(new ConcurrentBuildingMap.Factory<ApiList>() {
+            @Override
+            public ApiList make() {
+                return new ApiList();
+            }
+        });
     }
 
     public Map<String, ApiList> getRemoteApis() {
@@ -40,7 +47,9 @@ public class ApiRepository {
     }
 
     public void register(RemoteMicroservice remote) {
-        for (RestApi rest : remote.getApis()) {
+        Set<RestApi> apis = new CopyOnWriteArraySet<RestApi>(remote.getApis());
+
+        for (RestApi rest : apis) {
             String key = rest.getName() + rest.getPath();
             if (getRemoteApis().containsKey(key)) {
                 getRemoteApis().get(key).add(remote, rest);

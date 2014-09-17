@@ -70,6 +70,10 @@ public class RestApi {
         return new RestApi(name, path, port, host, type, sessionAffinity, priority);
     }
 
+    public RestApi onPort(int port) {
+        return new RestApi(name, path, port, host, type, sessionAffinity, priority);
+    }
+
     public RestApi withAffinity() {
         return new RestApi(name, path, port, host, type, true, priority);
     }
@@ -136,23 +140,30 @@ public class RestApi {
     }
 
     @Override
-    public int hashCode() {
-        final int prime = 31;
-        int result = 1;
-        result = prime * result + path.hashCode();
-        result = prime * result + port;
-        if (host != null) result = prime * result + host.hashCode();
-        return result;
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        RestApi restApi = (RestApi) o;
+
+        if (port != restApi.port) return false;
+        if (sessionAffinity != restApi.sessionAffinity) return false;
+        if (!name.equals(restApi.name)) return false;
+        if (!path.equals(restApi.path)) return false;
+        if (type != restApi.type) return false;
+
+        return true;
     }
 
     @Override
-    public boolean equals(Object obj) {
-        try {
-            RestApi other = (RestApi) obj;
-            return this.hashCode() == other.hashCode() && faulty == other.faulty;
-        } catch (Exception any) {
-            return false;
-        }
+    public int hashCode() {
+        int result = name.hashCode();
+        int prime = 31;
+        result = prime * result + path.hashCode();
+        result = prime * result + port;
+        result = prime * result + (sessionAffinity ? 2 : 1);
+        result = prime * result + type.hashCode();
+        return result;
     }
 
     @Override

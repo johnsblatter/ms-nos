@@ -195,7 +195,7 @@ public class Cloud implements Identifiable {
             throw new MsnosException("This cloud is not connected as it is a mirror of a remote one", MsnosException.Code.NOT_CONNECTED);
     }
 
-    public Listener addListener(com.workshare.msnos.core.Cloud.Listener listener) {
+    public Listener  addListener(com.workshare.msnos.core.Cloud.Listener listener) {
         return caster.addListener(listener);
     }
 

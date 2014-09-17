@@ -6,11 +6,16 @@ import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import javax.net.ssl.SSLException;
 import java.io.IOException;
 import java.net.InetAddress;
 
 public class AddressResolver {
+
+    private static Logger log = LoggerFactory.getLogger(AddressResolver.class);
 
     private final HttpClient httpClient;
 
@@ -23,11 +28,13 @@ public class AddressResolver {
     }
 
     public Network findPublicIP() throws IOException {
-        Network result;
+        Network result = null;
         if (System.getProperty("public.ip") != null) {
             result = new Network(createAddressFromString(System.getProperty("public.ip")), (short) 32);
         } else {
-            result = new Network(getPublicFromAWS(), (short) 32);
+            byte[] publicFromAWS = getPublicFromAWS();
+            if (publicFromAWS != null)
+                result = new Network(publicFromAWS, (short) 32);
         }
 
         return result;
@@ -40,10 +47,12 @@ public class AddressResolver {
             if (response != null) {
                 entity = response.getEntity();
             }
+        } catch (SSLException e) {
+            log.error("No SSL certificate, probably on Workshare - returning null");
         } finally {
             EntityUtils.consume(entity);
         }
-        return createAddressFromString(EntityUtils.toString(entity));
+        return entity == null ? null : createAddressFromString(EntityUtils.toString(entity));
     }
 
     private byte[] createAddressFromString(String address) throws IOException {
