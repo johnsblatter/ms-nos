@@ -13,10 +13,13 @@ public class LocationBasedStrategy implements RoutingStrategy {
 
     @Override
     public List<ApiEndpoint> select(Microservice from, List<ApiEndpoint> apis) {
+        final Location target = from.getLocation();
+        if (target == null || target == Location.UNKNOWN)
+            return apis;
+        
         final List<ApiEndpoint> result = new ArrayList<ApiEndpoint>();
 
         int currentBestMatch = 0;
-        final Location target = from.getLocation();
         for (ApiEndpoint api : apis) {
             final Location location = api.location();
             final Match match = target.match(location);

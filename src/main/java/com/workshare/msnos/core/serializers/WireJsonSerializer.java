@@ -7,6 +7,10 @@ import com.workshare.msnos.core.Message.Payload;
 import com.workshare.msnos.core.MessageBuilder;
 import com.workshare.msnos.core.Version;
 import com.workshare.msnos.core.payloads.*;
+import com.workshare.msnos.core.protocols.ip.Endpoint;
+import com.workshare.msnos.core.protocols.ip.HttpEndpoint;
+import com.workshare.msnos.core.protocols.ip.Network;
+import com.workshare.msnos.core.protocols.ip.BaseEndpoint;
 import com.workshare.msnos.soup.json.Json;
 import com.workshare.msnos.soup.json.ThreadSafeGson;
 import org.slf4j.Logger;
@@ -124,6 +128,73 @@ public class WireJsonSerializer implements WireSerializer {
         }
     };
 
+    private static final JsonSerializer<Endpoint> ENC_ENDPOINT = new JsonSerializer<Endpoint>() {
+        @Override
+        public JsonElement serialize(Endpoint src, Type typeOfSrc, JsonSerializationContext context) {
+            final String network = context.serialize(src.getNetwork()).getAsString();
+            final Endpoint.Type type = src.getType();
+            if (typeOfSrc == HttpEndpoint.class) {
+                String url = ((HttpEndpoint) src).getUrl();
+                return new JsonPrimitive(type + "," + src.getPort()+","+network+","+url);
+            }
+            else {
+                return new JsonPrimitive(type + "," + src.getPort()+","+network);
+            }
+        }
+    };
+
+    private static final JsonDeserializer<Endpoint> DEC_ENDPOINT = new JsonDeserializer<Endpoint>() {
+        @Override
+        public Endpoint deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context)
+                throws JsonParseException {
+
+            final String text = json.getAsString();
+            final String[] tokens = text.split(",");
+            
+            final Endpoint.Type type = Endpoint.Type.valueOf(tokens[0]);
+            final short port = Short.parseShort(tokens[1]);
+            final Network network = context.deserialize(new JsonPrimitive(tokens[2]), Network.class);
+
+            if (Endpoint.Type.HTTP.equals(type)) {
+                return new HttpEndpoint(network, tokens[3]);
+            } else
+                return new BaseEndpoint(type, network, port);
+        }
+    };
+
+    private static final JsonSerializer<Network> ENC_NETWORK = new JsonSerializer<Network>() {
+        @Override
+        public JsonElement serialize(Network src, Type typeOfSrc, JsonSerializationContext context) {
+            StringBuilder sb = new StringBuilder();
+            for (byte b : src.getAddress()) {
+                sb.append(b);
+                sb.append('.');
+            }
+            sb.append(src.getPrefix());
+            return new JsonPrimitive(sb.toString());
+        }
+    };
+
+    private static final JsonDeserializer<Network> DEC_NETWORK = new JsonDeserializer<Network>() {
+        @Override
+        public Network deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context)
+                throws JsonParseException {
+
+            final String text = json.getAsString();
+            final String[] tokens = text.split("\\.");
+            int index = 0;
+
+            final byte[] address = new byte[tokens.length-1];
+            for (; index < address.length; index++) {
+                address[index] = Byte.valueOf(tokens[index]);
+            }
+
+            final short prefix = Short.valueOf(tokens[index]);
+            
+            return new Network(address, prefix);
+        }
+    };
+
     private static final JsonSerializer<Message> ENC_MESSAGE = new JsonSerializer<Message>() {
         @Override
         public JsonElement serialize(Message msg, Type typeof, JsonSerializationContext context) {
@@ -212,11 +283,19 @@ public class WireJsonSerializer implements WireSerializer {
             builder.registerTypeAdapter(UUID.class, ENC_UUID);
             builder.registerTypeAdapter(UUID.class, DEC_UUID);
 
+            builder.registerTypeAdapter(Network.class, ENC_NETWORK);
+            builder.registerTypeAdapter(Network.class, DEC_NETWORK);
+
             builder.registerTypeAdapter(Version.class, ENC_VERSION);
             builder.registerTypeAdapter(Version.class, DEC_VERSION);
 
             builder.registerTypeAdapter(Message.class, ENC_MESSAGE);
             builder.registerTypeAdapter(Message.class, DEC_MESSAGE);
+
+            builder.registerTypeAdapter(Endpoint.class, DEC_ENDPOINT);
+            builder.registerTypeAdapter(Endpoint.class, ENC_ENDPOINT);
+            builder.registerTypeAdapter(BaseEndpoint.class, ENC_ENDPOINT);
+            builder.registerTypeAdapter(HttpEndpoint.class, ENC_ENDPOINT);
 
             return builder.create();
         }

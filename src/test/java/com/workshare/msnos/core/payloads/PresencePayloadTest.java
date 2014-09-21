@@ -12,7 +12,6 @@ import org.mockito.Mockito;
 
 import com.workshare.msnos.core.Message.Payload;
 import com.workshare.msnos.core.protocols.ip.Endpoint;
-import com.workshare.msnos.core.protocols.ip.Network;
 
 public class PresencePayloadTest {
 

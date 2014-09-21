@@ -1,11 +1,15 @@
 package com.workshare.msnos.core.geo;
 
+import java.util.Set;
+
 import com.maxmind.geoip2.model.OmniResponse;
-import com.maxmind.geoip2.record.*;
+import com.maxmind.geoip2.record.AbstractNamedRecord;
+import com.maxmind.geoip2.record.City;
+import com.maxmind.geoip2.record.Continent;
+import com.maxmind.geoip2.record.Country;
+import com.maxmind.geoip2.record.Subdivision;
 import com.workshare.msnos.core.protocols.ip.Endpoint;
 import com.workshare.msnos.soup.json.Json;
-
-import java.util.Set;
 
 public class Location {
 

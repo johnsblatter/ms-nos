@@ -1,9 +1,10 @@
 package com.workshare.msnos.core;
 
-import com.workshare.msnos.core.protocols.ip.Endpoint;
-
+import java.util.Collections;
 import java.util.Set;
 import java.util.UUID;
+
+import com.workshare.msnos.core.protocols.ip.Endpoint;
 
 public class PassiveAgent extends RemoteEntity implements Agent {
 
@@ -13,7 +14,7 @@ public class PassiveAgent extends RemoteEntity implements Agent {
 
     @Override
     public Set<Endpoint> getEndpoints() {
-        return null;
+        return Collections.<Endpoint>emptySet() ;
     }
 
     @Override

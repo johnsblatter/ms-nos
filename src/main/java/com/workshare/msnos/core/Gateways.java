@@ -7,15 +7,12 @@ import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
 
 import org.apache.http.client.HttpClient;
-import org.apache.http.client.config.RequestConfig;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
-import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.log4j.Logger;
 
 import com.workshare.msnos.core.Gateway.Listener;
 import com.workshare.msnos.core.MsnosException.Code;
 import com.workshare.msnos.core.protocols.ip.Endpoint;
+import com.workshare.msnos.core.protocols.ip.HttpClientFactory;
 import com.workshare.msnos.core.protocols.ip.MulticastSocketFactory;
 import com.workshare.msnos.core.protocols.ip.udp.UDPGateway;
 import com.workshare.msnos.core.protocols.ip.udp.UDPServer;
@@ -106,6 +103,10 @@ public class Gateways {
         }
     }
 
+    private static HttpClient newHttpClient() {
+        return HttpClientFactory.newHttpClient();
+    }
+
     private static ScheduledExecutorService newScheduler() {
         return ExecutorServices.newSingleThreadScheduledExecutor();
     }
@@ -119,53 +120,4 @@ public class Gateways {
 		};
         return caster;
     }
-    
-    private static HttpClient newHttpClient() {
-        final PoolingHttpClientConnectionManager cm = new PoolingHttpClientConnectionManager();
-        cm.setMaxTotal(getHttpMaxTotalConnections());
-        cm.setDefaultMaxPerRoute(getHttpMaxDefaultConnectionsPerRoute());
-        
-        final RequestConfig config = RequestConfig.custom()
-                .setSocketTimeout(getHttpConnectTimeout())
-                .setConnectTimeout(getHttpSocketTimeout())
-                .build();
-        
-        final CloseableHttpClient httpClient = HttpClients.custom()
-                .setDefaultRequestConfig(config)
-                .setConnectionManager(cm)
-                .setUserAgent(getHttpUserAgent())
-                .build();     
-
-        Runtime.getRuntime().addShutdownHook(new Thread(){
-            public void run() {
-                try {
-                    httpClient.close();
-                } catch (IOException ex) {
-                    log.debug("Error closing HTTP client", ex);
-                }
-            }
-        });
-        return httpClient;
-    }
-
-    private static String getHttpUserAgent() {
-        return System.getProperty("com.ws.nsnos.http.user-agent", "com.msnos.client-v1.0");
-    }
-
-    private static int getHttpSocketTimeout() {
-        return Integer.getInteger("com.ws.nsnos.http.timeout.socket", 10000);
-    }
-
-    private static int getHttpConnectTimeout() {
-        return Integer.getInteger("com.ws.nsnos.http.timeout.connection", 10000);
-    }
-
-    private static int getHttpMaxTotalConnections() {
-        return Integer.getInteger("com.ws.nsnos.http.max.total.connection.num", 200);
-    }
-    
-    private static int getHttpMaxDefaultConnectionsPerRoute() {
-        return Integer.getInteger("com.ws.nsnos.http.max.route.connection.num", 200);
-    }
-
 }

@@ -33,7 +33,7 @@ import com.workshare.msnos.core.Message;
 import com.workshare.msnos.core.Message.Status;
 import com.workshare.msnos.core.Receipt;
 import com.workshare.msnos.core.SingleReceipt;
-import com.workshare.msnos.core.protocols.ip.Endpoint;
+import com.workshare.msnos.core.protocols.ip.BaseEndpoint;
 import com.workshare.msnos.core.protocols.ip.Endpoints;
 import com.workshare.msnos.core.serializers.WireSerializer;
 import com.workshare.msnos.soup.threading.ConcurrentBuildingMap;
@@ -112,7 +112,7 @@ public class WWWGateway implements Gateway {
 
     @Override
     public Endpoints endpoints() {
-        return Endpoint.create();
+        return BaseEndpoint.create();
     }
 
     @Override

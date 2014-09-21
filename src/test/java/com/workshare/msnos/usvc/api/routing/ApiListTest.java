@@ -7,6 +7,8 @@ import com.workshare.msnos.usvc.Microservice;
 import com.workshare.msnos.usvc.RemoteMicroservice;
 import com.workshare.msnos.usvc.api.RestApi;
 import com.workshare.msnos.usvc.api.routing.strategies.CachingRoutingStrategy;
+import com.workshare.msnos.usvc.api.routing.strategies.PriorityRoutingStrategy;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -17,6 +19,7 @@ import org.mockito.Mockito;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.mockito.Mockito.*;
 
 @SuppressWarnings({"unchecked", "rawtypes"})
@@ -35,6 +38,8 @@ public class ApiListTest {
 
     @Before
     public void preparation() {
+        disablePriorityStrategy();
+        
         this.apiList = null;
         this.locations = mock(OfflineLocationFactory.class);
         this.svc = Mockito.mock(Microservice.class);
@@ -43,8 +48,14 @@ public class ApiListTest {
 
     @After
     public void tearDown() throws Exception {
-        System.clearProperty("high.priority.mode");
+        disablePriorityStrategy();
     }
+
+    private void disablePriorityStrategy() {
+        System.clearProperty(PriorityRoutingStrategy.SYSP_PRIORITY_ENABLED);
+        System.clearProperty(PriorityRoutingStrategy.SYSP_PRIORITY_DEFAULT_LEVEL);
+    }
+
 
     @Test
     public void shouldStoreOneApi() {
@@ -55,6 +66,17 @@ public class ApiListTest {
 
         assertEquals(rest, apiList().get(svc));
         assertEquals(rest, apiList().get(svc));
+    }
+
+    @Test
+    public void shouldNotReturnFaultyApis() {
+        RestApi rest = newRestApi("alfa");
+        RemoteMicroservice remote = getRemoteMicroservice();
+        apiList().add(remote, rest);
+
+        markAsFaulty(rest);
+        
+        assertNull(apiList().get(svc));
     }
 
     @Test
@@ -185,7 +207,7 @@ public class ApiListTest {
 
     @Test
     public void shouldInvokePriorityStrategyWhenHighPriorityEngaged() throws Exception {
-        System.setProperty("high.priority.mode", "true");
+        System.setProperty(PriorityRoutingStrategy.SYSP_PRIORITY_ENABLED, "true");
         routing = ApiList.defaultRoutingStrategy();
 
         final RestApi alfa = newRestApiWithHighPriority("alfa");
@@ -199,7 +221,7 @@ public class ApiListTest {
     }
 
     @Test
-    public void shouldNOTInvokePriorityStrategyWhenHighPriorityEngaged() throws Exception {
+    public void shouldNOTInvokePriorityStrategyWhenHighPriorityNOTEngaged() throws Exception {
         final RestApi alfa = newRestApiWithHighPriority("alfa");
         final RestApi beta = newRestApi("beta");
         apiList().add(getRemoteMicroservice(), alfa);

@@ -1,13 +1,15 @@
 package com.workshare.msnos.usvc;
 
+import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.CopyOnWriteArrayList;
+
 import com.workshare.msnos.core.MsnosException;
 import com.workshare.msnos.core.PassiveAgent;
 import com.workshare.msnos.usvc.api.RestApi;
 
-import java.util.UUID;
-
 public class PassiveService {
-    private final Microservice microservice;
+    private final Microcloud cloud;
     private final String name;
     private final String host;
     private final String healthCheckUri;
@@ -15,24 +17,17 @@ public class PassiveService {
 
     private final UUID uuid;
     private final PassiveAgent agent;
+    private final List<RestApi> passiveApis;
 
-    public PassiveService(Microservice microservice, UUID cloudUuid, String name, String host, String healthCheckUri, int port) throws IllegalArgumentException {
-        UUID joinedCloudUUID = getJoinedCloudUUID(microservice);
-
-        if (joinedCloudUUID == null)
-            throw new IllegalArgumentException("Microservice not currently joined to a cloud, passive service creation refused! ");
-
-        if (!cloudUuid.equals(joinedCloudUUID))
-            throw new IllegalArgumentException("Passive microservice trying to join different cloud than microservice's joined cloud! ");
-
-        this.microservice = microservice;
+    public PassiveService(Microcloud cloud, String name, String host, int port, String healthCheckUri) throws IllegalArgumentException {
+        this.cloud = cloud;
         this.name = name;
         this.host = host;
-        this.healthCheckUri = healthCheckUri;
         this.port = port;
-
-        uuid = UUID.randomUUID();
-        agent = new PassiveAgent(microservice.getAgent().getCloud(), uuid);
+        this.healthCheckUri = healthCheckUri;
+        this.uuid = UUID.randomUUID();
+        this.agent = new PassiveAgent(cloud.getCloud(), uuid);
+        this.passiveApis = new CopyOnWriteArrayList<RestApi>();
     }
 
     public PassiveAgent getAgent() {
@@ -60,17 +55,16 @@ public class PassiveService {
     }
 
     public void join() throws MsnosException {
-        microservice.passiveJoin(this);
+        cloud.onJoin(this);
     }
 
     public void publish(RestApi... apis) throws MsnosException {
-        microservice.passivePublish(this, apis);
+        cloud.publish(this, apis);
+    }
+    
+    public List<RestApi> getPassiveApis() {
+        return passiveApis;
     }
 
-    private UUID getJoinedCloudUUID(Microservice microservice) {
-        if (microservice.getAgent().getCloud() == null)
-            return null;
-        else
-            return microservice.getAgent().getCloud().getIden().getUUID();
-    }
+
 }

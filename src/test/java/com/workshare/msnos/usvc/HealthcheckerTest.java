@@ -11,10 +11,8 @@ import static org.mockito.Mockito.when;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
@@ -22,19 +20,12 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
-import org.mockito.Mockito;
 
 import com.sun.net.httpserver.HttpContext;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
-import com.workshare.msnos.core.Cloud;
-import com.workshare.msnos.core.Iden;
-import com.workshare.msnos.core.Message;
-import com.workshare.msnos.core.MockMessageHelper;
 import com.workshare.msnos.core.RemoteAgent;
-import com.workshare.msnos.core.payloads.QnePayload;
-import com.workshare.msnos.core.protocols.ip.Endpoint;
 import com.workshare.msnos.soup.time.SystemTime;
 import com.workshare.msnos.usvc.api.RestApi;
 
@@ -43,17 +34,15 @@ public class HealthcheckerTest {
 
     private Healthchecker healthchecker;
     private ScheduledExecutorService scheduler;
-    private Cloud cloud;
+    private Microcloud microcloud;
     private HttpServer httpServer;
 
     @Before
     public void setUp() throws Exception {
-        cloud = mock(Cloud.class);
-        when(cloud.getIden()).thenReturn(new Iden(Iden.Type.CLD, UUID.randomUUID()));
-
+        microcloud = mock(Microcloud.class);
+        
         scheduler = mock(ScheduledExecutorService.class);
-        Microservice microservice = getLocalMicroservice();
-        healthchecker = new Healthchecker(microservice, scheduler);
+        healthchecker = new Healthchecker(microcloud, scheduler);
         httpServer = null;
         fakeSystemTime(12345L);
     }
@@ -140,43 +129,19 @@ public class HealthcheckerTest {
     }
 
     private RemoteMicroservice setupRemoteMicroserviceMultipleAPIsAndHealthCheck(String host1, String host2, String host3, String host4, String name, String endpoint) throws Exception {
-        RemoteAgent agent = newRemoteAgent();
+        RemoteAgent agent = mock(RemoteAgent.class);
         RestApi alfa = new RestApi(name, endpoint, 9999).onHost(host1).asHealthCheck();
         RestApi beta = new RestApi(name, endpoint, 9999).onHost(host2);
         RestApi thre = new RestApi(name, endpoint, 9999).onHost(host3);
         RestApi four = new RestApi(name, endpoint, 9999).onHost(host4);
         RemoteMicroservice remote = new RemoteMicroservice(name, agent, toSet(alfa, beta, thre, four));
-        return addRemoteAgentToCloudListAndMicroserviceToLocalList(name, remote, alfa, beta, thre, four);
-    }
-
-    private RemoteMicroservice addRemoteAgentToCloudListAndMicroserviceToLocalList(String name, RemoteMicroservice remote, RestApi... restApi) {
-        putRemoteAgentInCloudAgentsList(remote.getAgent());
-        final Message message = new MockMessageHelper(Message.Type.QNE, remote.getAgent().getIden(), cloud.getIden()).sequence(12).data(new QnePayload(name, restApi)).make();
-        simulateMessageFromCloud(message);
+        when(microcloud.getMicroServices()).thenReturn(Arrays.asList(remote));
         return remote;
-    }
-
-    private RemoteAgent newRemoteAgent() {
-        RemoteAgent remote = new RemoteAgent(UUID.randomUUID(), cloud, Collections.<Endpoint>emptySet());
-        putRemoteAgentInCloudAgentsList(remote);
-        return remote;
-    }
-
-    private void putRemoteAgentInCloudAgentsList(RemoteAgent agent) {
-        Mockito.when(cloud.getRemoteAgents()).thenReturn(new HashSet<RemoteAgent>(Arrays.asList(agent)));
-    }
-
-    private Message simulateMessageFromCloud(final Message message) {
-        ArgumentCaptor<Cloud.Listener> cloudListener = ArgumentCaptor.forClass(Cloud.Listener.class);
-        verify(cloud, atLeastOnce()).addListener(cloudListener.capture());
-        cloudListener.getValue().onMessage(message);
-        return message;
     }
 
     private Set<RestApi> toSet(RestApi... restApi) {
         return new HashSet<RestApi>(Arrays.asList(restApi));
     }
-
 
     private void fakeSystemTime(final long time) {
         SystemTime.setTimeSource(new SystemTime.TimeSource() {
@@ -184,11 +149,5 @@ public class HealthcheckerTest {
                 return time;
             }
         });
-    }
-
-    private Microservice getLocalMicroservice() throws IOException {
-        Microservice uService1 = new Microservice("fluffy");
-        uService1.join(cloud);
-        return uService1;
     }
 }

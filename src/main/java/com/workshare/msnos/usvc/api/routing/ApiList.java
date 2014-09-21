@@ -95,25 +95,17 @@ public class ApiList {
         ApiEndpoint res;
         try {
             res = routing.select(from, endpoints).get(0);
-        } catch (Throwable justInCaseSizeChanged) {
-            log.warn("Unexpected error selecting API using round robin - " + toString(justInCaseSizeChanged));
+        } catch (Throwable ex) {
+            log.warn("Unexpected error selecting API using round robin", ex);
             res = endpoints.size() > 0 ? endpoints.get(0) : null;
         }
         return res == null ? null : res.api();
     }
 
-    private String toString(Throwable ex) {
-        if (ex.getMessage() == null)
-            return ex.getClass().getSimpleName();
-        else
-            return ex.getClass().getSimpleName() + ": " + ex.getMessage();
-    }
 
     static RoutingStrategy defaultRoutingStrategy() {
-        boolean mode = Boolean.getBoolean("high.priority.mode");
         List<RoutingStrategy> strategies = new ArrayList<RoutingStrategy>(Arrays.asList(new SkipFaultiesRoutingStrategy(), new LocationBasedStrategy(), new RoundRobinRoutingStrategy()));
-
-        if (mode) {
+        if (PriorityRoutingStrategy.isEnabled()) {
             strategies.add(1, new PriorityRoutingStrategy());
         }
 

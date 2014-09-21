@@ -1,5 +1,8 @@
 package com.workshare.msnos.core.protocols.ip;
 
+import java.io.IOException;
+import java.net.InetAddress;
+
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
@@ -9,10 +12,6 @@ import org.apache.http.util.EntityUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.net.ssl.SSLException;
-import java.io.IOException;
-import java.net.InetAddress;
-
 public class AddressResolver {
 
     private static Logger log = LoggerFactory.getLogger(AddressResolver.class);
@@ -20,7 +19,7 @@ public class AddressResolver {
     private final HttpClient httpClient;
 
     public AddressResolver() {
-        httpClient = HttpClients.createDefault();
+        httpClient = HttpClientFactory.sharedHttpCliet();
     }
 
     public AddressResolver(HttpClient httpClient) {
@@ -40,19 +39,22 @@ public class AddressResolver {
         return result;
     }
 
-    private byte[] getPublicFromAWS() throws IOException {
-        HttpEntity entity = null;
+    private byte[] getPublicFromAWS() {
         try {
-            HttpResponse response = httpClient.execute(new HttpGet("http://instance-data/latest/meta-data/public-ipv4"));
-            if (response != null) {
-                entity = response.getEntity();
+            HttpEntity entity = null;
+            try {
+                HttpResponse response = httpClient.execute(new HttpGet("http://instance-data/latest/meta-data/public-ipv4"));
+                if (response != null) {
+                    entity = response.getEntity();
+                }
+            } finally {
+                EntityUtils.consume(entity);
             }
-        } catch (SSLException e) {
-            log.error("No SSL certificate, probably on Workshare - returning null");
-        } finally {
-            EntityUtils.consume(entity);
+            return entity == null ? null : createAddressFromString(EntityUtils.toString(entity));
+        } catch (IOException ex) {
+            log.debug("Unable to resolve IP from AWS", ex);
+            return null;
         }
-        return entity == null ? null : createAddressFromString(EntityUtils.toString(entity));
     }
 
     private byte[] createAddressFromString(String address) throws IOException {

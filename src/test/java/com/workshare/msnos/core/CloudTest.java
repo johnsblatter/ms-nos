@@ -75,10 +75,11 @@ public class CloudTest {
     private List<Message> receivedMessages;
     private JoinSynchronizer synchro;
     private KeysStore keystore;
+    private File home;
 
     @Before
     public void init() throws Exception {
-        File home = File.createTempFile("msnos-", ".tmp");
+        home = File.createTempFile("msnos-", ".tmp");
         System.setProperty("user.home", home.toString());
         home.delete();
         home.mkdirs();
@@ -118,6 +119,7 @@ public class CloudTest {
     public void after() throws Exception {
         SystemTime.reset();
         scheduler.shutdown();
+        home.delete();
     }
 
     @Test

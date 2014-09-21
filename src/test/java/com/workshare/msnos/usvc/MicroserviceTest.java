@@ -1,15 +1,24 @@
 package com.workshare.msnos.usvc;
 
-import com.workshare.msnos.core.*;
-import com.workshare.msnos.core.cloud.JoinSynchronizer;
-import com.workshare.msnos.core.payloads.FltPayload;
-import com.workshare.msnos.core.payloads.QnePayload;
-import com.workshare.msnos.core.protocols.ip.Endpoint;
-import com.workshare.msnos.core.protocols.ip.Endpoint.Type;
-import com.workshare.msnos.core.protocols.ip.Network;
-import com.workshare.msnos.soup.time.SystemTime;
-import com.workshare.msnos.usvc.api.RestApi;
-import com.workshare.msnos.usvc.api.routing.strategies.CachingRoutingStrategy;
+import static junit.framework.TestCase.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ScheduledExecutorService;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -17,19 +26,35 @@ import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
-import java.io.IOException;
-import java.util.*;
-
-import static junit.framework.TestCase.assertEquals;
-import static org.junit.Assert.*;
-import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.*;
+import com.workshare.msnos.core.Agent;
+import com.workshare.msnos.core.Cloud;
+import com.workshare.msnos.core.Gateway;
+import com.workshare.msnos.core.Iden;
+import com.workshare.msnos.core.Identifiable;
+import com.workshare.msnos.core.Message;
+import com.workshare.msnos.core.MessageBuilder;
+import com.workshare.msnos.core.MockMessageHelper;
+import com.workshare.msnos.core.Receipt;
+import com.workshare.msnos.core.RemoteAgent;
+import com.workshare.msnos.core.RemoteEntity;
+import com.workshare.msnos.core.cloud.JoinSynchronizer;
+import com.workshare.msnos.core.payloads.FltPayload;
+import com.workshare.msnos.core.payloads.QnePayload;
+import com.workshare.msnos.core.protocols.ip.BaseEndpoint;
+import com.workshare.msnos.core.protocols.ip.Endpoint;
+import com.workshare.msnos.core.protocols.ip.Endpoint.Type;
+import com.workshare.msnos.core.protocols.ip.Network;
+import com.workshare.msnos.soup.time.SystemTime;
+import com.workshare.msnos.usvc.api.RestApi;
+import com.workshare.msnos.usvc.api.routing.strategies.CachingRoutingStrategy;
+import com.workshare.msnos.usvc.api.routing.strategies.PriorityRoutingStrategy;
 
 @SuppressWarnings("unused")
 public class MicroserviceTest {
 
     private static final long CURRENT_TIME = 12345L;
     private Cloud cloud;
+    private Microcloud microcloud;
     private Microservice localMicroservice;
 
     @BeforeClass
@@ -41,16 +66,17 @@ public class MicroserviceTest {
     public void prepare() throws Exception {
         cloud = Mockito.mock(Cloud.class);
         when(cloud.getIden()).thenReturn(new Iden(Iden.Type.CLD, new UUID(111, 111)));
-
+        microcloud = newMicrocloud(cloud);
+        
         localMicroservice = new Microservice("fluffy");
-        localMicroservice.join(cloud);
+        localMicroservice.join(microcloud);
 
         fakeSystemTime(CURRENT_TIME);
     }
 
     @After
     public void after() {
-        System.clearProperty("high.priority.mode");
+        System.setProperty(PriorityRoutingStrategy.SYSP_PRIORITY_ENABLED, "true");
         SystemTime.reset();
     }
 
@@ -59,7 +85,7 @@ public class MicroserviceTest {
         localMicroservice = new Microservice("jeff");
         cloud = new Cloud(UUID.randomUUID(), " ", mockGateways(), mock(JoinSynchronizer.class), null);
 
-        localMicroservice.join(cloud);
+        localMicroservice.join(newMicrocloud(cloud));
 
         assertEquals(localMicroservice.getAgent(), cloud.getLocalAgents().iterator().next());
     }
@@ -93,15 +119,6 @@ public class MicroserviceTest {
     }
 
     @Test
-    public void shouldBeRemovedWhenUnderlyingAgentDies() throws Exception {
-        RemoteMicroservice remoteMicroservice = setupRemoteMicroservice("remote", "/endpoint");
-
-        simulateMessageFromCloud(newFaultMessage(remoteMicroservice.getAgent()));
-
-        assertFalse(localMicroservice.getMicroServices().contains(remoteMicroservice));
-    }
-
-    @Test
     public void shouldSendQNEOnEnquiry() throws Exception {
         RemoteMicroservice remoteMicroservice = setupRemoteMicroservice("remote", "/endpoint");
 
@@ -122,176 +139,6 @@ public class MicroserviceTest {
     }
 
     @Test
-    public void shouldReturnCorrectRestApi() throws Exception {
-        String endpoint = "/files";
-
-        setupRemoteMicroservice("content", endpoint);
-        setupRemoteMicroservice("content", "/folders");
-
-        RestApi result = localMicroservice.searchApi("content", endpoint);
-
-        assertFalse(result.getPath().equals("/folders"));
-        assertTrue(endpoint.equals(result.getPath()));
-    }
-
-    @Test
-    public void shouldBeAbleToMarkRestApiAsFaulty() throws Exception {
-        String endpoint = "/files";
-
-        setupRemoteMicroservice("content", endpoint);
-        setupRemoteMicroservice("content", endpoint);
-
-        RestApi result1 = localMicroservice.searchApi("content", endpoint);
-        result1.markFaulty();
-
-        RestApi result2 = localMicroservice.searchApi("content", endpoint);
-        assertNotEquals(result2.getId(), result1.getId());
-    }
-
-    @Test
-    public void shouldReturnNullWhenNoWorkingMicroserviceAvailable() throws Exception {
-        String name = "name";
-        String endpoint = "/users";
-        setupRemoteMicroservice(name, endpoint);
-
-        RestApi result1 = localMicroservice.searchApi(name, endpoint);
-        result1.markFaulty();
-
-        RestApi result2 = localMicroservice.searchApi(name, endpoint);
-        assertNull(result2);
-    }
-
-    @Test
-    public void shouldCreateRemoteMicroserviceOnQNE() throws IOException {
-        RemoteAgent remoteAgent = newRemoteAgent();
-
-        simulateMessageFromCloud(newQNEMessage(remoteAgent, "content"));
-
-        assertAgentInMicroserviceList(remoteAgent);
-    }
-
-    @Test
-    public void shouldCreateBoundRestApisWhenRestApiNotBound() throws Exception {
-        RemoteEntity remoteAgent = newRemoteAgentWithFakeHosts("10.10.10.10", (short) 15);
-
-        RestApi unboundApi = new RestApi("test", "/test", 9999);
-        simulateMessageFromCloud(newQNEMessage(remoteAgent, "content", unboundApi));
-
-        RestApi api = getRestApi();
-        assertEquals(api.getHost(), "10.10.10.10");
-    }
-
-    @Test
-    public void shouldRoundRobinWhenSessionAffinityNotEnabled() throws Exception {
-        RestApi api1 = getRestApis(setupRemoteMicroservice("24.24.24.24", "content", "/files"))[0];
-        RestApi api2 = getRestApis(setupRemoteMicroservice("11.11.11.11", "content", "/folders"))[0];
-        RestApi api3 = getRestApis(setupRemoteMicroservice("23.23.23.23", "content", "/files"))[0];
-        RestApi api4 = getRestApis(setupRemoteMicroservice("25.22.22.22", "content", "/files"))[0];
-
-        assertEquals(api1, localMicroservice.searchApi("content", "/files"));
-        assertEquals(api3, localMicroservice.searchApi("content", "/files"));
-        assertEquals(api4, localMicroservice.searchApi("content", "/files"));
-    }
-
-    @Test
-    public void shouldRespondWithSameRemoteWhenSessionAffinityEnabled() throws Exception {
-        setupRemoteMicroserviceWithSessionAffinity("11.11.11.11", "users", "/peoples");
-        RestApi api1 = getRestApis(setupRemoteMicroserviceWithSessionAffinity("24.24.24.24", "content", "/files"))[0];
-        setupRemoteMicroservice("23.23.23.23", "content", "/files");
-
-        assertEquals(api1, localMicroservice.searchApi("content", "/files"));
-        assertEquals(api1, localMicroservice.searchApi("content", "/files"));
-    }
-
-    @Test
-    public void shouldNOTReturnFaultyApisWhenSessionAffinityEnabled() throws Exception {
-        RestApi api1 = getRestApis(setupRemoteMicroserviceWithSessionAffinity("24.24.24.24", "content", "/files"))[0];
-        setupRemoteMicroservice("25.25.25.25", "content", "/files");
-
-        api1.markFaulty();
-
-        assertFalse(api1.equals(localMicroservice.searchApi("content", "/files")));
-    }
-
-    @Test
-    public void shouldMapNewAffinityWhenOriginalFaulty() throws Exception {
-        RestApi api1 = getRestApis(setupRemoteMicroserviceWithSessionAffinity("24.24.24.24", "content", "/files"))[0];
-        RestApi api2 = getRestApis(setupRemoteMicroserviceWithSessionAffinity("25.25.25.25", "content", "/files"))[0];
-
-        assertEquals(api1, localMicroservice.searchApi("content", "/files"));
-
-        api1.markFaulty();
-        assertEquals(api2, localMicroservice.searchApi("content", "/files"));
-
-        api1.markWorking();
-        assertEquals(api2, localMicroservice.searchApi("content", "/files"));
-    }
-
-    // candidate for removal
-    // FIXME  // TODO
-    public void shouldFollowSelectionAlgorithmWhenRestApiMarkedAsFaulty() throws Exception {
-        setupRemoteMicroserviceWithMultipleRestAPIs("25.25.25.25", "15.15.10.1", "content", "/files");
-        setupRemoteMicroservice("10.10.10.10", "content", "/files");
-
-        RestApi result1 = localMicroservice.searchApi("content", "/files");
-        result1.markFaulty();
-
-        RestApi result2 = localMicroservice.searchApi("content", "/files");
-        assertEquals("10.10.10.10", result2.getHost());
-
-        RestApi result3 = localMicroservice.searchApi("content", "/files");
-        assertEquals("15.15.10.1", result3.getHost());
-    }
-
-    @Test
-    public void shouldRemoveRemoteApisWhenRemoteMicroserviceIsRemoved() throws Exception {
-        RemoteMicroservice remote = setupRemoteMicroservice("24.24.24.24", "content", "/files");
-        RestApi api1 = getRestApis(remote)[0];
-
-        assertEquals(api1, localMicroservice.searchApi("content", "/files"));
-
-        simulateMessageFromCloud(newFaultMessage(remote.getAgent()));
-
-        assertNull(localMicroservice.searchApi("content", "/files"));
-    }
-
-    @Test
-    public void shouldReturnCorrectApiWhenSearchingById() throws Exception {
-        RestApi api1 = getRestApis(setupRemoteMicroservice("24.24.24.24", "content", "/files"))[0];
-        RestApi api2 = getRestApis(setupRemoteMicroservice("11.11.11.11", "content", "/folders"))[0];
-        RestApi api3 = getRestApis(setupRemoteMicroservice("23.23.23.23", "content", "/files"))[0];
-        RestApi api4 = getRestApis(setupRemoteMicroservice("25.22.22.22", "content", "/files"))[0];
-
-        assertEquals(api1, localMicroservice.searchApiById(api1.getId()));
-        assertEquals(api2, localMicroservice.searchApiById(api2.getId()));
-        assertEquals(api4, localMicroservice.searchApiById(api4.getId()));
-    }
-
-    @Test
-    public void shouldReturnNullIfApiListIsEmpty() throws Exception {
-        assertNull(localMicroservice.searchApi("something", "don't care"));
-        assertNull(localMicroservice.searchApiById(1033l));
-    }
-
-    @Test
-    public void shouldNOTSelectApisExposedBySelf() throws Exception {
-        localMicroservice.publish(new RestApi("test", "alfa", 1234));
-        RemoteMicroservice remoteMicroservice = setupRemoteMicroservice("test", "alfa");
-
-        assertEquals(getRestApis(remoteMicroservice)[0], localMicroservice.searchApi("test", "alfa"));
-    }
-
-    @Test
-    public void shouldUpdateMicroserviceIfPresent() throws Exception {
-        UUID uuid = new UUID(11, 22);
-        RemoteMicroservice remoteMicroservice = setupRemoteMicroserviceWithAgentUUIDAndRestApi("24.24.24.24", "content", "/files", uuid, createRestApi("content", "/files"));
-        setupRemoteMicroserviceWithAgentUUIDAndRestApi("24.24.24.24", "content", "/files", uuid, createRestApi("content", "/healthcheck"));
-
-        assertEquals(1, localMicroservice.getMicroServices().size());
-        assertEquals(2, getApis(remoteMicroservice).size());
-    }
-
-    @Test
     public void shouldMarkWorkingTouchTheUnderlyingAgent() throws Exception {
         RemoteMicroservice service = setupRemoteMicroservice("content", "/files");
 
@@ -304,46 +151,11 @@ public class MicroserviceTest {
 
     @Test
     public void shouldPublishRestApisWithHighPriorityWhenSet() throws Exception {
-        System.setProperty("high.priority.mode", "true");
-        System.setProperty("priority.level", "5");
+        System.setProperty(PriorityRoutingStrategy.SYSP_PRIORITY_DEFAULT_LEVEL, "5");
 
         localMicroservice.publish(new RestApi("test", "path", 9999));
 
         assertEquals(5, getLastPublishedRestApi().getPriority());
-    }
-
-    @Test
-    public void shouldAddPassiveToListOnPassiveJoin() throws Exception {
-        PassiveService passiveService = new PassiveService(localMicroservice, new UUID(111, 111), "testPassive", "10.10.10.10", "http://10.10.10.10/healthcheck/", 9999);
-
-        passiveService.join();
-
-        assertEquals(1, localMicroservice.getPassiveServices().size());
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void shouldOnlyAllowPassivelyJoinedToPassivePublishApis() throws Exception {
-        PassiveService passiveService = new PassiveService(localMicroservice, new UUID(111, 111), "testPassive", "10.10.10.10", "http://10.10.10.10/healthcheck/", 9999);
-        PassiveService unjoined = new PassiveService(localMicroservice, new UUID(111, 111), "testUnjoined", "10.10.10.10", "http://10.11.11.11/healthcheck/", 9999);
-
-        passiveService.join();
-
-        RestApi expected = new RestApi("test", "path", 9999);
-        passiveService.publish(expected);
-
-        assertEquals(expected, getLastPublishedRestApi());
-
-        unjoined.publish(mock(RestApi.class));
-    }
-
-    @Test
-    public void shouldBeAbleToSearchForPassiveServicesByUUID() throws Exception {
-        PassiveService passiveService = new PassiveService(localMicroservice, new UUID(111, 111), "testPassive", "10.10.10.10", "http://10.10.10.10/healthcheck/", 9999);
-        passiveService.join();
-
-        UUID search = passiveService.getUuid();
-
-        assertEquals(localMicroservice.searchPassives(search), passiveService);
     }
 
     private RestApi getLastPublishedRestApi() throws IOException {
@@ -355,7 +167,7 @@ public class MicroserviceTest {
     }
 
     private Set<RestApi> getApis(RemoteMicroservice remoteMicroservice) {
-        return localMicroservice.getMicroServices().get(localMicroservice.getMicroServices().indexOf(remoteMicroservice)).getApis();
+        return microcloud.getMicroServices().get(microcloud.getMicroServices().indexOf(remoteMicroservice)).getApis();
     }
 
     private RestApi[] getRestApis(RemoteMicroservice ms1) {
@@ -363,18 +175,19 @@ public class MicroserviceTest {
         return apiSet.toArray(new RestApi[apiSet.size()]);
     }
 
-    private void putRemoteAgentInCloudAgentsList(RemoteAgent agent) {
+    private void putRemoteAgentInCloudAgentsList(final RemoteAgent agent) {
         when(cloud.getRemoteAgents()).thenReturn(new HashSet<RemoteAgent>(Arrays.asList(agent)));
+        when(cloud.find(agent.getIden())).thenReturn(agent);
     }
 
     private RestApi getRestApi() {
-        RemoteMicroservice remote = localMicroservice.getMicroServices().get(0);
+        RemoteMicroservice remote = microcloud.getMicroServices().get(0);
         Set<RestApi> apis = remote.getApis();
         return apis.iterator().next();
     }
 
     private void assertAgentInMicroserviceList(Agent remoteAgent) {
-        assertEquals(remoteAgent, localMicroservice.getMicroServices().iterator().next().getAgent());
+        assertEquals(remoteAgent, microcloud.getMicroServices().iterator().next().getAgent());
     }
 
     private RemoteMicroservice setupRemoteMicroservice(String name, String endpoint) throws IOException {
@@ -465,7 +278,7 @@ public class MicroserviceTest {
         for (int i = 0; i < nibbles.length; i++) {
             nibbles[i] = Byte.valueOf(tokens.get(i));
         }
-        return newRemoteAgent(UUID.randomUUID(), new Endpoint(Type.UDP, new Network(nibbles, suffix)));
+        return newRemoteAgent(UUID.randomUUID(), new BaseEndpoint(Type.UDP, new Network(nibbles, suffix)));
     }
 
     private RemoteAgent newRemoteAgent() {
@@ -476,9 +289,15 @@ public class MicroserviceTest {
         return newRemoteAgent(uuid);
     }
 
-    private RemoteAgent newRemoteAgent(final UUID uuid, Endpoint... endpoints) {
+    private RemoteAgent newRemoteAgent(final UUID uuid, BaseEndpoint... endpoints) {
         RemoteAgent remote = new RemoteAgent(uuid, cloud, new HashSet<Endpoint>(Arrays.asList(endpoints)));
         putRemoteAgentInCloudAgentsList(remote);
         return remote;
     }
+    
+    private Microcloud newMicrocloud(Cloud cloud) {
+        return new Microcloud(cloud, mock(ScheduledExecutorService.class));
+    }
+
+
 }

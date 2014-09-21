@@ -1,40 +1,39 @@
 package com.workshare.msnos.usvc;
 
-import com.workshare.msnos.core.Cloud;
-import com.workshare.msnos.core.LocalAgent;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+
+import org.junit.Before;
 import org.junit.Test;
 
-import java.util.UUID;
-
-import static org.junit.Assert.assertEquals;
-import static org.mockito.Mockito.*;
+import com.workshare.msnos.usvc.api.RestApi;
 
 public class PassiveServiceTest {
 
-    PassiveService passiveService;
-    Microservice microservice;
+    private Microcloud microcloud;
+    private PassiveService passiveService;
 
+    @Before
+    public void prepare() {
+        microcloud = mock(Microcloud.class);
+        passiveService = new PassiveService(microcloud, "testPassive", "10.10.10.10", 9999, "http://10.10.10.10/healthcheck/");
+    }
+    
     @Test
-    public void shouldInvokeMicroserviceOnJoin() throws Exception {
-        microservice = mock(Microservice.class);
-        when(microservice.getAgent()).thenReturn(mock(LocalAgent.class));
-        when(microservice.getAgent().getCloud()).thenReturn(new Cloud(new UUID(111, 222)));
-
-        passiveService = new PassiveService(microservice, new UUID(111, 222), "testPassive", "10.10.10.10", "http://10.10.10.10/healthcheck/", 9999);
+    public void shouldInvokeCloudOnJoin() throws Exception {
         passiveService.join();
 
-        verify(microservice, times(1)).passiveJoin(passiveService);
+        verify(microcloud, times(1)).onJoin(passiveService);
     }
 
-    @Test(expected = IllegalArgumentException.class)
-    public void shouldNOTAllowCreationIfCloudUUIDDifferent() throws Exception {
-        Cloud cloud = new Cloud(new UUID(111, 222));
-        microservice = new Microservice("test");
-        microservice.join(cloud);
+    @Test
+    public void shouldInvokeCloudOnPublish() throws Exception {
+        passiveService.join();
 
-        passiveService = new PassiveService(microservice, new UUID(456, 789), "test", "test", "test", 9999);
-        assertEquals(null, passiveService);
+        RestApi[] apis = new RestApi[]{mock(RestApi.class), mock(RestApi.class)};
+        passiveService.publish(apis);
+        
+        verify(microcloud, times(1)).publish(passiveService, apis);
     }
-
-
 }

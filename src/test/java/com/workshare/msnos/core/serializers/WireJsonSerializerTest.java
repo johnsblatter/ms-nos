@@ -1,22 +1,35 @@
 package com.workshare.msnos.core.serializers;
 
-import com.workshare.msnos.core.*;
-import com.workshare.msnos.core.cloud.JoinSynchronizer;
-import com.workshare.msnos.core.payloads.FltPayload;
-import com.workshare.msnos.core.payloads.Presence;
-import com.workshare.msnos.core.payloads.QnePayload;
-import com.workshare.msnos.usvc.api.RestApi;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
 
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.UUID;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
+
+import com.workshare.msnos.core.Cloud;
+import com.workshare.msnos.core.Gateway;
+import com.workshare.msnos.core.LocalAgent;
+import com.workshare.msnos.core.Message;
+import com.workshare.msnos.core.MessageBuilder;
+import com.workshare.msnos.core.NoopGateway;
+import com.workshare.msnos.core.RemoteAgent;
+import com.workshare.msnos.core.RemoteEntity;
+import com.workshare.msnos.core.Version;
+import com.workshare.msnos.core.cloud.JoinSynchronizer;
+import com.workshare.msnos.core.payloads.FltPayload;
+import com.workshare.msnos.core.payloads.Presence;
+import com.workshare.msnos.core.payloads.QnePayload;
+import com.workshare.msnos.core.protocols.ip.Endpoint;
+import com.workshare.msnos.core.protocols.ip.HttpEndpoint;
+import com.workshare.msnos.core.protocols.ip.Network;
+import com.workshare.msnos.core.protocols.ip.BaseEndpoint;
+import com.workshare.msnos.usvc.api.RestApi;
 
 public class WireJsonSerializerTest {
 
@@ -24,6 +37,8 @@ public class WireJsonSerializerTest {
 
     private static final UUID CLOUD_UUID = UUID.randomUUID();
     private static final Long CLOUD_INSTANCE_ID = 1274L;
+
+    private static final Network SAMPLE_NETWORK = new Network(new byte[]{10,10,10,1}, (short)25);
 
     private Cloud cloud;
     private LocalAgent localAgent;
@@ -144,6 +159,20 @@ public class WireJsonSerializerTest {
         String current = sz.toText(source);
 
         assertTrue(current.contains(expected));
+    }
+
+    @Test
+    public void shouldSerializeBaseEndpoint() throws Exception {
+        Endpoint expected = new BaseEndpoint(Endpoint.Type.SSH, SAMPLE_NETWORK);
+        Endpoint current = sz.fromText(sz.toText(expected), Endpoint.class);
+        assertEquals(expected, current);
+    }
+
+    @Test
+    public void shouldSerializeHTTPEndpoint() throws Exception {
+        Endpoint expected = new HttpEndpoint(SAMPLE_NETWORK, "http://www.workshare.com");
+        Endpoint current = sz.fromText(sz.toText(expected), Endpoint.class);
+        assertEquals(expected, current);
     }
 
     private String toShortString(UUID uuid) {

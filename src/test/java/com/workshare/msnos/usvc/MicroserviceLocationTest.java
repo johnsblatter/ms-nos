@@ -1,5 +1,17 @@
 package com.workshare.msnos.usvc;
 
+import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.UUID;
+
+import org.junit.Before;
+import org.junit.Test;
+
 import com.workshare.msnos.core.Cloud;
 import com.workshare.msnos.core.Iden;
 import com.workshare.msnos.core.LocalAgent;
@@ -7,20 +19,9 @@ import com.workshare.msnos.core.RemoteAgent;
 import com.workshare.msnos.core.geo.Location;
 import com.workshare.msnos.core.geo.LocationFactory;
 import com.workshare.msnos.core.protocols.ip.Endpoint;
-import com.workshare.msnos.core.protocols.ip.Endpoint.Type;
 import com.workshare.msnos.core.protocols.ip.Network;
+import com.workshare.msnos.core.protocols.ip.BaseEndpoint;
 import com.workshare.msnos.usvc.api.RestApi;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.UUID;
-
-import static org.junit.Assert.assertEquals;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class MicroserviceLocationTest {
 
@@ -101,7 +102,7 @@ public class MicroserviceLocationTest {
     private Set<Endpoint> endpoints(String... hosts) {
         Set<Endpoint> nets = new HashSet<Endpoint>();
         for (String host : hosts) {
-            nets.add(new Endpoint(Type.UDP, makeNetwork(host)));
+            nets.add(new BaseEndpoint(Endpoint.Type.UDP, makeNetwork(host)));
         }
         return nets;
     }

@@ -16,11 +16,11 @@ public class Healthchecker {
     private static final Logger log = LoggerFactory.getLogger(Healthchecker.class);
     private static final long CHECK_PERIOD = Long.getLong("msnos.usvc.health.check.time", 60000L);
 
-    private final Microservice microservice;
+    private final Microcloud microcloud;
     private final ScheduledExecutorService scheduler;
 
-    public Healthchecker(Microservice microservice, ScheduledExecutorService executorService) {
-        this.microservice = microservice;
+    public Healthchecker(Microcloud microcloud, ScheduledExecutorService executorService) {
+        this.microcloud = microcloud;
         scheduler = executorService;
     }
 
@@ -33,7 +33,7 @@ public class Healthchecker {
     }
 
     private void healthCheckApis() {
-        for (RemoteMicroservice remote : microservice.getMicroServices()) {
+        for (RemoteMicroservice remote : microcloud.getMicroServices()) {
             for (RestApi rest : remote.getApis()) {
                 if (rest.getType() == Type.HEALTHCHECK) {
                     HttpURLConnection connection = null;

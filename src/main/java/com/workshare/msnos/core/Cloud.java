@@ -246,5 +246,16 @@ public class Cloud implements Identifiable {
             return message;
         }
     }
+
+    public RemoteAgent find(final Iden iden) {
+        RemoteAgent remoteAgent = null;
+        for (RemoteAgent agent : getRemoteAgents()) {
+            if (agent.getIden().equals(iden)) {
+                remoteAgent = agent;
+                break;
+            }
+        }
+        return remoteAgent;
+    }
 }
 

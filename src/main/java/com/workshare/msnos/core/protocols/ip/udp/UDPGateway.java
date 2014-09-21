@@ -21,11 +21,11 @@ import com.workshare.msnos.core.Message.Payload;
 import com.workshare.msnos.core.Message.Status;
 import com.workshare.msnos.core.Receipt;
 import com.workshare.msnos.core.SingleReceipt;
-import com.workshare.msnos.core.protocols.ip.Endpoint;
+import com.workshare.msnos.core.protocols.ip.Endpoint.Type;
 import com.workshare.msnos.core.protocols.ip.Endpoints;
 import com.workshare.msnos.core.protocols.ip.MulticastSocketFactory;
-import com.workshare.msnos.core.protocols.ip.Endpoint.Type;
 import com.workshare.msnos.core.protocols.ip.Network;
+import com.workshare.msnos.core.protocols.ip.BaseEndpoint;
 import com.workshare.msnos.core.serializers.WireSerializer;
 import com.workshare.msnos.soup.threading.Multicaster;
 
@@ -183,11 +183,11 @@ public class UDPGateway implements Gateway {
     
     private Endpoints createEndpoints() {
         Set<Network> nets = Network.listAll(true);
-        Set<Endpoint> ends = new HashSet<Endpoint>();
+        Set<BaseEndpoint> ends = new HashSet<BaseEndpoint>();
         for (Network net : nets) {
-            ends.add(new Endpoint(Type.UDP, net));
+            ends.add(new BaseEndpoint(Type.UDP, net));
         }
-        return Endpoint.create(ends);
+        return BaseEndpoint.create(ends);
         
     }
 

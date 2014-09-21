@@ -7,10 +7,10 @@ import com.workshare.msnos.usvc.api.routing.RoutingStrategy;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Created by rhys on 10/09/14.
- */
 public class PriorityRoutingStrategy implements RoutingStrategy {
+
+    public static final String SYSP_PRIORITY_ENABLED = "com.ws.nsnos.usvc.priority.enabled";
+    public static final String SYSP_PRIORITY_DEFAULT_LEVEL = "com.ws.nsnos.usvc.priority.default.level";
 
     @Override
     public List<ApiEndpoint> select(Microservice from, List<ApiEndpoint> apis) {
@@ -37,5 +37,13 @@ public class PriorityRoutingStrategy implements RoutingStrategy {
         }
 
         return priorityEndpoints;
+    }
+    
+    public static boolean isEnabled() {
+        return Boolean.getBoolean(SYSP_PRIORITY_ENABLED) || getDefaultLevel() != null;
+    }
+
+    public static Integer getDefaultLevel() {
+        return Integer.getInteger(SYSP_PRIORITY_DEFAULT_LEVEL);
     }
 }

@@ -1,18 +1,22 @@
 package com.workshare.msnos.core.protocols.ip.http;
 
 import java.io.IOException;
+import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.StringEntity;
 import org.apache.http.util.EntityUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.workshare.msnos.core.Cloud;
 import com.workshare.msnos.core.Gateway;
+import com.workshare.msnos.core.Iden;
 import com.workshare.msnos.core.Message;
 import com.workshare.msnos.core.Message.Status;
 import com.workshare.msnos.core.MsnosException;
@@ -20,18 +24,22 @@ import com.workshare.msnos.core.Receipt;
 import com.workshare.msnos.core.SingleReceipt;
 import com.workshare.msnos.core.protocols.ip.Endpoint;
 import com.workshare.msnos.core.protocols.ip.Endpoints;
+import com.workshare.msnos.core.protocols.ip.HttpEndpoint;
+import com.workshare.msnos.core.serializers.WireJsonSerializer;
 import com.workshare.msnos.soup.threading.Multicaster;
 
 public class HttpGateway implements Gateway {
 
     private static Logger log = LoggerFactory.getLogger(HttpGateway.class);
 
-    private final Set<Endpoint> endpoints;
+    private final Map<Iden, HttpEndpoint> endpoints;
     private final HttpClient client;
+    private final WireJsonSerializer serializer;
     
     public HttpGateway(HttpClient client, Multicaster<Listener, Message> caster) {
         this.client = client;
-        this.endpoints = new CopyOnWriteArraySet<Endpoint>();
+        this.endpoints = new ConcurrentHashMap<Iden, HttpEndpoint>();
+        this.serializer = new WireJsonSerializer();
     }
     
     @Override
@@ -39,14 +47,22 @@ public class HttpGateway implements Gateway {
     }
 
     @Override
-    public Receipt send(Cloud cloud, Message message) throws IOException {
-        
-//        HttpPost request = new HttpPost(urlMsgs+"?cloud=" + cloud.getIden().getUUID());
-//        request.setEntity(toInputStreamEntity(messages));
-//        HttpResponse res = client.execute(request);
-//        EntityUtils.consume(res.getEntity());
-//
-        return new SingleReceipt(Status.FAILED, message);
+    public Receipt send(Cloud cloud, Message message) {
+        HttpEndpoint endpoint = endpoints.get(message.getTo());
+        if (endpoint == null)
+            return new SingleReceipt(Status.FAILED, message);
+
+        try {
+            HttpPost request = new HttpPost(endpoint.getUrl());
+            request.setEntity(new StringEntity(serializer.toText(message)));
+            HttpResponse res = client.execute(request);
+            consume(res);
+            return new SingleReceipt(Status.DELIVERED, message);
+        }
+        catch (IOException ex) {
+            log.warn("Unexpected exception sending message "+message+" to url "+endpoint.getUrl(), ex);
+            return new SingleReceipt(Status.FAILED, message);
+        }
     }
 
     @Override
@@ -59,22 +75,39 @@ public class HttpGateway implements Gateway {
 
             @Override
             public Set<Endpoint> all() {
-                return endpoints;
+                return new HashSet<Endpoint>(endpoints.values());
             }
 
             @Override
             public Endpoint install(Endpoint endpoint) throws MsnosException {
-                endpoints.add(endpoint);
+                HttpEndpoint httpEndpoint = ensureHttp(endpoint);
+                endpoints.put(httpEndpoint.getTarget(), httpEndpoint);
                 log.debug("Installed endpoint {}, all: {}",endpoint, endpoints);
                 return endpoint;
             }
 
             @Override
             public Endpoint remove(Endpoint endpoint) throws MsnosException {
-                endpoints.remove(endpoint);
+                endpoints.remove(ensureHttp(endpoint).getTarget());
                 log.debug("Removed endpoint {}, all: {}",endpoint, endpoints);
                 return endpoint;
+            }
+
+            private HttpEndpoint ensureHttp(Endpoint endpoint) throws MsnosException {
+                if (!(endpoint instanceof HttpEndpoint))
+                    throw new MsnosException("The HTTP gateway accepts only HTTP endpoints", MsnosException.Code.UNRECOVERABLE_FAILURE);
+                HttpEndpoint ep = (HttpEndpoint) endpoint;
+                if (ep.getTarget().equals(Iden.NULL))
+                    throw new MsnosException("The HTTP gateway accepts only targeted endpoints", MsnosException.Code.UNRECOVERABLE_FAILURE);
+                return ep;
             }};
     }
 
+    private void consume(HttpResponse res)  {
+        try {
+            EntityUtils.consume(res.getEntity());
+        } catch (IOException ex) {
+            log.warn("Unexpected exception consuming response entity", res);
+        }
+    }
 }

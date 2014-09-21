@@ -5,7 +5,10 @@ import java.util.UUID;
 import com.workshare.msnos.soup.json.Json;
 
 public class Iden {
-    public enum Type {AGT, CLD, MSG}
+    
+    public static final Iden NULL = new Iden(Type.NUL, new UUID(0,0));
+    
+    public enum Type {NUL, AGT, CLD, MSG}
 
     private final Type type;
     private final UUID uuid;

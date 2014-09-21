@@ -36,7 +36,7 @@ public class LocationBasedStrategyTest {
         
         List<ApiEndpoint> endpoints = makeEndpoints(PARIS, MILAN, TURIN, CUNEO);
         List<ApiEndpoint> result = new LocationBasedStrategy().select(micro, endpoints);
-        assertEquals(4, result.size());
+        assertEquals(result, endpoints);
     }
 
     @Test
@@ -89,6 +89,26 @@ public class LocationBasedStrategyTest {
         assertResultContainsLocation(result, TURIN);
     }
     
+    @Test
+    public void shouldSelectAllIfTargetHasNoLocation() {
+        Microservice micro = Mockito.mock(Microservice.class);
+        when(micro.getLocation()).thenReturn(null);
+        
+        List<ApiEndpoint> endpoints = makeEndpoints(PARIS, MILAN, TURIN, CUNEO);
+        List<ApiEndpoint> result = new LocationBasedStrategy().select(micro, endpoints);
+        assertEquals(result, endpoints);
+    }
+
+    @Test
+    public void shouldSelectAllIfTargetHasLocationUnknown() {
+        Microservice micro = Mockito.mock(Microservice.class);
+        when(micro.getLocation()).thenReturn(Location.UNKNOWN);
+        
+        List<ApiEndpoint> endpoints = makeEndpoints(PARIS, MILAN, TURIN, CUNEO);
+        List<ApiEndpoint> result = new LocationBasedStrategy().select(micro, endpoints);
+        assertEquals(result, endpoints);
+    }
+
     private void assertResultContainsLocation(List<ApiEndpoint> result, final Location location) {
         boolean found = false;
         for (ApiEndpoint api : result) {

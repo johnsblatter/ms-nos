@@ -15,6 +15,7 @@ import com.workshare.msnos.core.RemoteAgent;
 import com.workshare.msnos.core.protocols.ip.Endpoint;
 import com.workshare.msnos.core.protocols.ip.Endpoint.Type;
 import com.workshare.msnos.core.protocols.ip.Network;
+import com.workshare.msnos.core.protocols.ip.BaseEndpoint;
 import com.workshare.msnos.usvc.api.RestApi;
 
 public class RemoteMicroserviceTest {
@@ -22,7 +23,7 @@ public class RemoteMicroserviceTest {
     @Test
     public void shouldFixRestApisWhenHostIsMissing() {
         RemoteAgent agent = mock(RemoteAgent.class);
-        final Endpoint endpoint = new Endpoint(Type.UDP, new Network(new byte[]{25,25,25,25}, (short)15));
+        final Endpoint endpoint = new BaseEndpoint(Type.UDP, new Network(new byte[]{25,25,25,25}, (short)15));
         when(agent.getEndpoints()).thenReturn(asSet(endpoint));
 
         RemoteMicroservice micro = new RemoteMicroservice("foo" , agent, asSet(new RestApi("api", "path", 1234)));

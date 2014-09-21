@@ -3,7 +3,7 @@ package com.workshare.msnos.core;
 import java.io.IOException;
 
 import com.workshare.msnos.core.Message.Status;
-import com.workshare.msnos.core.protocols.ip.Endpoint;
+import com.workshare.msnos.core.protocols.ip.BaseEndpoint;
 import com.workshare.msnos.core.protocols.ip.Endpoints;
 
 public class NoopGateway implements Gateway {
@@ -14,7 +14,7 @@ public class NoopGateway implements Gateway {
 
 	@Override
 	public Endpoints endpoints() {
-		return Endpoint.create();
+		return BaseEndpoint.create();
 	}
 
 	@Override
