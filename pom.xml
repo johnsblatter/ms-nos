@@ -15,7 +15,8 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
-				<configuration>
+    			<version>${maven-compiler-plugin.version}</version>
+    				<configuration>
 					<source>1.6</source>
 					<target>1.6</target>
 				</configuration>
@@ -188,6 +189,7 @@
 	</scm>
 
 	<properties>
+
 		<gson-version>2.2.4</gson-version>
 		<junit-version>4.11</junit-version>
 		<mockito-version>1.9.5</mockito-version>
@@ -195,6 +197,12 @@
 		<sl4j.version>1.7.6</sl4j.version>
 		<logback.version>1.1.2</logback.version>
 		<mapdb.version>1.0.5</mapdb.version>
+
+	    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+	    <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+
+		<maven-compiler-plugin.version>3.0</maven-compiler-plugin.version>
+
 	</properties>
 
 	<reporting>

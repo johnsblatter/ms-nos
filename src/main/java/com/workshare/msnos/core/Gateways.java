@@ -2,6 +2,7 @@ package com.workshare.msnos.core;
 
 import java.io.IOException;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
 
@@ -27,11 +28,11 @@ public class Gateways {
 
     private static Logger log = Logger.getLogger(Gateways.class);
 
-    private static HashSet<Gateway> all;
+    private static Set<Gateway> all;
 
 	public synchronized static Set<Gateway> all() throws MsnosException {
 		if (all == null) {
-	        all = new HashSet<Gateway>();
+	        all = new LinkedHashSet<Gateway>();
 			addGateway(buildUDPGateway());
             addGateway(buildWWWGateway());
 

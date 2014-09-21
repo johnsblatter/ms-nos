@@ -14,6 +14,7 @@ import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -23,7 +24,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -52,7 +53,6 @@ import com.workshare.msnos.core.security.Signer;
 import com.workshare.msnos.soup.json.Json;
 import com.workshare.msnos.soup.time.NTPClient;
 import com.workshare.msnos.soup.time.SystemTime;
-
 
 public class CloudTest {
 
@@ -100,7 +100,7 @@ public class CloudTest {
         NTPClient timeClient = mock(NTPClient.class);
         when(timeClient.getTime()).thenReturn(1234L);
 
-        thisCloud = new Cloud(MY_CLOUD.getUUID(), KEY_ID, signer, new HashSet<Gateway>(Arrays.asList(gate1, gate2)), synchro, synchronousMulticaster(), scheduler, null);
+        thisCloud = new Cloud(MY_CLOUD.getUUID(), KEY_ID, signer, new LinkedHashSet<Gateway>(Arrays.asList(gate1, gate2)), synchro, synchronousMulticaster(), scheduler, null);
         thisCloud.addListener(new Cloud.Listener() {
             @Override
             public void onMessage(Message message) {
@@ -255,11 +255,24 @@ public class CloudTest {
     }
 
     @Test
-    public void shouldSendMessagesTroughGateways() throws Exception {
+    public void shouldSendMessagesTroughAllGateways() throws Exception {
         Message message = newMessage(APP, SOMEONE, thisCloud.getIden());
         thisCloud.send(message);
         verify(gate1).send(thisCloud, message);
         verify(gate2).send(thisCloud, message);
+    }
+
+    @Test
+    public void shouldSendMessagesTroughAllGatewaysUnlessDelivered() throws Exception {
+        Receipt okayReceipt = mock(Receipt.class);
+        when(okayReceipt.getStatus()).thenReturn(Status.DELIVERED);
+        when(gate1.send(any(Cloud.class), any(Message.class))).thenReturn(okayReceipt);
+        
+        Message message = newMessage(APP, SOMEONE, thisCloud.getIden());
+        thisCloud.send(message);
+
+        verify(gate1).send(thisCloud, message);
+        verify(gate2, never()).send(thisCloud, message);
     }
 
     @Test

@@ -154,7 +154,10 @@ public class Cloud implements Identifiable {
         MultiGatewayReceipt res = new MultiGatewayReceipt(signed);
         for (Gateway gate : gates) {
             try {
-                res.add(gate.send(this, signed));
+                final Receipt receipt = gate.send(this, signed);
+                res.add(receipt);
+                if (receipt.getStatus() == Message.Status.DELIVERED)
+                    break;
             } catch (IOException ex) {
                 log.warn("Unable to send message " + message + " trough gateway " + gate, ex);
             }
