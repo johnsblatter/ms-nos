@@ -1,6 +1,5 @@
 package com.workshare.msnos.usvc.api;
 
-import com.workshare.msnos.core.geo.Location;
 import com.workshare.msnos.soup.json.Json;
 
 import java.util.concurrent.atomic.AtomicInteger;
@@ -133,10 +132,6 @@ public class RestApi {
 
     public Type getType() {
         return type;
-    }
-
-    public Location getLocation() {
-        return Location.UNKNOWN;
     }
 
     @Override
