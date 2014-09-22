@@ -1,5 +1,16 @@
 package com.workshare.msnos.core;
 
+import com.workshare.msnos.core.cloud.*;
+import com.workshare.msnos.core.cloud.JoinSynchronizer.Status;
+import com.workshare.msnos.core.payloads.FltPayload;
+import com.workshare.msnos.core.payloads.Presence;
+import com.workshare.msnos.core.security.Signer;
+import com.workshare.msnos.soup.json.Json;
+import com.workshare.msnos.soup.threading.ExecutorServices;
+import com.workshare.msnos.soup.time.SystemTime;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.security.SecureRandom;
 import java.util.Collection;
@@ -9,26 +20,10 @@ import java.util.UUID;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.workshare.msnos.core.cloud.AgentWatchdog;
-import com.workshare.msnos.core.cloud.IdentifiablesList;
-import com.workshare.msnos.core.cloud.JoinSynchronizer;
-import com.workshare.msnos.core.cloud.JoinSynchronizer.Status;
-import com.workshare.msnos.core.cloud.MessagePreProcessors;
-import com.workshare.msnos.core.cloud.Multicaster;
-import com.workshare.msnos.core.payloads.FltPayload;
-import com.workshare.msnos.core.payloads.Presence;
-import com.workshare.msnos.core.security.Signer;
-import com.workshare.msnos.soup.json.Json;
-import com.workshare.msnos.soup.threading.ExecutorServices;
-import com.workshare.msnos.soup.time.SystemTime;
-
 public class Cloud implements Identifiable {
 
     private static final ScheduledExecutorService DEFAULT_SCHEDULER = ExecutorServices.newSingleThreadScheduledExecutor();
-    
+
     private static final Logger log = LoggerFactory.getLogger(Cloud.class);
     private static final Logger proto = LoggerFactory.getLogger("protocol");
 
@@ -82,7 +77,7 @@ public class Cloud implements Identifiable {
         this(uuid, signid, Gateways.all(), new JoinSynchronizer(), random.nextLong());
     }
 
-    public Cloud(UUID uuid, String signid, Set<Gateway> gates, JoinSynchronizer synchronizer,  Long instanceId) {
+    public Cloud(UUID uuid, String signid, Set<Gateway> gates, JoinSynchronizer synchronizer, Long instanceId) {
         this(uuid, signid, new Signer(), gates, synchronizer, new Multicaster(), DEFAULT_SCHEDULER, instanceId);
     }
 
@@ -91,7 +86,7 @@ public class Cloud implements Identifiable {
 
         this.localAgents = new IdentifiablesList<LocalAgent>();
         this.remoteAgents = new IdentifiablesList<RemoteAgent>();
-        this.remoteClouds = new IdentifiablesList<RemoteEntity>(); 
+        this.remoteClouds = new IdentifiablesList<RemoteEntity>();
 
         this.seq = new AtomicLong(SystemTime.asMillis());
         this.caster = multicaster;
@@ -112,10 +107,10 @@ public class Cloud implements Identifiable {
                 }
             });
         }
-        
+
         this.internal = new Internal();
         this.validators = new MessagePreProcessors(this.internal);
-        
+
         new AgentWatchdog(this, executor).start();
     }
 
@@ -198,7 +193,7 @@ public class Cloud implements Identifiable {
             throw new MsnosException("This cloud is not connected as it is a mirror of a remote one", MsnosException.Code.NOT_CONNECTED);
     }
 
-    public Listener  addListener(com.workshare.msnos.core.Cloud.Listener listener) {
+    public Listener addListener(com.workshare.msnos.core.Cloud.Listener listener) {
         return caster.addListener(listener);
     }
 
@@ -214,7 +209,7 @@ public class Cloud implements Identifiable {
             boolean processed = message.getData().process(message, internal);
             if (!processed)
                 caster.dispatch(message);
-            
+
             postProcess(message);
         } else {
             proto.debug("NN: {} {} {} {}", message.getType(), message.getFrom(), message.getTo(), message.getData());

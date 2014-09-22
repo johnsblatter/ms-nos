@@ -1,31 +1,22 @@
 package com.workshare.msnos.core.serializers;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
-
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.UUID;
-
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
-
-import com.workshare.msnos.core.Cloud;
-import com.workshare.msnos.core.Gateway;
-import com.workshare.msnos.core.LocalAgent;
-import com.workshare.msnos.core.Message;
-import com.workshare.msnos.core.MessageBuilder;
-import com.workshare.msnos.core.NoopGateway;
-import com.workshare.msnos.core.RemoteAgent;
-import com.workshare.msnos.core.RemoteEntity;
-import com.workshare.msnos.core.Version;
+import com.workshare.msnos.core.*;
 import com.workshare.msnos.core.cloud.JoinSynchronizer;
 import com.workshare.msnos.core.payloads.FltPayload;
 import com.workshare.msnos.core.payloads.Presence;
 import com.workshare.msnos.core.payloads.QnePayload;
 import com.workshare.msnos.usvc.api.RestApi;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
+
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.UUID;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
 
 public class WireJsonSerializerTest {
 
@@ -38,7 +29,7 @@ public class WireJsonSerializerTest {
     private LocalAgent localAgent;
     private RemoteEntity remoteAgent;
     private WireJsonSerializer sz = new WireJsonSerializer();
-    
+
     @BeforeClass
     public static void useLocalTimeSource() {
         System.setProperty("com.ws.nsnos.time.local", "true");
@@ -138,20 +129,20 @@ public class WireJsonSerializerTest {
     @Test
     public void shouldMessageFromCloudContainExtendedIden() throws Exception {
         Message source = new MessageBuilder(Message.Type.PIN, cloud, localAgent).with(UUID.randomUUID()).make();
-        
-        String expected = "\"fr\":\"CLD:" + toShortString(CLOUD_UUID) + ":"+Long.toString(CLOUD_INSTANCE_ID,32)+"\"";
+
+        String expected = "\"fr\":\"CLD:" + toShortString(CLOUD_UUID) + ":" + Long.toString(CLOUD_INSTANCE_ID, 32) + "\"";
         String current = sz.toText(source);
-        
+
         assertTrue(current.contains(expected));
     }
 
     @Test
     public void shouldMessageToCloudContainStandardIden() throws Exception {
         Message source = new MessageBuilder(Message.Type.PON, localAgent, cloud).make();
-        
+
         String expected = "\"to\":\"CLD:" + toShortString(CLOUD_UUID) + "\"";
         String current = sz.toText(source);
-        
+
         assertTrue(current.contains(expected));
     }
 

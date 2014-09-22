@@ -1,16 +1,11 @@
 package com.workshare.msnos.core.geo;
 
-import java.util.Set;
-
 import com.maxmind.geoip2.model.OmniResponse;
-import com.maxmind.geoip2.record.AbstractNamedRecord;
-import com.maxmind.geoip2.record.City;
-import com.maxmind.geoip2.record.Continent;
-import com.maxmind.geoip2.record.Country;
-import com.maxmind.geoip2.record.Subdivision;
+import com.maxmind.geoip2.record.*;
 import com.workshare.msnos.core.protocols.ip.Endpoint;
-import com.workshare.msnos.core.protocols.ip.Network;
 import com.workshare.msnos.soup.json.Json;
+
+import java.util.Set;
 
 public class Location {
 
@@ -190,6 +185,16 @@ public class Location {
         } catch (Exception ignore) {
             return false;
         }
+    }
+
+    @Override
+    public int hashCode() {
+        int result = continent != null ? continent.hashCode() : 0;
+        result = 31 * result + (country != null ? country.hashCode() : 0);
+        result = 31 * result + (region != null ? region.hashCode() : 0);
+        result = 31 * result + (city != null ? city.hashCode() : 0);
+        result = 31 * result + precision;
+        return result;
     }
 
     private boolean equals(Place alfa, Place beta) {

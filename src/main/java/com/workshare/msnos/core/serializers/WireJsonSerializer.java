@@ -1,35 +1,20 @@
 package com.workshare.msnos.core.serializers;
 
-import java.lang.reflect.Type;
-import java.nio.charset.Charset;
-import java.util.UUID;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonDeserializationContext;
-import com.google.gson.JsonDeserializer;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParseException;
-import com.google.gson.JsonPrimitive;
-import com.google.gson.JsonSerializationContext;
-import com.google.gson.JsonSerializer;
-import com.google.gson.JsonSyntaxException;
+import com.google.gson.*;
 import com.workshare.msnos.core.Iden;
 import com.workshare.msnos.core.Message;
 import com.workshare.msnos.core.Message.Payload;
 import com.workshare.msnos.core.MessageBuilder;
 import com.workshare.msnos.core.Version;
-import com.workshare.msnos.core.payloads.FltPayload;
-import com.workshare.msnos.core.payloads.GenericPayload;
-import com.workshare.msnos.core.payloads.NullPayload;
-import com.workshare.msnos.core.payloads.Presence;
-import com.workshare.msnos.core.payloads.QnePayload;
+import com.workshare.msnos.core.payloads.*;
 import com.workshare.msnos.soup.json.Json;
 import com.workshare.msnos.soup.json.ThreadSafeGson;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.lang.reflect.Type;
+import java.nio.charset.Charset;
+import java.util.UUID;
 
 public class WireJsonSerializer implements WireSerializer {
 
@@ -84,7 +69,7 @@ public class WireJsonSerializer implements WireSerializer {
     private static final JsonSerializer<Byte> ENC_BYTE = new JsonSerializer<Byte>() {
         @Override
         public JsonElement serialize(Byte value, Type typeof, JsonSerializationContext context) {
-            return new JsonPrimitive((int)(value&0xff));
+            return new JsonPrimitive((int) (value & 0xff));
         }
     };
 
@@ -206,10 +191,9 @@ public class WireJsonSerializer implements WireSerializer {
                     .reliable(reliable)
                     .signed(sig, rnd)
                     .make();
-            }
+        }
     };
 
-      
     private static final ThreadSafeGson gson = new ThreadSafeGson() {
         protected Gson newGson() {
             GsonBuilder builder = new GsonBuilder();
@@ -242,7 +226,7 @@ public class WireJsonSerializer implements WireSerializer {
         String text = iden.getType() + ":" + serializeUUIDToShortString(iden.getUUID());
         if (includeSuid && iden.getSuid() != null)
             text = text + ":" + Long.toString(iden.getSuid(), 32);
-            
+
         return new JsonPrimitive(text);
     }
 
@@ -250,9 +234,9 @@ public class WireJsonSerializer implements WireSerializer {
         String text = json.getAsString();
 
         int idx1 = text.indexOf(':');
-        int idx2 = text.indexOf(':',idx1+1);
+        int idx2 = text.indexOf(':', idx1 + 1);
         idx2 = (idx2 > 0 ? idx2 : text.length());
-        
+
         Iden.Type type = Iden.Type.valueOf(text.substring(0, idx1));
         UUID uuid = deserializeUUIDFromShortString(text.substring(idx1 + 1, idx2));
 
@@ -291,11 +275,11 @@ public class WireJsonSerializer implements WireSerializer {
         final JsonElement jsonElement = obj.get(memberName);
         return (jsonElement == null) ? null : jsonElement.getAsString();
     }
-    
+
     static class Sample {
         String name = "alfa";
         boolean res = true;
-        
+
         public String toString() {
             return Json.toJsonString(this);
         }

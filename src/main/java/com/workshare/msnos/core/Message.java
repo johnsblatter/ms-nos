@@ -117,6 +117,17 @@ public class Message {
         }
     }
 
+    @Override
+    public int hashCode() {
+        int result = uuid != null ? uuid.hashCode() : 0;
+        result = 31 * result + (type != null ? type.hashCode() : 0);
+        result = 31 * result + (from != null ? from.hashCode() : 0);
+        result = 31 * result + (to != null ? to.hashCode() : 0);
+        result = 31 * result + (sig != null ? sig.hashCode() : 0);
+        result = 31 * result + (rnd != null ? rnd.hashCode() : 0);
+        return result;
+    }
+
     public Message data(Payload load) {
         return new Message(type, from, to, hops, reliable, load, uuid, sig, rnd, seq);
     }

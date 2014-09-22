@@ -7,13 +7,10 @@ import com.workshare.msnos.core.payloads.QnePayload;
 import com.workshare.msnos.soup.json.Json;
 import com.workshare.msnos.soup.threading.ExecutorServices;
 import com.workshare.msnos.usvc.api.RestApi;
-import com.workshare.msnos.usvc.api.routing.ApiRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ScheduledExecutorService;
 
 public class Microservice {
@@ -23,12 +20,9 @@ public class Microservice {
     private final String name;
     private final LocalAgent agent;
     private final Healthchecker healthcheck;
-    private final List<RestApi> localApis;
-    private final Map<Iden, RemoteMicroservice> microServices;
-    private final ApiRepository apis;
     private final Location location;
 
-    private Cloud cloud;
+    private MicroCloud microCloud;
 
     public Microservice(String name) {
         this(name, new LocalAgent(UUID.randomUUID()), ExecutorServices.newSingleThreadScheduledExecutor());
@@ -41,14 +35,12 @@ public class Microservice {
     public Microservice(String name, LocalAgent agent, ScheduledExecutorService executor) {
         this.name = name;
         this.agent = agent;
-
-        this.localApis = new CopyOnWriteArrayList<RestApi>();
-        this.microServices = new ConcurrentHashMap<Iden, RemoteMicroservice>();
         this.healthcheck = new Healthchecker(this, executor);
-        this.apis = new ApiRepository();
         this.location = Location.computeMostPreciseLocation(agent.getEndpoints());
+    }
 
-        this.cloud = null;
+    public String getName() {
+        return name;
     }
 
     public LocalAgent getAgent() {
@@ -59,25 +51,38 @@ public class Microservice {
         return location;
     }
 
+    public List<PassiveService> getPassiveServices() {
+        return Collections.unmodifiableList(new ArrayList<PassiveService>(microCloud.getPassiveServices().values()));
+    }
+
     public List<RemoteMicroservice> getMicroServices() {
-        return Collections.unmodifiableList(new ArrayList<RemoteMicroservice>(microServices.values()));
+        return Collections.unmodifiableList(new ArrayList<RemoteMicroservice>(microCloud.getMicroservices().values()));
     }
 
     public RestApi searchApiById(long id) throws Exception {
-        return apis.searchApiById(id);
+        return microCloud.getApis().searchApiById(id);
     }
 
     public RestApi searchApi(String name, String path) {
-        return apis.searchApi(this, name, path);
+        return microCloud.getApis().searchApi(this, name, path);
+    }
+
+    public void passiveJoin(PassiveService passiveService) {
+        microCloud.passiveJoin(passiveService);
+    }
+
+    public void passivePublish(PassiveService passiveService, RestApi... apis) throws MsnosException, IllegalArgumentException {
+        microCloud.passivePublish(passiveService, this, apis);
     }
 
     public void join(Cloud nimbus) throws MsnosException {
-        if (this.cloud != null)
+        if (this.microCloud != null)
             throw new IllegalArgumentException("The same instance of a microservice cannot join different clouds!");
 
-        this.cloud = nimbus;
-        agent.join(cloud);
-        cloud.addListener(new Cloud.Listener() {
+        microCloud = new MicroCloud(nimbus);
+        microCloud.onJoin(this);
+
+        microCloud.addListener(new Cloud.Listener() {
             @Override
             public void onMessage(Message message) {
                 try {
@@ -88,31 +93,11 @@ public class Microservice {
             }
         });
 
-        Message message = new MessageBuilder(Message.Type.ENQ, agent, cloud).make();
-        agent.send(message);
-
         healthcheck.run();
     }
 
     public void publish(RestApi... api) throws MsnosException {
-        boolean mode = Boolean.getBoolean("high.priority.mode");
-        List<RestApi> restApis = Arrays.asList(api);
-
-        if (mode) {
-            Integer priority = Integer.getInteger("priority.level");
-            if (priority != null) {
-                for (RestApi restApi : api) {
-                    Collections.replaceAll(restApis, restApi, restApi.withPriority(priority));
-                }
-            } else {
-                log.error("Priority level not set, unable to publish RestApis with priority. Publishing apis with no priority level.");
-            }
-        }
-
-        Message message = new MessageBuilder(Message.Type.QNE, agent, cloud).with(new QnePayload(name, restApis.toArray(new RestApi[restApis.size()]))).make();
-
-        agent.send(message);
-        localApis.addAll(restApis);
+        microCloud.publish(this, api);
     }
 
     private void process(Message message) throws MsnosException {
@@ -130,16 +115,15 @@ public class Microservice {
     }
 
     private void processENQ() throws MsnosException {
-        Message message = new MessageBuilder(Message.Type.QNE, agent, cloud).with(new QnePayload(name, new HashSet<RestApi>(localApis))).make();
+        Message message = new MessageBuilder(Message.Type.QNE, agent, microCloud.getCloud()).with(new QnePayload(name, new HashSet<RestApi>(microCloud.getLocalApis()))).make();
         agent.send(message);
     }
 
-    // TODO what happens if the remote agent is not recognized?
     private void processQNE(Message message) {
         QnePayload qnePayload = ((QnePayload) message.getData());
 
         RemoteAgent remoteAgent = null;
-        for (RemoteAgent agent : cloud.getRemoteAgents()) {
+        for (RemoteAgent agent : microCloud.getCloud().getRemoteAgents()) {
             if (agent.getIden().equals(message.getFrom())) {
                 remoteAgent = agent;
                 break;
@@ -149,6 +133,8 @@ public class Microservice {
         if (remoteAgent != null) {
             RemoteMicroservice remote;
             Iden remoteKey = remoteAgent.getIden();
+
+            Map<Iden, RemoteMicroservice> microServices = microCloud.getMicroservices();
             if (microServices.containsKey(remoteKey)) {
                 remote = microServices.get(remoteKey);
                 remote.addApis(qnePayload.getApis());
@@ -156,14 +142,17 @@ public class Microservice {
                 remote = new RemoteMicroservice(qnePayload.getName(), remoteAgent, new HashSet<RestApi>(qnePayload.getApis()));
                 microServices.put(remoteKey, remote);
             }
-            apis.register(remote);
+
+            microCloud.getApis().register(remote);
         }
     }
 
     private void processFault(Message message) {
         Iden about = ((FltPayload) message.getData()).getAbout();
+        Map<Iden, RemoteMicroservice> microServices = microCloud.getMicroservices();
+
         if (microServices.containsKey(about)) {
-            apis.unregister(microServices.get(about));
+            microCloud.getApis().unregister(microServices.get(about));
             microServices.remove(about);
         }
     }
@@ -184,10 +173,9 @@ public class Microservice {
     @Override
     public int hashCode() {
         int result = name.hashCode();
-        result = 31 * result + localApis.hashCode();
         result = 31 * result + agent.hashCode();
-        result = 31 * result + cloud.hashCode();
+        result = 31 * result + location.hashCode();
+        result = 31 * result + microCloud.getCloud().hashCode();
         return result;
     }
-
 }

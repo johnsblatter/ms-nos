@@ -20,6 +20,7 @@ import org.mockito.Mockito;
 import java.io.IOException;
 import java.util.*;
 
+import static junit.framework.TestCase.assertEquals;
 import static org.junit.Assert.*;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.*;
@@ -309,6 +310,30 @@ public class MicroserviceTest {
         localMicroservice.publish(new RestApi("test", "path", 9999));
 
         assertEquals(5, getLastPublishedRestApi().getPriority());
+    }
+
+    @Test
+    public void shouldAddPassiveToListOnPassiveJoin() throws Exception {
+        PassiveService passiveService = new PassiveService(localMicroservice, new UUID(111, 111), "testPassive", "10.10.10.10", "http://10.10.10.10/healthcheck/", 9999);
+
+        passiveService.join();
+
+        assertEquals(1, localMicroservice.getPassiveServices().size());
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void shouldOnlyAllowPassivelyJoinedToPassivePublishApis() throws Exception {
+        PassiveService passiveService = new PassiveService(localMicroservice, new UUID(111, 111), "testPassive", "10.10.10.10", "http://10.10.10.10/healthcheck/", 9999);
+        PassiveService unjoined = new PassiveService(localMicroservice, new UUID(111, 111), "testUnjoined", "10.10.10.10", "http://10.11.11.11/healthcheck/", 9999);
+
+        passiveService.join();
+
+        RestApi expected = new RestApi("test", "path", 9999);
+        passiveService.publish(expected);
+
+        assertEquals(expected, getLastPublishedRestApi());
+
+        unjoined.publish(mock(RestApi.class));
     }
 
     private RestApi getLastPublishedRestApi() throws IOException {
