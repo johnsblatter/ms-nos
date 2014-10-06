@@ -1,6 +1,7 @@
 package com.workshare.msnos.usvc;
 
 import com.workshare.msnos.core.Cloud;
+import com.workshare.msnos.core.LocalAgent;
 import org.junit.Test;
 
 import java.util.UUID;
@@ -15,8 +16,9 @@ public class PassiveServiceTest {
 
     @Test
     public void shouldInvokeMicroserviceOnJoin() throws Exception {
-        microservice = spy(new Microservice("test"));
-        microservice.join(new Cloud(new UUID(111, 222)));
+        microservice = mock(Microservice.class);
+        when(microservice.getAgent()).thenReturn(mock(LocalAgent.class));
+        when(microservice.getAgent().getCloud()).thenReturn(new Cloud(new UUID(111, 222)));
 
         passiveService = new PassiveService(microservice, new UUID(111, 222), "testPassive", "10.10.10.10", "http://10.10.10.10/healthcheck/", 9999);
         passiveService.join();
