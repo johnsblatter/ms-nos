@@ -1,6 +1,7 @@
 package com.workshare.msnos.usvc;
 
 import com.workshare.msnos.core.MsnosException;
+import com.workshare.msnos.core.PassiveAgent;
 import com.workshare.msnos.usvc.api.RestApi;
 
 import java.util.UUID;
@@ -13,8 +14,9 @@ public class PassiveService {
     private final int port;
 
     private final UUID uuid;
+    private final PassiveAgent agent;
 
-    public PassiveService(Microservice microservice, UUID cloudUuid, String name, String host, String healthCheckUri, int port) throws Exception {
+    public PassiveService(Microservice microservice, UUID cloudUuid, String name, String host, String healthCheckUri, int port) throws IllegalArgumentException {
         UUID joinedCloudUUID = getJoinedCloudUUID(microservice);
 
         if (joinedCloudUUID == null)
@@ -30,6 +32,11 @@ public class PassiveService {
         this.port = port;
 
         uuid = UUID.randomUUID();
+        agent = new PassiveAgent(microservice.getAgent().getCloud(), uuid);
+    }
+
+    public PassiveAgent getAgent() {
+        return agent;
     }
 
     public String getName() {
@@ -52,15 +59,18 @@ public class PassiveService {
         return uuid;
     }
 
-    public void join() {
+    public void join() throws MsnosException {
         microservice.passiveJoin(this);
     }
 
-    public void publish(RestApi... apis) throws MsnosException, IllegalAccessException {
+    public void publish(RestApi... apis) throws MsnosException {
         microservice.passivePublish(this, apis);
     }
 
     private UUID getJoinedCloudUUID(Microservice microservice) {
-        return microservice.getAgent().getCloud().getIden().getUUID();
+        if (microservice.getAgent().getCloud() == null)
+            return null;
+        else
+            return microservice.getAgent().getCloud().getIden().getUUID();
     }
 }

@@ -33,7 +33,7 @@ public class MessageBuilder {
         this.seq = from.getNextSequence();
     }
 
-    public MessageBuilder(Type type, LocalAgent from, Identifiable to) {
+    public MessageBuilder(Type type, Agent from, Identifiable to) {
         this(Mode.STRICT, type, from.getIden(), to.getIden());
         this.seq = from.getNextSequence();
     }
@@ -70,7 +70,7 @@ public class MessageBuilder {
         this.seq = seqnum;
         return this;
     }
-    
+
     public MessageBuilder reliable(boolean reliable) {
         this.reliable = reliable;
         return this;

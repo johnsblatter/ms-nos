@@ -336,6 +336,16 @@ public class MicroserviceTest {
         unjoined.publish(mock(RestApi.class));
     }
 
+    @Test
+    public void shouldBeAbleToSearchForPassiveServicesByUUID() throws Exception {
+        PassiveService passiveService = new PassiveService(localMicroservice, new UUID(111, 111), "testPassive", "10.10.10.10", "http://10.10.10.10/healthcheck/", 9999);
+        passiveService.join();
+
+        UUID search = passiveService.getUuid();
+
+        assertEquals(localMicroservice.searchPassives(search), passiveService);
+    }
+
     private RestApi getLastPublishedRestApi() throws IOException {
         return ((QnePayload) getLastMessageSent().getData()).getApis().iterator().next();
     }

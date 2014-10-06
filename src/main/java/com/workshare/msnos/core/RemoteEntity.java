@@ -1,8 +1,8 @@
 package com.workshare.msnos.core;
 
-import java.util.concurrent.atomic.AtomicLong;
-
 import com.workshare.msnos.soup.time.SystemTime;
+
+import java.util.concurrent.atomic.AtomicLong;
 
 public class RemoteEntity implements Identifiable {
 
@@ -16,7 +16,7 @@ public class RemoteEntity implements Identifiable {
         this.cloud = cloud;
         this.sequencer = new AtomicLong();
     }
-    
+
     public Iden getIden() {
         return iden;
     }
@@ -33,7 +33,7 @@ public class RemoteEntity implements Identifiable {
         long seq = message.getSequence();
         if (seq < sequencer.get())
             return false;
-        
+
         sequencer.set(seq);
         return true;
     }

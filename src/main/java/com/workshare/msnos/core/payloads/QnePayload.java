@@ -11,7 +11,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
-public class QnePayload implements Payload {
+public class  QnePayload implements Payload {
     
     private String name;
     private Set<RestApi> apis;

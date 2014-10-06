@@ -67,12 +67,16 @@ public class Microservice {
         return microCloud.getApis().searchApi(this, name, path);
     }
 
-    public void passiveJoin(PassiveService passiveService) {
+    public PassiveService searchPassives(UUID search) {
+        return microCloud.getPassiveServices().get(search);
+    }
+
+    public void passiveJoin(PassiveService passiveService) throws MsnosException {
         microCloud.passiveJoin(passiveService);
     }
 
     public void passivePublish(PassiveService passiveService, RestApi... apis) throws MsnosException, IllegalArgumentException {
-        microCloud.passivePublish(passiveService, this, apis);
+        microCloud.passivePublish(passiveService, apis);
     }
 
     public void join(Cloud nimbus) throws MsnosException {

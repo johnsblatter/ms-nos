@@ -13,21 +13,23 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 import static com.workshare.msnos.core.Cloud.Listener;
 
-class MicroCloud {
+public class MicroCloud {
 
     private static final Logger log = LoggerFactory.getLogger("STANDARD");
 
     private final List<RestApi> localApis;
+    private final List<RestApi> passiveApis;
     private final Map<Iden, RemoteMicroservice> microServices;
     private final Map<UUID, PassiveService> passiveServices;
     private final ApiRepository apis;
 
     private Cloud cloud;
 
-    MicroCloud(Cloud cloud) {
+    public MicroCloud(Cloud cloud) {
         this.cloud = cloud;
 
         localApis = new CopyOnWriteArrayList<RestApi>();
+        passiveApis = new CopyOnWriteArrayList<RestApi>();
         microServices = new ConcurrentHashMap<Iden, RemoteMicroservice>();
         passiveServices = new ConcurrentHashMap<UUID, PassiveService>();
         apis = new ApiRepository();
@@ -49,6 +51,10 @@ class MicroCloud {
         return localApis;
     }
 
+    List<RestApi> getPassiveApis() {
+        return passiveApis;
+    }
+
     Map<Iden, RemoteMicroservice> getMicroservices() {
         return microServices;
     }
@@ -68,18 +74,30 @@ class MicroCloud {
     void publish(Microservice microservice, RestApi... api) throws MsnosException {
         List<RestApi> restApis = evaluateApiPriority(api);
 
-        publishAndAddToLocalApis(microservice, restApis, microservice.getName(), getApisAsArray(restApis));
+        LocalAgent agent = microservice.getAgent();
+        Message message = new MessageBuilder(Message.Type.QNE, agent, cloud).with(new QnePayload(microservice.getName(), getApisAsArray(restApis))).make();
+
+        cloud.send(message);
+        localApis.addAll(restApis);
     }
 
-    void passiveJoin(PassiveService passiveService) {
-        passiveServices.put(passiveService.getUuid(), passiveService);
+    void passiveJoin(PassiveService passive) throws MsnosException {
+        passiveServices.put(passive.getUuid(), passive);
+
+        RestApi restApi = new RestApi(passive.getName(), passive.getHealthCheckUri(), passive.getPort(), passive.getHost(), RestApi.Type.HEALTHCHECK, false);
+
+        passivePublish(passive, restApi);
     }
 
-    void passivePublish(PassiveService passiveService, Microservice microservice, RestApi... apis) throws MsnosException {
+    void passivePublish(PassiveService passiveService, RestApi... apis) throws MsnosException {
         if (passiveServices.containsKey(passiveService.getUuid())) {
             List<RestApi> restApis = evaluateApiPriority(apis);
 
-            publishAndAddToLocalApis(microservice, restApis, passiveService.getName(), getApisAsArray(restApis));
+            PassiveAgent agent = passiveService.getAgent();
+            Message message = new MessageBuilder(Message.Type.QNE, agent, cloud).with(new QnePayload(passiveService.getName(), getApisAsArray(restApis))).make();
+
+            cloud.send(message);
+            passiveApis.addAll(restApis);
         } else {
             throw new IllegalArgumentException("Cannot publish passive restApis that are from services which are not joined to the Cloud! ");
         }
@@ -100,14 +118,6 @@ class MicroCloud {
             }
         }
         return restApis;
-    }
-
-    private void publishAndAddToLocalApis(Microservice microservice, List<RestApi> restApis, String name, RestApi[] apis) throws MsnosException {
-        LocalAgent agent = microservice.getAgent();
-        Message message = new MessageBuilder(Message.Type.QNE, agent, cloud).with(new QnePayload(name, apis)).make();
-
-        agent.send(message);
-        localApis.addAll(restApis);
     }
 
     private RestApi[] getApisAsArray(List<RestApi> restApis) {

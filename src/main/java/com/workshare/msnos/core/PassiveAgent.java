@@ -1,28 +1,19 @@
 package com.workshare.msnos.core;
 
 import com.workshare.msnos.core.protocols.ip.Endpoint;
-import com.workshare.msnos.soup.json.Json;
 
 import java.util.Set;
 import java.util.UUID;
 
-public class RemoteAgent extends RemoteEntity implements Agent {
+public class PassiveAgent extends RemoteEntity implements Agent {
 
-    private Set<Endpoint> endpoints;
-
-    public RemoteAgent(UUID uuid, Cloud cloud, Set<Endpoint> endpoints) {
+    public PassiveAgent(Cloud cloud, UUID uuid) {
         super(new Iden(Iden.Type.AGT, uuid), cloud);
-        this.endpoints = endpoints;
     }
 
     @Override
     public Set<Endpoint> getEndpoints() {
-        return endpoints;
-    }
-
-    @Override
-    public String toString() {
-        return Json.toJsonString(this);
+        return null;
     }
 
     @Override
