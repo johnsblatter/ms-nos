@@ -14,5 +14,5 @@ A simple network operating system for Microservices (java implementation). This 
 
 ## License
 
-Released under the MIT License.  See the [LICENSE](LICENSE.md) file for further details.
+Released under the MIT License.  See the [LICENSE](LICENSE) file for further details.
 
