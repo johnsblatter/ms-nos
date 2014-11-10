@@ -1,7 +1,9 @@
 package com.workshare.msnos.usvc;
 
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ScheduledExecutorService;
@@ -10,6 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.workshare.msnos.core.Cloud;
+import com.workshare.msnos.core.Cloud.Listener;
 import com.workshare.msnos.core.LocalAgent;
 import com.workshare.msnos.core.Message;
 import com.workshare.msnos.core.MessageBuilder;
@@ -21,14 +24,14 @@ import com.workshare.msnos.soup.threading.ExecutorServices;
 import com.workshare.msnos.usvc.api.RestApi;
 import com.workshare.msnos.usvc.api.routing.strategies.PriorityRoutingStrategy;
 
-public class Microservice {
+public class Microservice implements IMicroService {
 
     private static final Logger log = LoggerFactory.getLogger("STANDARD");
 
     private final String name;
     private final LocalAgent agent;
     private final Location location;
-
+    private final Listener listener;
     private final List<RestApi> localApis;
 
     private Microcloud cloud;
@@ -46,20 +49,34 @@ public class Microservice {
         this.agent = agent;
         this.location = Location.computeMostPreciseLocation(agent.getEndpoints());
         this.localApis = new CopyOnWriteArrayList<RestApi>();
+
+        this.listener = new Cloud.Listener() {
+            @Override
+            public void onMessage(Message message) {
+                try {
+                    process(message);
+                } catch (MsnosException e) {
+                    log.error("Error processing message {}", e);
+                }
+            }
+        };
     }
 
     public Microcloud getCloud() {
         return cloud;
     }
 
+    @Override
     public String getName() {
         return name;
     }
 
+    @Override
     public LocalAgent getAgent() {
         return agent;
     }
 
+    @Override
     public Location getLocation() {
         return location;
     }
@@ -73,7 +90,9 @@ public class Microservice {
     }
 
     public void publish(RestApi... apis) throws MsnosException {
-        cloud.publish(this, enforcePriorityIfRequired(apis));
+        final RestApi[] all = enforcePriorityIfRequired(apis);
+        localApis.addAll(Arrays.asList(all));
+        cloud.publish(this, all);
     }
   
     public void join(final Microcloud cumulus) throws MsnosException {
@@ -82,17 +101,18 @@ public class Microservice {
 
         cloud = cumulus;
         cloud.onJoin(this);
+        cloud.addListener(listener);
+    }
 
-        cloud.addListener(new Cloud.Listener() {
-            @Override
-            public void onMessage(Message message) {
-                try {
-                    process(message);
-                } catch (MsnosException e) {
-                    log.error("Error processing message {}", e);
-                }
-            }
-        });
+    public void leave() throws MsnosException {
+        if (cloud == null)
+            return;
+        
+        log.debug("Leaving cloud {}", cloud);
+        cloud.removeListener(listener);
+        cloud.onLeave(this);
+        cloud = null;
+        log.debug("So long {}", cloud);
     }
 
     private void process(Message message) throws MsnosException {
@@ -146,4 +166,8 @@ public class Microservice {
         return apis;
     }
 
+    @Override
+    public Set<RestApi> getApis() {
+        return new HashSet<RestApi>(localApis);
+    }
 }

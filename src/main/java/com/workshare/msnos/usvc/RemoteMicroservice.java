@@ -8,19 +8,22 @@ import com.workshare.msnos.usvc.api.RestApi;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 
-public class RemoteMicroservice {
+public class RemoteMicroservice implements IMicroService {
 
     private final RemoteAgent agent;
     private final String name;
     private final Set<RestApi> apis;
     private final Location location;
-
+    private final AtomicBoolean faulty;
+    
     public RemoteMicroservice(String name, RemoteAgent agent, Set<RestApi> apis) {
         this.name = name;
         this.agent = agent;
         this.apis = ensureHostIsPresent(apis);
         this.location = Location.computeMostPreciseLocation(agent.getEndpoints());
+        this.faulty = new AtomicBoolean(false);
     }
 
     private Set<RestApi> ensureHostIsPresent(Set<RestApi> apis) {
@@ -44,18 +47,23 @@ public class RemoteMicroservice {
         }
     }
 
+    @Override
     public String getName() {
         return name;
     }
 
+    @Override
     public Set<RestApi> getApis() {
-        return apis;
+        synchronized (apis) {
+            return apis;
+        }
     }
-
+    @Override
     public RemoteAgent getAgent() {
         return agent;
     }
 
+    @Override
     public Location getLocation() {
         return location;
     }
@@ -82,6 +90,7 @@ public class RemoteMicroservice {
     }
 
     public void markWorking() {
+        faulty.set(false);
         agent.touch();
         for (RestApi rest : getApis()) {
             rest.markWorking();
@@ -89,8 +98,13 @@ public class RemoteMicroservice {
     }
 
     public void markFaulty() {
+        faulty.set(true);
         for (RestApi rest : getApis()) {
             rest.markFaulty();
         }
+    }
+    
+    public boolean isFaulty() {
+        return faulty.get();
     }
 }

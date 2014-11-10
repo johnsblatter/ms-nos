@@ -206,9 +206,8 @@ public class Cloud implements Identifiable {
         if (validators.isValid(message)) {
             proto.info("RX: {} {} {} {}", message.getType(), message.getFrom(), message.getTo(), message.getData());
 
-            boolean processed = message.getData().process(message, internal);
-            if (!processed)
-                caster.dispatch(message);
+            message.getData().process(message, internal);
+            caster.dispatch(message);
 
             postProcess(message);
         } else {

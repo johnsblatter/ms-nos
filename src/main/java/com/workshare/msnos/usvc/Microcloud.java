@@ -20,8 +20,10 @@ import com.workshare.msnos.core.Message;
 import com.workshare.msnos.core.MessageBuilder;
 import com.workshare.msnos.core.MsnosException;
 import com.workshare.msnos.core.PassiveAgent;
+import com.workshare.msnos.core.Receipt;
 import com.workshare.msnos.core.RemoteAgent;
 import com.workshare.msnos.core.payloads.FltPayload;
+import com.workshare.msnos.core.payloads.Presence;
 import com.workshare.msnos.core.payloads.QnePayload;
 import com.workshare.msnos.soup.threading.ExecutorServices;
 import com.workshare.msnos.usvc.api.RestApi;
@@ -60,11 +62,19 @@ public class Microcloud {
         apis = new ApiRepository();
 
         healthcheck = new Healthchecker(this, executor);
-        healthcheck.run();
+        healthcheck.start();
+    }
+
+    public Receipt send(Message message) throws MsnosException {
+        return cloud.send(message);
     }
 
     public Listener addListener(Listener listener) {
         return cloud.addListener(listener);
+    }
+    
+    public void removeListener(Listener listener) {
+        cloud.removeListener(listener);
     }
 
     public Cloud getCloud() {
@@ -103,12 +113,25 @@ public class Microcloud {
         agent.send(message);
     }
 
+    public void onLeave(Microservice microservice) throws MsnosException {
+        LocalAgent agent = microservice.getAgent();
+        agent.leave();
+    }
+
     private void process(Message message) throws MsnosException {
-        if (message.getType() == Message.Type.QNE) {
-            processQNE(message);
-        }
-        if (message.getType() == Message.Type.FLT) {
-            processFault(message);
+        log.debug("Handling message {}", message);
+        switch(message.getType()) {
+            case QNE:
+                processQNE(message);
+                break;
+            case FLT:
+                processFault(message);
+                break;
+            case PRS:
+                processPresence(message);
+                break;
+            default:
+                break;
         }
     }
 
@@ -136,7 +159,16 @@ public class Microcloud {
 
     private void processFault(Message message) {
         Iden about = ((FltPayload) message.getData()).getAbout();
+        removeMicroservice(about);
+    }
 
+    private void processPresence(Message message) {
+        boolean leaving = (false == ((Presence) message.getData()).isPresent());
+        if (leaving)
+            removeMicroservice(message.getFrom());
+    }
+
+    private void removeMicroservice(Iden about) {
         if (microServices.containsKey(about)) {
             apis.unregister(microServices.get(about));
             microServices.remove(about);
@@ -167,4 +199,5 @@ public class Microcloud {
 
         cloud.send(message);
     }
+
 }

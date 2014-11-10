@@ -31,11 +31,11 @@ import com.workshare.msnos.core.Cloud.Listener;
 import com.workshare.msnos.core.Iden;
 import com.workshare.msnos.core.Message;
 import com.workshare.msnos.core.MessageBuilder;
-import com.workshare.msnos.core.MockMessageHelper;
 import com.workshare.msnos.core.MsnosException;
 import com.workshare.msnos.core.RemoteAgent;
 import com.workshare.msnos.core.RemoteEntity;
 import com.workshare.msnos.core.payloads.FltPayload;
+import com.workshare.msnos.core.payloads.Presence;
 import com.workshare.msnos.core.payloads.QnePayload;
 import com.workshare.msnos.core.protocols.ip.BaseEndpoint;
 import com.workshare.msnos.core.protocols.ip.Endpoint;
@@ -95,8 +95,8 @@ public class MicrocloudTest {
     @Test
     public void shouldUpdateMicroserviceIfPresent() throws Exception {
         UUID uuid = new UUID(11, 22);
-        simulateRemoteMicroserviceJoin(uuid, "24.24.24.24", createRestApi("content", "/files"));
-        simulateRemoteMicroserviceJoin(uuid, "24.24.24.24", createRestApi("content", "/healthcheck"));
+        simulateRemoteMicroserviceJoin(uuid, "24.24.24.24", "remote", createRestApi("content", "/files"));
+        simulateRemoteMicroserviceJoin(uuid, "24.24.24.24", "remote", createRestApi("content", "/healthcheck"));
 
         assertEquals(1, microcloud.getMicroServices().size());
         assertEquals(2, microcloud.getMicroServices().get(0).getApis().size());
@@ -130,6 +130,15 @@ public class MicrocloudTest {
         RemoteMicroservice remoteMicroservice = setupRemoteMicroservice("10.10.10.10", "remote", "/endpoint");
 
         simulateMessageFromCloud(newFaultMessage(remoteMicroservice.getAgent()));
+
+        assertFalse(microcloud.getMicroServices().contains(remoteMicroservice));
+    }
+
+    @Test
+    public void shouldRemoveMicroserviceOnAgentLeave() throws Exception {
+        RemoteMicroservice remoteMicroservice = setupRemoteMicroservice("10.10.10.10", "remote", "/endpoint");
+
+        simulateMessageFromCloud(newLeaveMessage(remoteMicroservice.getAgent()));
 
         assertFalse(microcloud.getMicroServices().contains(remoteMicroservice));
     }
@@ -205,13 +214,12 @@ public class MicrocloudTest {
     private RemoteMicroservice setupRemoteMicroservice(String host, String name, String apiPath) {
         short port = 9999;
         RestApi restApi = new RestApi(name, apiPath, port).onHost(host);
-        return simulateRemoteMicroserviceJoin(UUID.randomUUID(), host, restApi);
+        return simulateRemoteMicroserviceJoin(UUID.randomUUID(), host, name, restApi);
     }
 
-    private RemoteMicroservice simulateRemoteMicroserviceJoin(UUID uuid, String host, RestApi restApi) {
+    private RemoteMicroservice simulateRemoteMicroserviceJoin(UUID uuid, String host, String name, RestApi restApi) {
         RemoteAgent agent = newRemoteAgentWithUUID(uuid);
 
-        final String name = restApi.getName();
         RemoteMicroservice remote = new RemoteMicroservice(name, agent, toSet(restApi));
         simulateMessageFromCloud(newQNEMessage(remote.getAgent(), name, restApi));
         return remote;
@@ -255,11 +263,16 @@ public class MicrocloudTest {
     }
 
     private Message newQNEMessage(RemoteEntity from, String name, RestApi... apis) {
-        return new MockMessageHelper(Message.Type.QNE, from.getIden(), cloud.getIden()).sequence(12).data(new QnePayload("content", apis)).make();
+//        return new MessageBuilder(MessageBuilder.Mode.RELAXED, Message.Type.QNE, from.getIden(), cloud.getIden()).with(new FltPayload(agent.getIden())).make();
+        return new MessageBuilder(MessageBuilder.Mode.RELAXED, Message.Type.QNE, from.getIden(), cloud.getIden()).with(new QnePayload(name, apis)).make();
     }
 
     private Message newFaultMessage(Agent agent) {
         return new MessageBuilder(Message.Type.FLT, cloud, cloud).with(new FltPayload(agent.getIden())).make();
+    }
+
+    private Message newLeaveMessage(RemoteAgent from) throws MsnosException {
+        return new MessageBuilder(Message.Type.PRS, from, cloud).with(new Presence(false)).make();
     }
 
     private RemoteAgent newRemoteAgent(final UUID uuid, BaseEndpoint... endpoints) {

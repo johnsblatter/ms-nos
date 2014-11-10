@@ -9,7 +9,7 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -90,11 +90,16 @@ public class MicroserviceTest {
         assertEquals(localMicroservice.getAgent(), cloud.getLocalAgents().iterator().next());
     }
 
-    private Set<Gateway> mockGateways() throws IOException {
-        Gateway gate = mock(Gateway.class);
-        Receipt receipt = mock(Receipt.class);
-        when(gate.send(any(Cloud.class), any(Message.class))).thenReturn(receipt);
-        return new HashSet<Gateway>(Arrays.asList(new Gateway[]{gate}));
+    @Test
+    public void shouldInternalAgentLeaveTheCloudOnLeave() throws Exception {
+        localMicroservice = new Microservice("jeff");
+        cloud = new Cloud(UUID.randomUUID(), " ", mockGateways(), mock(JoinSynchronizer.class), null);
+
+        final Microcloud ucloud = newMicrocloud(cloud);
+        localMicroservice.join(ucloud);
+        localMicroservice.leave();
+
+        assertEquals(0, cloud.getLocalAgents().size());
     }
 
     @Test
@@ -156,6 +161,33 @@ public class MicroserviceTest {
         localMicroservice.publish(new RestApi("test", "path", 9999));
 
         assertEquals(5, getLastPublishedRestApi().getPriority());
+    }
+
+    @Test
+    public void shouldMantainCopyOfPublishedApis() throws Exception {
+        final RestApi api = new RestApi("test", "path", 9999);
+
+        localMicroservice.publish(api);
+
+        assertEquals(1, localMicroservice.getApis().size());
+        assertEquals(api, localMicroservice.getApis().iterator().next());
+    }
+
+    @Test
+    public void shouldNotBoomWhenLeavingCloduWhenNotjoinedBefore() throws Exception {
+        Mockito.reset(cloud);
+        Microservice ms = new Microservice("temp");
+        ms.leave();
+        verifyZeroInteractions(cloud);
+    }
+
+    @Test
+    public void shouldNotBoomWhenLeavingCloduTwice() throws Exception {
+        localMicroservice.leave();
+
+        Mockito.reset(cloud);
+        localMicroservice.leave();
+        verifyZeroInteractions(cloud);
     }
 
     private RestApi getLastPublishedRestApi() throws IOException {
@@ -299,5 +331,10 @@ public class MicroserviceTest {
         return new Microcloud(cloud, mock(ScheduledExecutorService.class));
     }
 
-
+    private Set<Gateway> mockGateways() throws IOException {
+        Gateway gate = mock(Gateway.class);
+        Receipt receipt = mock(Receipt.class);
+        when(gate.send(any(Cloud.class), any(Message.class))).thenReturn(receipt);
+        return new HashSet<Gateway>(Arrays.asList(new Gateway[]{gate}));
+    }
 }

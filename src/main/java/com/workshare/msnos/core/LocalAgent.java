@@ -3,6 +3,7 @@ package com.workshare.msnos.core;
 import static com.workshare.msnos.core.Message.Type.DSC;
 import static com.workshare.msnos.core.Message.Type.PIN;
 
+import java.util.Collections;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
@@ -33,6 +34,7 @@ public class LocalAgent implements Agent {
 
         this.iden = iden;
         this.seq = new AtomicLong(SystemTime.asMillis());
+        this.endpoints = Collections.emptySet();
     }
 
     @Override

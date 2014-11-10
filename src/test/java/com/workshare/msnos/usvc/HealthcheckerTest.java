@@ -1,5 +1,6 @@
 package com.workshare.msnos.usvc;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyInt;
@@ -13,6 +14,7 @@ import java.net.InetSocketAddress;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
@@ -25,6 +27,10 @@ import com.sun.net.httpserver.HttpContext;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
+import com.workshare.msnos.core.Cloud;
+import com.workshare.msnos.core.Iden;
+import com.workshare.msnos.core.Message;
+import com.workshare.msnos.core.MsnosException;
 import com.workshare.msnos.core.RemoteAgent;
 import com.workshare.msnos.soup.time.SystemTime;
 import com.workshare.msnos.usvc.api.RestApi;
@@ -39,12 +45,15 @@ public class HealthcheckerTest {
 
     @Before
     public void setUp() throws Exception {
+        Cloud cloud = mock(Cloud.class);
+        when(cloud.getIden()).thenReturn(newIden());
+  
         microcloud = mock(Microcloud.class);
+        when(microcloud.getCloud()).thenReturn(cloud);
         
         scheduler = mock(ScheduledExecutorService.class);
         healthchecker = new Healthchecker(microcloud, scheduler);
         httpServer = null;
-        fakeSystemTime(12345L);
     }
 
     @After
@@ -59,39 +68,70 @@ public class HealthcheckerTest {
     }
 
     @Test
-    public void shouldOnFaultyHealthCheckMarkAllApisFaulty() throws Exception {
-        RemoteMicroservice remote = setupRemoteMicroserviceMultipleAPIsAndHealthCheck("127.0.0.1", "10.10.10.25", "10.10.10.91", "10.10.10.143", "content", "files");
-        setUpHttpServer("127.0.0.1", 9999);
+    public void shouldOnIOExceptionMarkAllApisFaulty() throws Exception {
+        RemoteMicroservice remote = setupRemoteMicroservice();
+        setupNOHealthcheck();
 
-        healthchecker.run();
-        fakeSystemTime(99999999L);
-        forceRunCloudPeriodicCheck();
+        startAndRunCheck();
 
         assertTrue(allApisFaulty(remote));
     }
 
+    @Test
+    public void shouldOnFaultyHealthCheckMarkAllApisFaulty() throws Exception {
+        RemoteMicroservice remote = setupRemoteMicroservice();
+        setupHealthcheck(500);
+
+        startAndRunCheck();
+
+        assertTrue(allApisFaulty(remote));
+    }
 
     @Test
     public void shouldOn200HealthCheckMarkAllApisWorking() throws Exception {
-        RemoteMicroservice remote = setupRemoteMicroserviceMultipleAPIsAndHealthCheck("127.0.0.1", "10.10.10.25", "10.10.10.91", "10.10.10.143", "content", "files");
-        setupHttpServerWithHandlerResponds200();
+        RemoteMicroservice remote = setupRemoteMicroservice();
+        setupHealthcheck(200);
 
-        healthchecker.run();
-        fakeSystemTime(99999L);
-        forceRunCloudPeriodicCheck();
+        startAndRunCheck();
 
         assertTrue(allApisWorking(remote));
     }
 
-    private void setupHttpServerWithHandlerResponds200() throws IOException {
-        setUpHttpServer("127.0.0.1", 9999);
+    @Test
+    public void shouldSendENQToMicroservicesPeriodically() throws Exception {
+        fakeSystemTime(100000);
+        RemoteMicroservice remote = setupRemoteMicroservice();
+        setupHealthcheck(200);
+        healthchecker = new Healthchecker(microcloud, scheduler);
+        healthchecker.start();
+
+        fakeSystemTime(Long.MAX_VALUE);
+        runCheck();
+
+        Message message = getLastMessageSent();
+        assertEquals(Message.Type.ENQ, message.getType());
+        assertEquals(remote.getAgent().getIden(), message.getTo());
+    }
+    
+        
+    protected void startAndRunCheck() {
+        healthchecker.start();
+        runCheck();
+    }
+
+    private void setupHealthcheck(final int code) throws IOException {
+        setupNOHealthcheck();
         HttpContext context = httpServer.createContext("/content/files/");
         context.setHandler(new HttpHandler() {
             @Override
             public void handle(HttpExchange httpExchange) throws IOException {
-                httpExchange.sendResponseHeaders(200, 0);
+                httpExchange.sendResponseHeaders(code, -1);
             }
         });
+    }
+
+    protected HttpServer setupNOHealthcheck() throws IOException {
+        return setUpHttpServer("127.0.0.1", 9999);
     }
 
     private HttpServer setUpHttpServer(String host, int port) throws IOException {
@@ -103,13 +143,20 @@ public class HealthcheckerTest {
         return httpServer;
     }
 
+
     private Runnable capturePeriodicRunableCheck() {
         ArgumentCaptor<Runnable> captor = ArgumentCaptor.forClass(Runnable.class);
         verify(scheduler, atLeastOnce()).scheduleAtFixedRate(captor.capture(), anyInt(), anyInt(), any(TimeUnit.class));
         return captor.getValue();
     }
 
-    private void forceRunCloudPeriodicCheck() {
+    private Message getLastMessageSent() throws MsnosException {
+        ArgumentCaptor<Message> captor = ArgumentCaptor.forClass(Message.class);
+        verify(microcloud, atLeastOnce()).send(captor.capture());
+        return captor.getValue();
+    }
+
+    private void runCheck() {
         Runnable runnable = capturePeriodicRunableCheck();
         runnable.run();
     }
@@ -128,8 +175,14 @@ public class HealthcheckerTest {
         return true;
     }
 
+    private RemoteMicroservice setupRemoteMicroservice() throws Exception {
+        return setupRemoteMicroserviceMultipleAPIsAndHealthCheck("127.0.0.1", "10.10.10.25", "10.10.10.91", "10.10.10.143", "content", "files");
+    }
+
     private RemoteMicroservice setupRemoteMicroserviceMultipleAPIsAndHealthCheck(String host1, String host2, String host3, String host4, String name, String endpoint) throws Exception {
         RemoteAgent agent = mock(RemoteAgent.class);
+        when(agent.getIden()).thenReturn(newIden());
+
         RestApi alfa = new RestApi(name, endpoint, 9999).onHost(host1).asHealthCheck();
         RestApi beta = new RestApi(name, endpoint, 9999).onHost(host2);
         RestApi thre = new RestApi(name, endpoint, 9999).onHost(host3);
@@ -141,6 +194,11 @@ public class HealthcheckerTest {
 
     private Set<RestApi> toSet(RestApi... restApi) {
         return new HashSet<RestApi>(Arrays.asList(restApi));
+    }
+
+    protected Iden newIden() {
+        Iden iden = new Iden(Iden.Type.CLD, UUID.randomUUID());
+        return iden;
     }
 
     private void fakeSystemTime(final long time) {

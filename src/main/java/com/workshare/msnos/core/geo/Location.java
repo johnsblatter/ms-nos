@@ -239,17 +239,21 @@ public class Location {
     }
 
     public static Location computeMostPreciseLocation(final Set<Endpoint> endpoints) {
-        LocationFactory locations = LocationFactory.DEFAULT;
         
         Location res = UNKNOWN;
         if (endpoints != null)
             for (Endpoint endpoint : endpoints) {
-                Location loc = locations.make(endpoint.getNetwork().getHostString());
+                final String hostString = endpoint.getNetwork().getHostString();
+                Location loc = computeLocation(hostString);
                 if (loc.getPrecision() > res.getPrecision())
                     res = loc;
             }
         
         return res;
+    }
+
+    public static Location computeLocation(final String hostString) {
+        return LocationFactory.DEFAULT.make(hostString);
     }
 
     private static boolean isValid(final AbstractNamedRecord r) {
