@@ -22,31 +22,22 @@ public class Healthchecker {
     public static final String SYSP_ENQ_PERIOD = "msnos.usvc.health.enq.period";
     
     private static final Logger log = LoggerFactory.getLogger(Healthchecker.class);
-    private static final long CHECK_PERIOD = Long.getLong(SYSP_CHECK_PERIOD, 60000L);
-    private static final long ENQ_PERIOD = Long.getLong(SYSP_ENQ_PERIOD, 3*CHECK_PERIOD);
+    public static final long CHECK_PERIOD = Long.getLong(SYSP_CHECK_PERIOD, 60000L);
+    public static final long ENQ_PERIOD = Long.getLong(SYSP_ENQ_PERIOD, 5*CHECK_PERIOD);
 
     private final Microcloud microcloud;
     private final ScheduledExecutorService scheduler;
 
-    private long lastEnqTime;
-
     public Healthchecker(Microcloud microcloud, ScheduledExecutorService executorService) {
         this.microcloud = microcloud;
-        scheduler = executorService;
+        this.scheduler = executorService;
     }
 
-    public void start() {
-        lastEnqTime = SystemTime.asMillis();
-        
+    public void start() {        
         scheduler.scheduleAtFixedRate(new Runnable() {
             public void run() {
                 healthCheckApis();
-                
-                long now = SystemTime.asMillis();
-                if (now - lastEnqTime > ENQ_PERIOD) {
-                    lastEnqTime = now;
-                    enquiryApis();
-                }
+                enquiryApis();
             }
         }, CHECK_PERIOD, CHECK_PERIOD, TimeUnit.MILLISECONDS);
     }
@@ -79,8 +70,12 @@ public class Healthchecker {
     }
 
     private void enquiryApis() {
+        long now = SystemTime.asMillis();
         for (RemoteMicroservice remote : microcloud.getMicroServices()) {
             if (remote.isFaulty())
+                continue;
+            
+            if ((now - remote.getLastUpdated()) < ENQ_PERIOD)
                 continue;
             
             try {

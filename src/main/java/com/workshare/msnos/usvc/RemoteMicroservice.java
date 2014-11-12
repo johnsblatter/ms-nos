@@ -4,11 +4,14 @@ import com.workshare.msnos.core.RemoteAgent;
 import com.workshare.msnos.core.geo.Location;
 import com.workshare.msnos.core.protocols.ip.Endpoint;
 import com.workshare.msnos.core.protocols.ip.Network;
+import com.workshare.msnos.soup.time.SystemTime;
 import com.workshare.msnos.usvc.api.RestApi;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class RemoteMicroservice implements IMicroService {
 
@@ -17,16 +20,18 @@ public class RemoteMicroservice implements IMicroService {
     private final Set<RestApi> apis;
     private final Location location;
     private final AtomicBoolean faulty;
+    private final AtomicLong lastUpdated;
     
     public RemoteMicroservice(String name, RemoteAgent agent, Set<RestApi> apis) {
         this.name = name;
         this.agent = agent;
-        this.apis = ensureHostIsPresent(apis);
+        this.apis = ensureHostIsPresent(agent, apis);
         this.location = Location.computeMostPreciseLocation(agent.getEndpoints());
         this.faulty = new AtomicBoolean(false);
+        this.lastUpdated = new AtomicLong(SystemTime.asMillis());
     }
 
-    private Set<RestApi> ensureHostIsPresent(Set<RestApi> apis) {
+    private static Set<RestApi> ensureHostIsPresent(RemoteAgent agent, Set<RestApi> apis) {
         Set<RestApi> result = new HashSet<RestApi>();
         for (RestApi api : apis) {
             if (api.getHost() == null || api.getHost().isEmpty()) {
@@ -41,9 +46,10 @@ public class RemoteMicroservice implements IMicroService {
         return result;
     }
 
-    protected void addApis(Set<RestApi> restApis) {
+    protected void setApis(Set<RestApi> restApis) {
+        lastUpdated.set(SystemTime.asMillis());
         synchronized (apis) {
-            apis.addAll(ensureHostIsPresent(restApis));
+            apis.addAll(ensureHostIsPresent(agent, restApis));
         }
     }
 
@@ -55,7 +61,7 @@ public class RemoteMicroservice implements IMicroService {
     @Override
     public Set<RestApi> getApis() {
         synchronized (apis) {
-            return apis;
+            return Collections.unmodifiableSet(apis);
         }
     }
     @Override
@@ -106,5 +112,9 @@ public class RemoteMicroservice implements IMicroService {
     
     public boolean isFaulty() {
         return faulty.get();
+    }
+
+    public long getLastUpdated() {
+        return lastUpdated.get();
     }
 }

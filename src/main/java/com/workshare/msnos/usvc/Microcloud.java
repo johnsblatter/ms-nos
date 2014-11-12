@@ -147,7 +147,7 @@ public class Microcloud {
 
             if (microServices.containsKey(remoteKey)) {
                 remote = microServices.get(remoteKey);
-                remote.addApis(qnePayload.getApis());
+                remote.setApis(qnePayload.getApis());
             } else {
                 remote = new RemoteMicroservice(qnePayload.getName(), remoteAgent, new HashSet<RestApi>(qnePayload.getApis()));
                 microServices.put(remoteKey, remote);

@@ -1,6 +1,8 @@
 package com.workshare.msnos.usvc;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyInt;
@@ -30,7 +32,6 @@ import com.sun.net.httpserver.HttpServer;
 import com.workshare.msnos.core.Cloud;
 import com.workshare.msnos.core.Iden;
 import com.workshare.msnos.core.Message;
-import com.workshare.msnos.core.MsnosException;
 import com.workshare.msnos.core.RemoteAgent;
 import com.workshare.msnos.soup.time.SystemTime;
 import com.workshare.msnos.usvc.api.RestApi;
@@ -38,6 +39,8 @@ import com.workshare.msnos.usvc.api.RestApi;
 @SuppressWarnings("restriction")
 public class HealthcheckerTest {
 
+    private static final int HTTP_PORT = 19999;
+    
     private Healthchecker healthchecker;
     private ScheduledExecutorService scheduler;
     private Microcloud microcloud;
@@ -105,12 +108,31 @@ public class HealthcheckerTest {
         healthchecker = new Healthchecker(microcloud, scheduler);
         healthchecker.start();
 
-        fakeSystemTime(Long.MAX_VALUE);
+        fakeSystemTime(SystemTime.asMillis()+2*Healthchecker.ENQ_PERIOD);
         runCheck();
 
         Message message = getLastMessageSent();
+        assertNotNull(message);
         assertEquals(Message.Type.ENQ, message.getType());
         assertEquals(remote.getAgent().getIden(), message.getTo());
+    }
+    
+    @Test
+    public void shouldNotSendENQToMicroservicesIfLastEnquiryTimeNotElapsed() throws Exception {
+        fakeSystemTime(100000);
+        RemoteMicroservice remote = setupRemoteMicroservice();
+        setupHealthcheck(200);
+        healthchecker = new Healthchecker(microcloud, scheduler);
+        healthchecker.start();
+
+        fakeSystemTime(100000+(int)(Healthchecker.ENQ_PERIOD*0.75));
+        remote.setApis(new HashSet<RestApi>());
+
+        fakeSystemTime(100000+(int)(Healthchecker.ENQ_PERIOD*1.25));
+        runCheck();
+
+        Message message = getLastMessageSent();
+        assertNull(message);
     }
     
         
@@ -131,7 +153,7 @@ public class HealthcheckerTest {
     }
 
     protected HttpServer setupNOHealthcheck() throws IOException {
-        return setUpHttpServer("127.0.0.1", 9999);
+        return setUpHttpServer("127.0.0.1", HTTP_PORT);
     }
 
     private HttpServer setUpHttpServer(String host, int port) throws IOException {
@@ -150,10 +172,14 @@ public class HealthcheckerTest {
         return captor.getValue();
     }
 
-    private Message getLastMessageSent() throws MsnosException {
-        ArgumentCaptor<Message> captor = ArgumentCaptor.forClass(Message.class);
-        verify(microcloud, atLeastOnce()).send(captor.capture());
-        return captor.getValue();
+    private Message getLastMessageSent() {
+        try {
+            ArgumentCaptor<Message> captor = ArgumentCaptor.forClass(Message.class);
+            verify(microcloud, atLeastOnce()).send(captor.capture());
+            return captor.getValue();
+        } catch (Throwable any) {
+            return null;
+        }
     }
 
     private void runCheck() {
@@ -183,10 +209,10 @@ public class HealthcheckerTest {
         RemoteAgent agent = mock(RemoteAgent.class);
         when(agent.getIden()).thenReturn(newIden());
 
-        RestApi alfa = new RestApi(name, endpoint, 9999).onHost(host1).asHealthCheck();
-        RestApi beta = new RestApi(name, endpoint, 9999).onHost(host2);
-        RestApi thre = new RestApi(name, endpoint, 9999).onHost(host3);
-        RestApi four = new RestApi(name, endpoint, 9999).onHost(host4);
+        RestApi alfa = new RestApi(name, endpoint, HTTP_PORT).onHost(host1).asHealthCheck();
+        RestApi beta = new RestApi(name, endpoint, HTTP_PORT).onHost(host2);
+        RestApi thre = new RestApi(name, endpoint, HTTP_PORT).onHost(host3);
+        RestApi four = new RestApi(name, endpoint, HTTP_PORT).onHost(host4);
         RemoteMicroservice remote = new RemoteMicroservice(name, agent, toSet(alfa, beta, thre, four));
         when(microcloud.getMicroServices()).thenReturn(Arrays.asList(remote));
         return remote;
