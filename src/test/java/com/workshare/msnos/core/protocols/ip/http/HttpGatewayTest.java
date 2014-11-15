@@ -5,8 +5,9 @@ import static com.workshare.msnos.core.Iden.Type.CLD;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.util.UUID;
@@ -19,9 +20,9 @@ import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.util.EntityUtils;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mockito;
 
 import com.workshare.msnos.core.Cloud;
+import com.workshare.msnos.core.CoreHelper;
 import com.workshare.msnos.core.Gateway.Listener;
 import com.workshare.msnos.core.Iden;
 import com.workshare.msnos.core.Message;
@@ -34,7 +35,6 @@ import com.workshare.msnos.core.protocols.ip.BaseEndpoint;
 import com.workshare.msnos.core.protocols.ip.Endpoint;
 import com.workshare.msnos.core.protocols.ip.Endpoints;
 import com.workshare.msnos.core.protocols.ip.HttpEndpoint;
-import com.workshare.msnos.core.protocols.ip.Network;
 import com.workshare.msnos.core.protocols.ip.www.HttpClientHelper;
 import com.workshare.msnos.core.serializers.WireJsonSerializer;
 import com.workshare.msnos.soup.threading.Multicaster;
@@ -45,7 +45,7 @@ public class HttpGatewayTest {
     private static final String AGENT_SMITH_URL = "http://agents.smith:123/foo";
 
     private static final String SAMPLE_HOST = "21.21.21.21";
-    private static final HttpEndpoint SAMPLE_ENDPOINT = new HttpEndpoint(asNetwork(SAMPLE_HOST), "http://123.com", newIden(AGT));
+    private static final HttpEndpoint SAMPLE_ENDPOINT = new HttpEndpoint(CoreHelper.asPublicNetwork(SAMPLE_HOST), "http://123.com", newIden(AGT));
 
     private HttpGateway gate;
     private Cloud cloud;
@@ -92,7 +92,7 @@ public class HttpGatewayTest {
 
     @Test(expected=MsnosException.class)
     public void shouldRefuseToInstallNonHttpEndpoints() throws Exception {
-        gate.endpoints().install(new BaseEndpoint(Endpoint.Type.UDP, asNetwork("10.10.10.1")));
+        gate.endpoints().install(new BaseEndpoint(Endpoint.Type.UDP, CoreHelper.asPublicNetwork("10.10.10.1")));
     }
     
     @Test
@@ -153,7 +153,7 @@ public class HttpGatewayTest {
     }
 
     private void installEndpoint(final String host, Iden agent, final String url) throws MsnosException {
-        gate.endpoints().install(new HttpEndpoint(asNetwork(host), url, agent));
+        gate.endpoints().install(new HttpEndpoint(CoreHelper.asPublicNetwork(host), url, agent));
     }
     
     private static Iden newIden(final com.workshare.msnos.core.Iden.Type idenType) {
@@ -166,19 +166,6 @@ public class HttpGatewayTest {
 
     private Message newSampleMessage(Iden from, Iden to) {
         return new MessageBuilder(Mode.RELAXED, Type.APP, from, to).with(UUID.randomUUID()).make();
-    }
-
-    private static Network asNetwork(String host) {
-        return new Network(toByteArray(host), (short)1);
-    }
-
-    private static byte[] toByteArray(String host) {
-        String[] tokens = host.split("\\.");
-        byte[] addr = new byte[4];
-        for (int i = 0; i < addr.length; i++) {
-            addr[i] = Byte.valueOf(tokens[i]);            
-        }
-        return addr;
     }
 
     private static Multicaster<Listener, Message> synchronousMulticaster() {

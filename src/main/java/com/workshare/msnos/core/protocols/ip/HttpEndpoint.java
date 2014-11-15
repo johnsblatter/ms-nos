@@ -2,17 +2,24 @@ package com.workshare.msnos.core.protocols.ip;
 
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.workshare.msnos.core.Iden;
+import com.workshare.msnos.usvc.RemoteMicroservice;
+import com.workshare.msnos.usvc.api.RestApi;
 
 public class HttpEndpoint extends BaseEndpoint {
 
     private static final Logger log = LoggerFactory.getLogger(HttpEndpoint.class);
     private final String url;
     private final transient Iden target;
+
+    public HttpEndpoint(RemoteMicroservice remote, RestApi api) {
+        this(extractNetwork(remote, api), api.getUrl(), remote.getAgent().getIden());
+    }
 
     public HttpEndpoint(Network host, String url) {
         this(host, url, Iden.NULL);
@@ -64,5 +71,16 @@ public class HttpEndpoint extends BaseEndpoint {
             log.warn("Malformed URL received: "+urlString, e);
             throw new IllegalArgumentException("Malformed URL: "+urlString);
         }
+    }
+    
+    private static Network extractNetwork(RemoteMicroservice remote, RestApi api) {
+        String host = api.getHost();
+        Set<Endpoint> ends = remote.getAgent().getEndpoints();
+        for (Endpoint ep : ends) {
+            if (ep.getNetwork().getHostString().equals(host))
+                return ep.getNetwork();
+        }
+        
+        throw new IllegalArgumentException("Network not found for api host ["+api.getHost()+"}");
     }
 }
