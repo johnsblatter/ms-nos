@@ -1,5 +1,6 @@
 package com.workshare.msnos.usvc;
 
+import static com.workshare.msnos.core.CoreHelper.fakeSystemTime;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -13,10 +14,10 @@ import org.junit.After;
 import org.junit.Test;
 
 import com.workshare.msnos.core.RemoteAgent;
+import com.workshare.msnos.core.protocols.ip.BaseEndpoint;
 import com.workshare.msnos.core.protocols.ip.Endpoint;
 import com.workshare.msnos.core.protocols.ip.Endpoint.Type;
 import com.workshare.msnos.core.protocols.ip.Network;
-import com.workshare.msnos.core.protocols.ip.BaseEndpoint;
 import com.workshare.msnos.soup.time.SystemTime;
 import com.workshare.msnos.usvc.api.RestApi;
 
@@ -46,6 +47,19 @@ public class RemoteMicroserviceTest {
         assertEquals(99999, micro.getLastUpdated());
     }
     
+    @Test
+    public void shouldUpdatedLastCheckTimeWehnMarkedWorkingOrFaulty() {
+        RemoteMicroservice micro = createRemoteMicroservice();
+
+        fakeSystemTime(11111);
+        micro.markFaulty();
+        assertEquals(11111, micro.getLastChecked());
+
+        fakeSystemTime(22222);
+        micro.markWorking();
+        assertEquals(22222, micro.getLastChecked());
+    }
+    
     private <T> Set<T> asSet(T... elements) {
         return new HashSet<T>(Arrays.asList(elements));
     }
@@ -61,13 +75,5 @@ public class RemoteMicroserviceTest {
 
         RemoteMicroservice micro = new RemoteMicroservice("foo" , agent, asSet(new RestApi("api", "path", 1234)));
         return micro;
-    }
-    
-    private void fakeSystemTime(final long time) {
-        SystemTime.setTimeSource(new SystemTime.TimeSource() {
-            public long millis() {
-                return time;
-            }
-        });
     }
 }

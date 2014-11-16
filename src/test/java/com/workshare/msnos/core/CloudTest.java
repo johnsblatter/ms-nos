@@ -48,6 +48,9 @@ import com.workshare.msnos.core.cloud.Multicaster;
 import com.workshare.msnos.core.payloads.FltPayload;
 import com.workshare.msnos.core.payloads.Presence;
 import com.workshare.msnos.core.protocols.ip.Endpoint;
+import com.workshare.msnos.core.protocols.ip.Endpoints;
+import com.workshare.msnos.core.protocols.ip.HttpEndpoint;
+import com.workshare.msnos.core.protocols.ip.http.HttpGateway;
 import com.workshare.msnos.core.security.KeysStore;
 import com.workshare.msnos.core.security.Signer;
 import com.workshare.msnos.soup.json.Json;
@@ -65,7 +68,9 @@ public class CloudTest {
 
     private Gateway gate1;
     private Gateway gate2;
-
+    private HttpGateway httpGate;
+    private Set<Gateway> gates;
+    
     private Cloud thisCloud;
     private Cloud otherCloud;
  
@@ -76,7 +81,7 @@ public class CloudTest {
     private JoinSynchronizer synchro;
     private KeysStore keystore;
     private File home;
-
+    
     @Before
     public void init() throws Exception {
         home = File.createTempFile("msnos-", ".tmp");
@@ -95,13 +100,19 @@ public class CloudTest {
         when(gate2.send(any(Cloud.class), any(Message.class))).thenReturn(unknownReceipt);
         synchro = mock(JoinSynchronizer.class);
 
+        httpGate = mock(HttpGateway.class);
+        Endpoints endpoints = mock(Endpoints.class);
+        when(httpGate.endpoints()).thenReturn(endpoints );
+        when(httpGate.send(any(Cloud.class), any(Message.class))).thenReturn(unknownReceipt);
+        
         keystore = mock(KeysStore.class);
         Signer signer = new Signer(keystore);
 
         NTPClient timeClient = mock(NTPClient.class);
         when(timeClient.getTime()).thenReturn(1234L);
 
-        thisCloud = new Cloud(MY_CLOUD.getUUID(), KEY_ID, signer, new LinkedHashSet<Gateway>(Arrays.asList(gate1, gate2)), synchro, synchronousMulticaster(), scheduler, null);
+        gates = new LinkedHashSet<Gateway>(Arrays.asList(gate1, gate2, httpGate));
+        thisCloud = new Cloud(MY_CLOUD.getUUID(), KEY_ID, signer, gates, synchro, synchronousMulticaster(), scheduler, null);
         thisCloud.addListener(new Cloud.Listener() {
             @Override
             public void onMessage(Message message) {
@@ -124,9 +135,9 @@ public class CloudTest {
 
     @Test
     public void shouldCreateDefaultGateways() throws Exception {
-        Set<Gateway> gates = thisCloud.getGateways();
-
-        assertEquals(2, gates.size());
+        Set<Gateway> expected = Gateways.all();
+        Set<Gateway> current = new Cloud(MY_CLOUD.getUUID()).getGateways();
+        assertEquals(expected, current);
     }
 
     @Test
@@ -303,8 +314,8 @@ public class CloudTest {
 
     @Test(expected = MsnosException.class)
     public void shouldThrowExceptionWhenSendFailedOnAllGateways() throws Exception {
-        when(gate1.send(any(Cloud.class), any(Message.class))).thenThrow(new IOException("boom"));
-        when(gate2.send(any(Cloud.class), any(Message.class))).thenThrow(new IOException("boom"));
+        for (Gateway gate : gates)
+            when(gate.send(any(Cloud.class), any(Message.class))).thenThrow(new IOException("boom"));
 
         Message message = newMessage(APP, SOMEONE, SOMEONELSE);
         thisCloud.send(message);
@@ -321,7 +332,7 @@ public class CloudTest {
 
         MultiGatewayReceipt multi = (MultiGatewayReceipt) res;
         assertTrue(multi.getReceipts().contains(value1));
-        assertEquals(1, multi.getReceipts().size());
+        assertEquals(gates.size()-1, multi.getReceipts().size());
     }
 
     @Test
@@ -557,7 +568,6 @@ public class CloudTest {
     @Test
     public void shouldDiscardOldMessageFromAnotherCloudInstance() throws Exception {
         Message message = simulateMessageFromOtherCloud("ONE", 99999999, 1);
-        simulateMessageFromOtherCloud("ONE", 42, 1);
 
         assertEquals(1, receivedMessages.size());
         assertEquals(message, receivedMessages.get(0));
@@ -574,6 +584,13 @@ public class CloudTest {
         assertEquals(receivedMessages.size(), 2);
         assertTrue(receivedMessages.contains(fromOne));
         assertTrue(receivedMessages.contains(fromTwo));
+    }
+    
+    @Test 
+    public void shouldRegisterMsnosEndpointsOnHttpGateway() throws Exception {
+        HttpEndpoint endpoint = mock(HttpEndpoint.class);
+        thisCloud.registerMsnosEndpoint(endpoint);
+        verify(httpGate.endpoints()).install(endpoint);
     }
 
     private Message simulateMessageFromOtherCloud(String uuidString, int seq, long instance) {

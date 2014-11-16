@@ -18,7 +18,7 @@ public class Message {
 
     public enum Status {UNKNOWN, PENDING, DELIVERED, FAILED}
 
-    public enum Type {PRS, DSC, APP, PIN, PON, ACK, ENQ, FLT, QNE}
+    public enum Type {PRS, DSC, APP, PIN, PON, ACK, ENQ, FLT, QNE, HCK}
 
     private final Version version = Version.V1_0;
     private final UUID uuid;

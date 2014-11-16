@@ -93,6 +93,7 @@ public class Microservice implements IMicroService {
         final RestApi[] all = enforcePriorityIfRequired(apis);
         localApis.addAll(Arrays.asList(all));
         cloud.publish(this, all);
+//        dddd  // TODO Attach the MSONS_HTTP to the cloud - how?
     }
   
     public void join(final Microcloud cumulus) throws MsnosException {

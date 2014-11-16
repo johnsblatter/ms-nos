@@ -26,7 +26,6 @@ import com.workshare.msnos.core.protocols.ip.Endpoint;
 import com.workshare.msnos.core.protocols.ip.Endpoints;
 import com.workshare.msnos.core.protocols.ip.HttpEndpoint;
 import com.workshare.msnos.core.serializers.WireJsonSerializer;
-import com.workshare.msnos.soup.threading.Multicaster;
 
 public class HttpGateway implements Gateway {
 
@@ -36,7 +35,7 @@ public class HttpGateway implements Gateway {
     private final HttpClient client;
     private final WireJsonSerializer serializer;
     
-    public HttpGateway(HttpClient client, Multicaster<Listener, Message> caster) {
+    public HttpGateway(HttpClient client) {
         this.client = client;
         this.endpoints = new ConcurrentHashMap<Iden, HttpEndpoint>();
         this.serializer = new WireJsonSerializer();
@@ -47,7 +46,7 @@ public class HttpGateway implements Gateway {
     }
 
     @Override
-    public Receipt send(Cloud cloud, Message message) {
+    public Receipt send(Cloud cloud, Message message) throws IOException {
         HttpEndpoint endpoint = endpoints.get(message.getTo());
         if (endpoint == null)
             return new SingleReceipt(Status.FAILED, message);

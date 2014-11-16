@@ -21,6 +21,7 @@ public class RemoteMicroservice implements IMicroService {
     private final Location location;
     private final AtomicBoolean faulty;
     private final AtomicLong lastUpdated;
+    private final AtomicLong lastChecked;
     
     public RemoteMicroservice(String name, RemoteAgent agent, Set<RestApi> apis) {
         this.name = name;
@@ -29,6 +30,7 @@ public class RemoteMicroservice implements IMicroService {
         this.location = Location.computeMostPreciseLocation(agent.getEndpoints());
         this.faulty = new AtomicBoolean(false);
         this.lastUpdated = new AtomicLong(SystemTime.asMillis());
+        this.lastChecked = new AtomicLong(SystemTime.asMillis());
     }
 
     private static Set<RestApi> ensureHostIsPresent(RemoteAgent agent, Set<RestApi> apis) {
@@ -96,6 +98,7 @@ public class RemoteMicroservice implements IMicroService {
     }
 
     public void markWorking() {
+        lastChecked.set(SystemTime.asMillis());
         faulty.set(false);
         agent.touch();
         for (RestApi rest : getApis()) {
@@ -104,6 +107,7 @@ public class RemoteMicroservice implements IMicroService {
     }
 
     public void markFaulty() {
+        lastChecked.set(SystemTime.asMillis());
         faulty.set(true);
         for (RestApi rest : getApis()) {
             rest.markFaulty();
@@ -116,5 +120,9 @@ public class RemoteMicroservice implements IMicroService {
 
     public long getLastUpdated() {
         return lastUpdated.get();
+    }
+
+    public long getLastChecked() {
+        return lastChecked.get();
     }
 }

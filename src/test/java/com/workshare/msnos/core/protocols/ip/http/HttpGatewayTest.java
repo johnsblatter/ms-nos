@@ -11,7 +11,6 @@ import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.util.UUID;
-import java.util.concurrent.Executor;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.ParseException;
@@ -23,7 +22,6 @@ import org.junit.Test;
 
 import com.workshare.msnos.core.Cloud;
 import com.workshare.msnos.core.CoreHelper;
-import com.workshare.msnos.core.Gateway.Listener;
 import com.workshare.msnos.core.Iden;
 import com.workshare.msnos.core.Message;
 import com.workshare.msnos.core.Message.Type;
@@ -37,7 +35,6 @@ import com.workshare.msnos.core.protocols.ip.Endpoints;
 import com.workshare.msnos.core.protocols.ip.HttpEndpoint;
 import com.workshare.msnos.core.protocols.ip.www.HttpClientHelper;
 import com.workshare.msnos.core.serializers.WireJsonSerializer;
-import com.workshare.msnos.soup.threading.Multicaster;
 
 public class HttpGatewayTest {
 
@@ -49,7 +46,6 @@ public class HttpGatewayTest {
 
     private HttpGateway gate;
     private Cloud cloud;
-    private Multicaster<Listener, Message> caster;
     private HttpClientHelper http;
     private WireJsonSerializer sz;
     
@@ -57,9 +53,7 @@ public class HttpGatewayTest {
     public void setup() throws Exception {
         
         http = new HttpClientHelper();
-
-        caster = synchronousMulticaster();
-        gate = new HttpGateway(http.client(), caster);
+        gate = new HttpGateway(http.client());
 
         cloud = mock(Cloud.class);
         when(cloud.getIden()).thenReturn(newIden(CLD));
@@ -144,6 +138,7 @@ public class HttpGatewayTest {
         assertEquals(Message.Status.FAILED, receipt.getStatus());
     }
 
+
     private String toText(Message message) {
         return sz.toText(message);
     }
@@ -167,21 +162,4 @@ public class HttpGatewayTest {
     private Message newSampleMessage(Iden from, Iden to) {
         return new MessageBuilder(Mode.RELAXED, Type.APP, from, to).with(UUID.randomUUID()).make();
     }
-
-    private static Multicaster<Listener, Message> synchronousMulticaster() {
-        Executor executor = new Executor() {
-            @Override
-            public void execute(Runnable task) {
-                task.run();
-            }
-        };
-
-        return new Multicaster<Listener, Message>(executor) {
-            @Override
-            protected void dispatch(Listener listener, Message message) {
-                listener.onMessage(message);
-            }
-        };
-    }
-
 }

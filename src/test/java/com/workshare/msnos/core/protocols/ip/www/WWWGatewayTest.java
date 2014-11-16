@@ -1,5 +1,6 @@
 package com.workshare.msnos.core.protocols.ip.www;
 
+import static com.workshare.msnos.core.CoreHelper.synchronousGatewayMulticaster;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -17,7 +18,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -48,7 +48,6 @@ import com.workshare.msnos.core.Receipt;
 import com.workshare.msnos.core.cloud.JoinSynchronizer;
 import com.workshare.msnos.core.serializers.WireJsonSerializer;
 import com.workshare.msnos.core.serializers.WireSerializer;
-import com.workshare.msnos.soup.threading.Multicaster;
 
 public class WWWGatewayTest {
 
@@ -79,7 +78,7 @@ public class WWWGatewayTest {
         serializer = mockWireSerializer();
 
         rxMessages = new ArrayList<Message>();
-        gate = new WWWGateway(client(), scheduler, serializer, synchronousMulticaster());
+        gate = new WWWGateway(client(), scheduler, serializer, synchronousGatewayMulticaster());
         gate.addListener(cloud, new Listener() {
             @Override
             public void onMessage(Message message) {
@@ -201,7 +200,7 @@ public class WWWGatewayTest {
     @Test(expected = IOException.class)
     public void shouldBlowUpIfCannotContactTheServer() throws Exception {
         when(client().execute(any(HttpUriRequest.class))).thenThrow(new IOException("boom!"));
-        gate = new WWWGateway(client(), scheduler, serializer, synchronousMulticaster());
+        gate = new WWWGateway(client(), scheduler, serializer, synchronousGatewayMulticaster());
     }
 
     private void mockGetResponse(Message... messages) throws UnsupportedEncodingException {
@@ -281,22 +280,6 @@ public class WWWGatewayTest {
 
     private Message fromWireJson(String text) {
         return new WireJsonSerializer().fromText(text, Message.class);
-    }
-
-    private Multicaster<Listener, Message> synchronousMulticaster() {
-        Executor executor = new Executor() {
-            @Override
-            public void execute(Runnable task) {
-                task.run();
-            }
-        };
-
-        return new Multicaster<Listener, Message>(executor) {
-            @Override
-            protected void dispatch(Listener listener, Message message) {
-                listener.onMessage(message);
-            }
-        };
     }
 
     private String messagesRequestUrl(final Cloud cloud) {

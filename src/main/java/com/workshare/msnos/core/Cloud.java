@@ -4,6 +4,8 @@ import com.workshare.msnos.core.cloud.*;
 import com.workshare.msnos.core.cloud.JoinSynchronizer.Status;
 import com.workshare.msnos.core.payloads.FltPayload;
 import com.workshare.msnos.core.payloads.Presence;
+import com.workshare.msnos.core.protocols.ip.HttpEndpoint;
+import com.workshare.msnos.core.protocols.ip.http.HttpGateway;
 import com.workshare.msnos.core.security.Signer;
 import com.workshare.msnos.soup.json.Json;
 import com.workshare.msnos.soup.threading.ExecutorServices;
@@ -235,6 +237,19 @@ public class Cloud implements Identifiable {
             caster.dispatch(new MessageBuilder(Message.Type.FLT, this, this).with(new FltPayload(agent.getIden())).make());
     }
 
+    public void registerMsnosEndpoint(HttpEndpoint endpoint) throws MsnosException {
+        for (Gateway gate : gates) {
+            if (gate instanceof HttpGateway) {
+                gate.endpoints().install(endpoint);
+                endpoint = null;
+            }
+        }
+        
+        if (endpoint != null) {
+            log.warn("Warning: unable to install endpoint, HTTP gateway not found!");
+        }
+    }
+    
     private Message sign(Message message) {
         if (signid == null)
             return message;

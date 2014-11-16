@@ -1,5 +1,12 @@
 package com.workshare.msnos.usvc;
 
+import static com.workshare.msnos.core.CoreHelper.asPublicNetwork;
+import static com.workshare.msnos.core.CoreHelper.asSet;
+import static com.workshare.msnos.core.CoreHelper.fakeSystemTime;
+import static com.workshare.msnos.core.CoreHelper.randomUUID;
+import static com.workshare.msnos.core.MessagesHelper.newFaultMessage;
+import static com.workshare.msnos.core.MessagesHelper.newLeaveMessage;
+import static com.workshare.msnos.core.MessagesHelper.newQNEMessage;
 import static junit.framework.TestCase.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
@@ -30,16 +37,14 @@ import com.workshare.msnos.core.Cloud;
 import com.workshare.msnos.core.Cloud.Listener;
 import com.workshare.msnos.core.Iden;
 import com.workshare.msnos.core.Message;
-import com.workshare.msnos.core.MessageBuilder;
+import com.workshare.msnos.core.MessagesHelper;
 import com.workshare.msnos.core.MsnosException;
 import com.workshare.msnos.core.RemoteAgent;
 import com.workshare.msnos.core.RemoteEntity;
-import com.workshare.msnos.core.payloads.FltPayload;
-import com.workshare.msnos.core.payloads.Presence;
-import com.workshare.msnos.core.payloads.QnePayload;
 import com.workshare.msnos.core.protocols.ip.BaseEndpoint;
 import com.workshare.msnos.core.protocols.ip.Endpoint;
 import com.workshare.msnos.core.protocols.ip.Endpoint.Type;
+import com.workshare.msnos.core.protocols.ip.HttpEndpoint;
 import com.workshare.msnos.core.protocols.ip.Network;
 import com.workshare.msnos.soup.time.SystemTime;
 import com.workshare.msnos.usvc.api.RestApi;
@@ -81,6 +86,17 @@ public class MicrocloudTest {
     }
 
     @Test
+    public void shouldUpdateLastcheckedRemoteMicroserviceOnHCK() throws IOException {
+        RemoteMicroservice remote = setupRemoteMicroservice("10.10.10.10", "remote", "/endpoint");
+
+        fakeSystemTime(123456789);
+        simulateMessageFromCloud(MessagesHelper.newHCKMessage(remote, true));
+
+        remote = microcloud.getMicroServices().get(0);
+        assertEquals(123456789, remote.getLastChecked());
+    }
+
+    @Test
     public void shouldCreateBoundRestApisWhenRestApiNotBound() throws Exception {
         RemoteEntity remoteAgent = newRemoteAgentWithFakeHosts("10.10.10.10");
 
@@ -93,7 +109,7 @@ public class MicrocloudTest {
     }
 
     @Test
-    public void shouldUpdateMicroserviceIfPresent() throws Exception {
+    public void shouldUpdateMicroserviceApisIfPresent() throws Exception {
         UUID uuid = new UUID(11, 22);
         simulateRemoteMicroserviceJoin(uuid, "24.24.24.24", "remote", createRestApi("content", "/files"));
         simulateRemoteMicroserviceJoin(uuid, "24.24.24.24", "remote", createRestApi("content", "/healthcheck"));
@@ -210,6 +226,17 @@ public class MicrocloudTest {
         unjoined.publish(mock(RestApi.class));
     }
 
+    @Test
+    public void shouldRegisterMsnosEndpoints() throws Exception {
+        final String host = "24.24.24.24";
+        final RestApi api = createMsnosApi(host);
+        RemoteMicroservice remote = simulateRemoteMicroserviceJoin(randomUUID(), host, "remote", api);
+
+        HttpEndpoint endpoint = new HttpEndpoint(remote, api);
+        verify(cloud).registerMsnosEndpoint(endpoint);
+    }
+
+
 
     private RemoteMicroservice setupRemoteMicroservice(String host, String name, String apiPath) {
         short port = 9999;
@@ -218,7 +245,9 @@ public class MicrocloudTest {
     }
 
     private RemoteMicroservice simulateRemoteMicroserviceJoin(UUID uuid, String host, String name, RestApi restApi) {
-        RemoteAgent agent = newRemoteAgentWithUUID(uuid);
+        Endpoint ep = new BaseEndpoint(Type.UDP, asPublicNetwork(host));
+        RemoteAgent agent = new RemoteAgent(uuid, cloud, asSet(ep));
+        putRemoteAgentInCloudAgentsList(agent);
 
         RemoteMicroservice remote = new RemoteMicroservice(name, agent, toSet(restApi));
         simulateMessageFromCloud(newQNEMessage(remote.getAgent(), name, restApi));
@@ -244,6 +273,10 @@ public class MicrocloudTest {
         return new RestApi(name, path, 9999).onHost("24.24.24.24");
     }
 
+    private RestApi createMsnosApi(String host) {
+        return new RestApi("foo", "/to/path", 9999, host, RestApi.Type.MSNOS_HTTP, false);
+    }
+
     private RemoteEntity newRemoteAgentWithFakeHosts(String address) throws Exception {
         List<String> tokens = Arrays.asList(address.split("\\."));
         byte[] nibbles = new byte[tokens.size()];
@@ -256,23 +289,6 @@ public class MicrocloudTest {
 
     private RemoteAgent newRemoteAgent() {
         return newRemoteAgent(UUID.randomUUID());
-    }
-
-    private RemoteAgent newRemoteAgentWithUUID(UUID uuid) {
-        return newRemoteAgent(uuid);
-    }
-
-    private Message newQNEMessage(RemoteEntity from, String name, RestApi... apis) {
-//        return new MessageBuilder(MessageBuilder.Mode.RELAXED, Message.Type.QNE, from.getIden(), cloud.getIden()).with(new FltPayload(agent.getIden())).make();
-        return new MessageBuilder(MessageBuilder.Mode.RELAXED, Message.Type.QNE, from.getIden(), cloud.getIden()).with(new QnePayload(name, apis)).make();
-    }
-
-    private Message newFaultMessage(Agent agent) {
-        return new MessageBuilder(Message.Type.FLT, cloud, cloud).with(new FltPayload(agent.getIden())).make();
-    }
-
-    private Message newLeaveMessage(RemoteAgent from) throws MsnosException {
-        return new MessageBuilder(Message.Type.PRS, from, cloud).with(new Presence(false)).make();
     }
 
     private RemoteAgent newRemoteAgent(final UUID uuid, BaseEndpoint... endpoints) {

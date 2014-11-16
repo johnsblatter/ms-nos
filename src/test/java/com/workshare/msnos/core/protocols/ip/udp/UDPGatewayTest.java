@@ -1,5 +1,31 @@
 package com.workshare.msnos.core.protocols.ip.udp;
 
+import static com.workshare.msnos.core.CoreHelper.synchronousGatewayMulticaster;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.anyInt;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.io.IOException;
+import java.net.DatagramPacket;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.MulticastSocket;
+import java.net.SocketException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.ArgumentCaptor;
+
 import com.workshare.msnos.core.Cloud;
 import com.workshare.msnos.core.Cloud.Internal;
 import com.workshare.msnos.core.Gateway.Listener;
@@ -8,22 +34,6 @@ import com.workshare.msnos.core.Message;
 import com.workshare.msnos.core.MessageBuilder;
 import com.workshare.msnos.core.protocols.ip.MulticastSocketFactory;
 import com.workshare.msnos.core.serializers.WireJsonSerializer;
-import com.workshare.msnos.soup.threading.Multicaster;
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.ArgumentCaptor;
-
-import java.io.IOException;
-import java.net.*;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
-import java.util.concurrent.Executor;
-
-import static org.junit.Assert.*;
-import static org.mockito.Matchers.anyInt;
-import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.*;
 
 public class UDPGatewayTest {
 
@@ -188,7 +198,7 @@ public class UDPGatewayTest {
 
     private UDPGateway gate() throws IOException {
         if (gate == null)
-            gate = new UDPGateway(sockets, server, synchronousMulticaster());
+            gate = new UDPGateway(sockets, server, synchronousGatewayMulticaster());
 
         return gate;
     }
@@ -200,22 +210,6 @@ public class UDPGatewayTest {
                 messages.add(message);
             }
         });
-    }
-
-    private Multicaster<Listener, Message> synchronousMulticaster() {
-        Executor executor = new Executor() {
-            @Override
-            public void execute(Runnable task) {
-                task.run();
-            }
-        };
-
-        return new Multicaster<Listener, Message>(executor) {
-            @Override
-            protected void dispatch(Listener listener, Message message) {
-                listener.onMessage(message);
-            }
-        };
     }
 
     public static Message newSampleMessage() {

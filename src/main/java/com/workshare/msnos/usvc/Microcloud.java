@@ -5,6 +5,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledExecutorService;
@@ -23,8 +24,10 @@ import com.workshare.msnos.core.PassiveAgent;
 import com.workshare.msnos.core.Receipt;
 import com.workshare.msnos.core.RemoteAgent;
 import com.workshare.msnos.core.payloads.FltPayload;
+import com.workshare.msnos.core.payloads.HealthcheckPayload;
 import com.workshare.msnos.core.payloads.Presence;
 import com.workshare.msnos.core.payloads.QnePayload;
+import com.workshare.msnos.core.protocols.ip.HttpEndpoint;
 import com.workshare.msnos.soup.threading.ExecutorServices;
 import com.workshare.msnos.usvc.api.RestApi;
 import com.workshare.msnos.usvc.api.routing.ApiRepository;
@@ -130,12 +133,33 @@ public class Microcloud {
             case PRS:
                 processPresence(message);
                 break;
+            case HCK:
+                processHealthcheck(message);
+                break;
             default:
                 break;
         }
     }
 
-    private void processQNE(Message message) {
+    private void processHealthcheck(Message message) {
+        HealthcheckPayload payload = ((HealthcheckPayload) message.getData());
+        RemoteMicroservice remote = microServices.get(payload.getIden());
+        if (remote == null) {
+            log.warn("Received a health status message on service {} not present in the cloud", payload.getIden());
+            return;
+        }
+        
+        if (payload.isWorking()) {
+            log.debug("Marking remote {} as working after cloud message received", remote);
+            remote.markWorking();
+        }
+        else {
+            log.info("Marking remote {} as faulty after cloud message received", remote);
+            remote.markFaulty();
+        }
+    }
+
+    private void processQNE(Message message) throws MsnosException {
         QnePayload qnePayload = ((QnePayload) message.getData());
 
         final Iden iden = message.getFrom();
@@ -153,7 +177,17 @@ public class Microcloud {
                 microServices.put(remoteKey, remote);
             }
 
+            registerMsnosEndpoints(remote);
+            
             apis.register(remote);
+        }
+    }
+
+    private void registerMsnosEndpoints(RemoteMicroservice remote) throws MsnosException {
+        Set<RestApi> remoteApis = remote.getApis();
+        for (RestApi restApi : remoteApis) {
+            if (restApi.getType() == RestApi.Type.MSNOS_HTTP)
+                cloud.registerMsnosEndpoint(new HttpEndpoint(remote, restApi));
         }
     }
 
