@@ -101,11 +101,7 @@ public class Cloud implements Identifiable {
             gate.addListener(this, new Gateway.Listener() {
                 @Override
                 public void onMessage(Message message) {
-                    try {
-                        process(message);
-                    } catch (IOException e) {
-                        log.error("Cannot process message", e);
-                    }
+                    process(message);
                 }
             });
         }
@@ -204,7 +200,7 @@ public class Cloud implements Identifiable {
         caster.removeListener(listener);
     }
 
-    private void process(Message message) throws IOException {
+    public void process(Message message) {
         if (validators.isValid(message)) {
             proto.info("RX: {} {} {} {}", message.getType(), message.getFrom(), message.getTo(), message.getData());
 

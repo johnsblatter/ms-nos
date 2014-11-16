@@ -21,6 +21,11 @@ public class MessagesHelper {
                 .make();
     }
     
+    public static Message newAPPMessage(RemoteMicroservice remote, Identifiable to) {
+        RemoteAgent from = remote.getAgent();
+        return new MessageBuilder(Message.Type.APP, from, to).make();
+    }
+
     public static Message newQNEMessage(RemoteEntity from, String name, RestApi... apis) {
         final Cloud cloud = from.getCloud();
         return new MessageBuilder(MessageBuilder.Mode.RELAXED, Message.Type.QNE, from.getIden(), cloud.getIden()).with(new QnePayload(name, apis)).make();

@@ -53,7 +53,7 @@ public class Microcloud {
             @Override
             public void onMessage(Message message) {
                 try {
-                    process(message);
+                    doProcess(message);
                 } catch (MsnosException e) {
                     log.error("Error processing message {}", e);
                 }
@@ -72,6 +72,10 @@ public class Microcloud {
         return cloud.send(message);
     }
 
+    public void process(Message message) {
+        cloud.process(message);
+    }
+    
     public Listener addListener(Listener listener) {
         return cloud.addListener(listener);
     }
@@ -121,7 +125,7 @@ public class Microcloud {
         agent.leave();
     }
 
-    private void process(Message message) throws MsnosException {
+    private void doProcess(Message message) throws MsnosException {
         log.debug("Handling message {}", message);
         switch(message.getType()) {
             case QNE:

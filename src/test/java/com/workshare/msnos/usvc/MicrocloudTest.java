@@ -4,6 +4,7 @@ import static com.workshare.msnos.core.CoreHelper.asPublicNetwork;
 import static com.workshare.msnos.core.CoreHelper.asSet;
 import static com.workshare.msnos.core.CoreHelper.fakeSystemTime;
 import static com.workshare.msnos.core.CoreHelper.randomUUID;
+import static com.workshare.msnos.core.MessagesHelper.newAPPMessage;
 import static com.workshare.msnos.core.MessagesHelper.newFaultMessage;
 import static com.workshare.msnos.core.MessagesHelper.newLeaveMessage;
 import static com.workshare.msnos.core.MessagesHelper.newQNEMessage;
@@ -237,7 +238,16 @@ public class MicrocloudTest {
     }
 
 
+    @Test 
+    public void shouldProcessExternalMessage() throws MsnosException {
+        RemoteMicroservice remote = simulateRemoteMicroserviceJoin(randomUUID(), "24.24.24.24", "name", createRestApi("name", "/foo"));
 
+        Message message = newAPPMessage(remote, cloud);
+        microcloud.process(message);
+        
+        verify(cloud).process(message);
+    }
+    
     private RemoteMicroservice setupRemoteMicroservice(String host, String name, String apiPath) {
         short port = 9999;
         RestApi restApi = new RestApi(name, apiPath, port).onHost(host);

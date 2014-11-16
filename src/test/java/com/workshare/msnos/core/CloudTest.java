@@ -593,6 +593,17 @@ public class CloudTest {
         verify(httpGate.endpoints()).install(endpoint);
     }
 
+    @Test 
+    public void shouldProcessExternalMessage() throws MsnosException {
+        RemoteAgent agent = newRemoteAgent(thisCloud);
+        simulateAgentJoiningCloud(agent, thisCloud);
+
+        Message current = new MessageBuilder(APP, agent, thisCloud).make();
+        thisCloud.process(current);
+
+        assertEquals(current, getLastMessageSentToCloudListeners());
+    }
+    
     private Message simulateMessageFromOtherCloud(String uuidString, int seq, long instance) {
         final Message message = new MessageBuilder(MessageBuilder.Mode.RELAXED, APP, thisCloudRemoteIden, thisCloud.getIden()).with(UUID.randomUUID()).sequence(seq).make();
         simulateMessageFromNetwork(message);
@@ -645,7 +656,7 @@ public class CloudTest {
     }
 
     private Message simulateAgentJoiningCloud(Agent agent, Cloud cloud) throws MsnosException {
-        Message message = (new MockMessageHelper(Message.Type.PRS, agent.getIden(), cloud.getIden()).sequence(12).data(new Presence(true)).make());
+        Message message = new MessageBuilder(Message.Type.PRS, agent, cloud).with(new Presence(true)).make();
         simulateMessageFromNetwork(message);
         return message;
     }
@@ -661,7 +672,11 @@ public class CloudTest {
     }
 
     private Message getLastMessageSentToCloudListeners() {
-        return receivedMessages.get(receivedMessages.size() - 1);
+        final int size = receivedMessages.size();
+        if (size > 0)
+            return receivedMessages.get(size - 1);
+        else
+            return null;
     }
 
     private Message getLastMessageSentToNetwork() throws IOException {
