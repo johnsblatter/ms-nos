@@ -211,7 +211,7 @@ public class CloudTest {
 
         karl.leave();
 
-        assertMessageContent(getLastMessageSent(), PRS, karl.getIden(), thisCloud.getIden(), new Presence(false));
+        assertMessageContent(getLastMessageSent(), PRS, karl.getIden(), thisCloud.getIden(), new Presence(false, karl));
     }
 
     @Test(expected = Throwable.class)
@@ -347,10 +347,10 @@ public class CloudTest {
 
     @Test
     public void shouldUpdateRemoteAgentAccessTimeOnPresenceReceived() throws Exception {
-        RemoteEntity remoteAgent = newRemoteAgent(thisCloud);
+        RemoteAgent remoteAgent = newRemoteAgent(thisCloud);
 
         fakeSystemTime(12345L);
-        simulateMessageFromNetwork(new MockMessageHelper(Message.Type.PRS, remoteAgent.getIden(), thisCloud.getIden()).data(new Presence(true)).make());
+        simulateMessageFromNetwork(new MockMessageHelper(Message.Type.PRS, remoteAgent.getIden(), thisCloud.getIden()).data(new Presence(true, remoteAgent)).make());
 
         fakeSystemTime(99999L);
         assertEquals(12345L, getRemoteAgentAccessTime(thisCloud, remoteAgent));
@@ -618,6 +618,19 @@ public class CloudTest {
     }
 
     @Test 
+    public void shouldRegisterMsnosEndpointsOnLocalAgent() throws Exception {
+        LocalAgent smith = new LocalAgent(UUID.randomUUID());
+        smith.join(thisCloud);
+
+        HttpEndpoint endpoint = mock(HttpEndpoint.class);
+        when(endpoint.getTarget()).thenReturn(smith.getIden());
+        thisCloud.registerLocalMsnosEndpoint(endpoint);
+
+        LocalAgent agent = thisCloud.getLocalAgents().iterator().next();
+        assertTrue(agent.getEndpoints().contains(endpoint));
+    }
+
+    @Test 
     public void shouldProcessExternalMessage() throws MsnosException {
         RemoteAgent agent = newRemoteAgent(thisCloud);
         simulateAgentJoiningCloud(agent, thisCloud);
@@ -628,6 +641,34 @@ public class CloudTest {
         assertEquals(current, getLastMessageSentToCloudListeners());
     }
     
+    @Test 
+    public void shouldEnquiryUponReceivingMessagesFromUnknownAgents() throws Exception {
+        RemoteAgent smith = newRemoteAgent(thisCloud);
+        
+        simulateMessageFromNetwork(new MessageBuilder(Message.Type.PIN, smith, thisCloud).make());
+
+        Message message = getLastMessageSentToNetwork();
+        assertEquals(Message.Type.DSC, message.getType());
+        assertEquals(smith.getIden(), message.getTo());
+    }
+    
+    @Test 
+    public void shouldNOTEnquiryUponReceivingMessagesFromCloud() throws Exception {
+        
+        simulateMessageFromNetwork(new MessageBuilder(Message.Type.PIN, thisCloud, thisCloud).make());
+
+        assertEquals(0, getAllMessagesSent().size());
+    }
+    
+    @Test 
+    public void shouldNOTEnquiryUponReceivingPresenceLeaveFromAgent() throws Exception {
+        RemoteAgent smith = newRemoteAgent(thisCloud);
+
+        simulateMessageFromNetwork(MessagesHelper.newLeaveMessage(smith));
+
+        assertEquals(0, getAllMessagesSent().size());
+    }
+    
     private Message simulateMessageFromOtherCloud(String uuidString, int seq, long instance) {
         final Message message = new MessageBuilder(MessageBuilder.Mode.RELAXED, APP, thisCloudRemoteIden, thisCloud.getIden()).with(UUID.randomUUID()).sequence(seq).make();
         simulateMessageFromNetwork(message);
@@ -635,7 +676,7 @@ public class CloudTest {
         return message;
     }
     private void simulateAgentJoiningCloudWithSeq(Agent remoteAgent, long seq) throws MsnosException {
-        Message message = (new MockMessageHelper(Type.PRS, remoteAgent.getIden(), thisCloud.getIden()).data(new Presence(true)).sequence(seq).make());
+        Message message = (new MockMessageHelper(Type.PRS, remoteAgent.getIden(), thisCloud.getIden()).data(new Presence(true, remoteAgent)).sequence(seq).make());
         simulateMessageFromNetwork(message);
     }
 
@@ -680,13 +721,13 @@ public class CloudTest {
     }
 
     private Message simulateAgentJoiningCloud(Agent agent, Cloud cloud) throws MsnosException {
-        Message message = new MessageBuilder(Message.Type.PRS, agent, cloud).with(new Presence(true)).make();
+        Message message = new MessageBuilder(Message.Type.PRS, agent, cloud).with(new Presence(true, agent)).make();
         simulateMessageFromNetwork(message);
         return message;
     }
 
-    private void simulateAgentLeavingCloud(RemoteEntity agent, Cloud cloud) throws MsnosException {
-        simulateMessageFromNetwork(new MessageBuilder(MessageBuilder.Mode.RELAXED, PRS, agent.getIden(), cloud.getIden()).reliable(false).with(new Presence(false)).make());
+    private void simulateAgentLeavingCloud(RemoteAgent agent, Cloud cloud) throws MsnosException {
+        simulateMessageFromNetwork(new MessageBuilder(MessageBuilder.Mode.RELAXED, PRS, agent.getIden(), cloud.getIden()).reliable(false).with(new Presence(false, agent)).make());
     }
 
     private void simulateMessageFromNetwork(final Message message) {

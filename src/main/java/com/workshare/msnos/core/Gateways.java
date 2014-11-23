@@ -1,9 +1,10 @@
 package com.workshare.msnos.core;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.HashSet;
-import java.util.LinkedHashSet;
 import java.util.Set;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.ScheduledExecutorService;
 
 import org.apache.http.client.HttpClient;
@@ -26,11 +27,10 @@ public class Gateways {
 
     private static Logger log = Logger.getLogger(Gateways.class);
 
-    private static Set<Gateway> all;
+    private static Set<Gateway> all = new CopyOnWriteArraySet<Gateway>();
 
-	public synchronized static Set<Gateway> all() throws MsnosException {
-		if (all == null) {
-	        all = new LinkedHashSet<Gateway>();
+	public static Set<Gateway> all() throws MsnosException {
+		if (all.size() == 0) {
 			addGateway(buildUDPGateway());
             addGateway(buildWWWGateway());
             addGateway(buildHttpGateway());
@@ -44,7 +44,7 @@ public class Gateways {
 		return all;
 	}
 	
-    public synchronized static Set<Endpoint> endpoints() throws MsnosException {
+    public static Set<Endpoint> allEndpoints() throws MsnosException {
         HashSet<Endpoint> points = new HashSet<Endpoint>();
 	    for (Gateway gate : all()) {
             points.addAll(gate.endpoints().all());
@@ -52,6 +52,24 @@ public class Gateways {
 	    
 	    return points;
 	}
+
+    public static Set<Endpoint> endpointsOf(Agent agent) throws MsnosException {        
+        HashSet<Endpoint> points = new HashSet<Endpoint>();
+        for (Gateway gate : all()) {
+            points.addAll(gate.endpoints().of(agent));
+        }
+        
+        return points;
+    }
+
+    public static Set<Endpoint> allPublicEndpoints() throws MsnosException {
+        HashSet<Endpoint> points = new HashSet<Endpoint>();
+        for (Gateway gate : all()) {
+            points.addAll(gate.endpoints().publics());
+        }
+        
+        return points;
+    }
 
     private static void addGateway(final Gateway gateway) {
         if (gateway != null)
@@ -125,5 +143,10 @@ public class Gateways {
 			}
 		};
         return caster;
+    }
+
+    static void reset() {
+        log.warn("Somebody reset the gateways!");
+        all = new CopyOnWriteArraySet<Gateway>();
     }
 }

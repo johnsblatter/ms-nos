@@ -40,6 +40,18 @@ public class HttpEndpointTest {
         new HttpEndpoint(remote, api);
     }
     
+    @Test
+    public void shouldSupportEqualdAndHashcode() {
+        RemoteMicroservice remote = createRemoteMicroservice("25.25.25.25");
+        RestApi api = new RestApi("name", "path/to/api", 8888, "25.25.25.25");
+    
+        HttpEndpoint ep1 = new HttpEndpoint(remote, api);
+        HttpEndpoint ep2 = new HttpEndpoint(remote, api);
+        
+        assertEquals(ep1, ep2);
+        assertEquals(ep1.hashCode(), ep2.hashCode());
+    }
+    
     protected RemoteMicroservice createRemoteMicroservice(final String host) {
         BaseEndpoint ep1 = new BaseEndpoint(Type.UDP, asPublicNetwork(host));
         BaseEndpoint ep2 = new BaseEndpoint(Type.UDP, asPublicNetwork("33.33.33.33"));

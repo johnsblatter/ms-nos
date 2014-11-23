@@ -1,5 +1,6 @@
 package com.workshare.msnos.core;
 
+import static com.workshare.msnos.core.CoreHelper.asSet;
 import static com.workshare.msnos.core.Message.Type.PIN;
 import static com.workshare.msnos.core.Message.Type.PON;
 import static com.workshare.msnos.core.Message.Type.PRS;
@@ -13,16 +14,25 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
+import java.util.Collections;
+import java.util.Set;
 import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
+import org.powermock.api.mockito.PowerMockito;
+import org.powermock.core.classloader.annotations.PrepareForTest;
+import org.powermock.modules.junit4.PowerMockRunner;
 
 import com.workshare.msnos.core.payloads.Presence;
+import com.workshare.msnos.core.protocols.ip.Endpoint;
 import com.workshare.msnos.soup.time.SystemTime;
 
+@RunWith(PowerMockRunner.class)
+@PrepareForTest(Gateways.class)
 public class AgentTest {
 
     private Cloud cloud;
@@ -31,6 +41,10 @@ public class AgentTest {
 
     @Before
     public void before() throws Exception {
+        PowerMockito.mockStatic(Gateways.class);
+        when(Gateways.allPublicEndpoints()).thenReturn(Collections.<Endpoint>emptySet());
+        when(Gateways.allEndpoints()).thenReturn(Collections.<Endpoint>emptySet());
+
         System.setProperty("public.ip", "132.1.0.2");
         cloud = mock(Cloud.class);
         when(cloud.getIden()).thenReturn(new Iden(Iden.Type.CLD, UUID.randomUUID()));
@@ -141,8 +155,12 @@ public class AgentTest {
 
     @Test
     public void agentShouldStoreEndpointsInformationAfterJoin() throws Exception {
+        final Set<Endpoint> expected = asSet(mock(Endpoint.class));
+        when(Gateways.allPublicEndpoints()).thenReturn(expected);
+        
         smith.join(cloud);
-        assertEquals(Gateways.endpoints(), smith.getEndpoints());
+
+        assertEquals(expected, smith.getEndpoints());
     }
 
     @Test

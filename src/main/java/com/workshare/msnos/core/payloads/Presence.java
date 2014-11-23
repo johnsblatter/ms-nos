@@ -6,6 +6,7 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.workshare.msnos.core.Agent;
 import com.workshare.msnos.core.Cloud;
 import com.workshare.msnos.core.Gateways;
 import com.workshare.msnos.core.Iden;
@@ -30,8 +31,8 @@ public class Presence implements Message.Payload {
         log.trace(present ? "Presence message created: {}" : "Absence message created: {}", this);
     }
 
-    public Presence(boolean present) throws MsnosException {
-        this(present, present ? Gateways.endpoints() : new HashSet<Endpoint>());
+    public Presence(boolean present, Agent agent) throws MsnosException {
+        this(present, present ? Gateways.endpointsOf(agent) : new HashSet<Endpoint>());
     }
 
     public boolean isPresent() {

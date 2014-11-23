@@ -1,7 +1,12 @@
 package com.workshare.msnos.usvc.api;
 
+import com.workshare.msnos.core.Agent;
+import com.workshare.msnos.core.protocols.ip.Endpoint;
+import com.workshare.msnos.core.protocols.ip.Network;
 import com.workshare.msnos.soup.json.Json;
 
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -123,7 +128,11 @@ public class RestApi {
     }
 
     public String getUrl() {
-        return String.format("http://%s:%d/%s/%s/", getHost(), getPort(), getName(), getPath());
+        String hostname = getHost();
+        if (hostname == null)
+            hostname = "*";
+        
+        return String.format("http://%s:%d/%s/%s/", hostname, getPort(), getName(), getPath());
     }
 
     public long getId() {
@@ -134,6 +143,19 @@ public class RestApi {
         return type;
     }
 
+    @Override
+    public int hashCode() {
+        int result = name.hashCode();
+        int prime = 31;
+        result = prime * result + path.hashCode();
+        result = prime * result + port;
+        result = prime * result + (sessionAffinity ? 1231 : 1237);
+        result = prime * result + type.hashCode();
+        result = prime * result + ((host == null) ? 0 : host.hashCode());
+        return result;
+    }
+
+    
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -146,24 +168,29 @@ public class RestApi {
         if (!name.equals(restApi.name)) return false;
         if (!path.equals(restApi.path)) return false;
         if (type != restApi.type) return false;
+        if (!host.equals(restApi.host)) return false;
 
         return true;
     }
 
     @Override
-    public int hashCode() {
-        int result = name.hashCode();
-        int prime = 31;
-        result = prime * result + path.hashCode();
-        result = prime * result + port;
-        result = prime * result + (sessionAffinity ? 2 : 1);
-        result = prime * result + type.hashCode();
-        return result;
-    }
-
-    @Override
     public String toString() {
         return Json.toJsonString(this);
+    }
+
+    public static Set<RestApi> ensureHostIsPresent(Agent agent, Set<RestApi> apis) {
+        Set<RestApi> result = new HashSet<RestApi>();
+        for (RestApi api : apis) {
+            if (api.getHost() == null || api.getHost().isEmpty()) {
+                for (Endpoint endpoint : agent.getEndpoints()) {
+                    Network network = endpoint.getNetwork();
+                    result.add(api.onHost(network.getHostString()));
+                }
+            } else {
+                result.add(api);
+            }
+        }
+        return result;
     }
 
 }

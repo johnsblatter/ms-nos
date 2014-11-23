@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
+import com.workshare.msnos.core.Agent;
 import com.workshare.msnos.core.MsnosException;
 import com.workshare.msnos.core.MsnosException.Code;
 import com.workshare.msnos.soup.json.Json;
@@ -85,6 +86,16 @@ public class BaseEndpoint implements Endpoint {
             
             @Override
             public Set<? extends BaseEndpoint> all() {
+                return endpoints;
+            }
+
+            @Override
+            public Set<? extends Endpoint> of(Agent agent) {
+                return endpoints;
+            }
+
+            @Override
+            public Set<? extends Endpoint> publics() {
                 return endpoints;
             }
         };

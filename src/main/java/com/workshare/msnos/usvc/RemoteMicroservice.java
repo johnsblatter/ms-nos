@@ -2,13 +2,10 @@ package com.workshare.msnos.usvc;
 
 import com.workshare.msnos.core.RemoteAgent;
 import com.workshare.msnos.core.geo.Location;
-import com.workshare.msnos.core.protocols.ip.Endpoint;
-import com.workshare.msnos.core.protocols.ip.Network;
 import com.workshare.msnos.soup.time.SystemTime;
 import com.workshare.msnos.usvc.api.RestApi;
 
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
@@ -26,32 +23,17 @@ public class RemoteMicroservice implements IMicroService {
     public RemoteMicroservice(String name, RemoteAgent agent, Set<RestApi> apis) {
         this.name = name;
         this.agent = agent;
-        this.apis = ensureHostIsPresent(agent, apis);
+        this.apis = RestApi.ensureHostIsPresent(agent, apis);
         this.location = Location.computeMostPreciseLocation(agent.getEndpoints());
         this.faulty = new AtomicBoolean(false);
         this.lastUpdated = new AtomicLong(SystemTime.asMillis());
         this.lastChecked = new AtomicLong(SystemTime.asMillis());
     }
 
-    private static Set<RestApi> ensureHostIsPresent(RemoteAgent agent, Set<RestApi> apis) {
-        Set<RestApi> result = new HashSet<RestApi>();
-        for (RestApi api : apis) {
-            if (api.getHost() == null || api.getHost().isEmpty()) {
-                for (Endpoint endpoint : agent.getEndpoints()) {
-                    Network network = endpoint.getNetwork();
-                    result.add(api.onHost(network.getHostString()));
-                }
-            } else {
-                result.add(api);
-            }
-        }
-        return result;
-    }
-
     protected void setApis(Set<RestApi> restApis) {
         lastUpdated.set(SystemTime.asMillis());
         synchronized (apis) {
-            apis.addAll(ensureHostIsPresent(agent, restApis));
+            apis.addAll(RestApi.ensureHostIsPresent(agent, restApis));
         }
     }
 

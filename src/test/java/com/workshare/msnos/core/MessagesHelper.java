@@ -38,7 +38,7 @@ public class MessagesHelper {
 
     public static Message newLeaveMessage(RemoteAgent from) throws MsnosException {
         Cloud cloud = from.getCloud();
-        return new MessageBuilder(Message.Type.PRS, from, cloud).with(new Presence(false)).make();
+        return new MessageBuilder(Message.Type.PRS, from, cloud).with(new Presence(false, from)).make();
     }
 
 

@@ -1,6 +1,9 @@
 package com.workshare.msnos.usvc;
 
+import static com.workshare.msnos.core.CoreHelper.asSet;
 import static com.workshare.msnos.core.CoreHelper.fakeSystemTime;
+import static com.workshare.msnos.core.CoreHelper.newAgentIden;
+import static com.workshare.msnos.core.CoreHelper.newCloudIden;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -20,8 +23,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
@@ -37,7 +38,6 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 import com.workshare.msnos.core.Cloud;
-import com.workshare.msnos.core.Iden;
 import com.workshare.msnos.core.Message;
 import com.workshare.msnos.core.RemoteAgent;
 import com.workshare.msnos.core.payloads.HealthcheckPayload;
@@ -46,6 +46,10 @@ import com.workshare.msnos.usvc.api.RestApi;
 
 @SuppressWarnings("restriction")
 public class HealthcheckerTest {
+
+    private static final String PATH = "files";
+
+    private static final String NAME = "content";
 
     private static final int HTTP_PORT = 19999;
     
@@ -57,7 +61,7 @@ public class HealthcheckerTest {
     @Before
     public void setUp() throws Exception {
         Cloud cloud = mock(Cloud.class);
-        when(cloud.getIden()).thenReturn(newIden());
+        when(cloud.getIden()).thenReturn(newCloudIden());
   
         microcloud = mock(Microcloud.class);
         when(microcloud.getCloud()).thenReturn(cloud);
@@ -176,6 +180,29 @@ public class HealthcheckerTest {
         verify(remote, never()).markWorking();
     }
     
+    @Test
+    public void shouldOn200HealthCheckMarkAllApisWorkingWheMultipleChecksAndOneFailingO() throws Exception {
+        RestApi checkOk = new RestApi(NAME ,PATH, HTTP_PORT).onHost("127.0.0.1").asHealthCheck();
+        RestApi checkKO = new RestApi(NAME, PATH, HTTP_PORT).onHost("0.0.0.0").asHealthCheck();
+        RemoteMicroservice remote = setupRemoteMicroservice("name", checkOk, checkKO);
+        setupHealthcheck(200);
+
+        startAndRunCheck();
+
+        assertTrue(allApisWorking(remote));
+    }
+
+    @Test
+    public void shouldBeHealhtIfNoHealchecks() throws IOException {
+        RestApi checkOk = new RestApi(NAME ,PATH, HTTP_PORT).onHost("127.0.0.1");
+        RestApi checkKO = new RestApi(NAME, PATH, HTTP_PORT).onHost("0.0.0.0");
+        RemoteMicroservice remote = setupRemoteMicroservice("name", checkOk, checkKO);
+
+        startAndRunCheck();
+
+        assertTrue(allApisWorking(remote));
+    }
+    
     protected void startAndRunCheck() {
         healthchecker.start();
         runCheck();
@@ -252,7 +279,7 @@ public class HealthcheckerTest {
     }
 
     private RemoteMicroservice setupRemoteMicroservice() throws Exception {
-        return setupRemoteMicroserviceMultipleAPIsAndHealthCheck("127.0.0.1", "10.10.10.25", "10.10.10.91", "10.10.10.143", "content", "files");
+        return setupRemoteMicroserviceMultipleAPIsAndHealthCheck(NAME, PATH, "127.0.0.1", "10.10.10.25", "10.10.10.91", "10.10.10.143");
     }
 
     private void assertHealthcheckMessageSent(RemoteMicroservice remote, final boolean working) {
@@ -264,15 +291,20 @@ public class HealthcheckerTest {
         assertEquals(remote.getAgent().getIden(), payload.getIden());
     }
 
-    private RemoteMicroservice setupRemoteMicroserviceMultipleAPIsAndHealthCheck(String host1, String host2, String host3, String host4, String name, String endpoint) throws Exception {
-        RemoteAgent agent = mock(RemoteAgent.class);
-        when(agent.getIden()).thenReturn(newIden());
-
+    private RemoteMicroservice setupRemoteMicroserviceMultipleAPIsAndHealthCheck(String name, String endpoint, String host1, String host2, String host3, String host4) throws Exception {
         RestApi alfa = new RestApi(name, endpoint, HTTP_PORT).onHost(host1).asHealthCheck();
         RestApi beta = new RestApi(name, endpoint, HTTP_PORT).onHost(host2);
         RestApi thre = new RestApi(name, endpoint, HTTP_PORT).onHost(host3);
         RestApi four = new RestApi(name, endpoint, HTTP_PORT).onHost(host4);
-        RemoteMicroservice remote = spy(new RemoteMicroservice(name, agent, toSet(alfa, beta, thre, four)));
+
+        return setupRemoteMicroservice(name, alfa, beta, thre, four);
+    }
+
+    private RemoteMicroservice setupRemoteMicroservice(String name, RestApi... apis) {
+        RemoteAgent agent = mock(RemoteAgent.class);
+        when(agent.getIden()).thenReturn(newAgentIden());
+
+        RemoteMicroservice remote = spy(new RemoteMicroservice(name, agent, asSet(apis)));
         when(remote.getLastChecked()).thenAnswer(new Answer<Long>() {
             @Override
             public Long answer(InvocationOnMock invocation) throws Throwable {
@@ -281,14 +313,5 @@ public class HealthcheckerTest {
         
         when(microcloud.getMicroServices()).thenReturn(Arrays.asList(remote));
         return remote;
-    }
-
-    private Set<RestApi> toSet(RestApi... restApi) {
-        return new HashSet<RestApi>(Arrays.asList(restApi));
-    }
-
-    protected Iden newIden() {
-        Iden iden = new Iden(Iden.Type.CLD, UUID.randomUUID());
-        return iden;
     }
 }

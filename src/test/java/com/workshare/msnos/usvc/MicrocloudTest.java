@@ -3,9 +3,11 @@ package com.workshare.msnos.usvc;
 import static com.workshare.msnos.core.CoreHelper.asPublicNetwork;
 import static com.workshare.msnos.core.CoreHelper.asSet;
 import static com.workshare.msnos.core.CoreHelper.fakeSystemTime;
+import static com.workshare.msnos.core.CoreHelper.newAgentIden;
 import static com.workshare.msnos.core.CoreHelper.randomUUID;
 import static com.workshare.msnos.core.MessagesHelper.newAPPMessage;
 import static com.workshare.msnos.core.MessagesHelper.newFaultMessage;
+import static com.workshare.msnos.core.MessagesHelper.newHCKMessage;
 import static com.workshare.msnos.core.MessagesHelper.newLeaveMessage;
 import static com.workshare.msnos.core.MessagesHelper.newQNEMessage;
 import static org.junit.Assert.assertEquals;
@@ -21,6 +23,7 @@ import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -38,8 +41,8 @@ import com.workshare.msnos.core.Agent;
 import com.workshare.msnos.core.Cloud;
 import com.workshare.msnos.core.Cloud.Listener;
 import com.workshare.msnos.core.Iden;
+import com.workshare.msnos.core.LocalAgent;
 import com.workshare.msnos.core.Message;
-import com.workshare.msnos.core.MessagesHelper;
 import com.workshare.msnos.core.MsnosException;
 import com.workshare.msnos.core.RemoteAgent;
 import com.workshare.msnos.core.RemoteEntity;
@@ -58,7 +61,8 @@ public class MicrocloudTest {
     private Microcloud microcloud;
     private Cloud cloud;
     private Microservice local;
-    
+
+
     @BeforeClass
     public static void stopClock() {
         System.setProperty(CachingRoutingStrategy.SYSP_TIMEOUT, "0");
@@ -75,7 +79,9 @@ public class MicrocloudTest {
         when(cloud.getIden()).thenReturn(new Iden(Iden.Type.CLD, new UUID(111, 111)));
         microcloud = new Microcloud(cloud, Mockito.mock(ScheduledExecutorService.class));
 
-        local = new Microservice("fluffy");
+        LocalAgent agent = mock(LocalAgent.class);
+        when(agent.getIden()).thenReturn(newAgentIden());        
+        local = new Microservice("fluffy", agent);
         local.join(microcloud);
     }
     
@@ -93,7 +99,7 @@ public class MicrocloudTest {
         RemoteMicroservice remote = setupRemoteMicroservice("10.10.10.10", "remote", "/endpoint");
 
         fakeSystemTime(123456789);
-        simulateMessageFromCloud(MessagesHelper.newHCKMessage(remote, true));
+        simulateMessageFromCloud(newHCKMessage(remote, true));
 
         remote = microcloud.getMicroServices().get(0);
         assertEquals(123456789, remote.getLastChecked());
@@ -230,13 +236,37 @@ public class MicrocloudTest {
     }
 
     @Test
-    public void shouldRegisterMsnosEndpoints() throws Exception {
+    public void shouldRegisterRemoteMsnosEndpoints() throws Exception {
         final String host = "24.24.24.24";
         final RestApi api = createMsnosApi(host);
         RemoteMicroservice remote = simulateRemoteMicroserviceJoin(randomUUID(), host, "remote", api);
 
         HttpEndpoint endpoint = new HttpEndpoint(remote, api);
         verify(cloud).registerRemoteMsnosEndpoint(endpoint);
+    }
+
+    @Test
+    public void shouldRegisterLocalMsnosEndpointsOnPublish() throws Exception {
+        final String host = "24.24.24.24";
+        final RestApi api = createMsnosApi(host);
+        ensureLocalNetworkPresent(asPublicNetwork(api.getHost()));
+
+        local.publish(api);
+ 
+        HttpEndpoint endpoint = new HttpEndpoint(local, api);
+        verify(cloud).registerLocalMsnosEndpoint(endpoint);
+    }
+
+    @Test
+    public void shouldRegisterLocalAnonymousMsnosEndpointsOnPublish() throws Exception {
+        final String host = "21.21.21.21";
+        final RestApi api = createMsnosApi(null);
+        ensureLocalNetworkPresent(asPublicNetwork(host));
+
+        local.publish(api);
+ 
+        HttpEndpoint endpoint = new HttpEndpoint(local, api.onHost(host));
+        verify(cloud).registerLocalMsnosEndpoint(endpoint);
     }
 
     @Test
@@ -251,7 +281,11 @@ public class MicrocloudTest {
 
     @Test
     public void shouldSendPresenceWhenRegisterMsnosApiInOrderToUpdateRemoteAgentEndpoints() throws Exception {
-        local.publish(createMsnosApi("24.24.24.24"));
+        final RestApi api = createMsnosApi("24.24.24.24");
+        ensureLocalNetworkPresent(asPublicNetwork(api.getHost()));
+
+        local.publish(api);
+        
         assertMesageSent(Message.Type.PRS, local.getAgent().getIden());
     }
 
@@ -265,6 +299,39 @@ public class MicrocloudTest {
         verify(cloud).process(message);
     }
     
+    @Test 
+    public void shouldEnquiryUponReceivingMessagesFromUnknownMicroservices() throws Exception {
+        RestApi restApi = createRestApi("name", "/foo");
+        Endpoint ep = new BaseEndpoint(Type.UDP, asPublicNetwork("24.24.24.24"));
+        RemoteAgent agent = new RemoteAgent(randomUUID(), cloud, asSet(ep));
+        RemoteMicroservice remote = new RemoteMicroservice("name", agent, toSet(restApi));
+
+        simulateMessageFromCloud(newAPPMessage(remote, cloud));
+        
+        Message message = sentMessages().get(0);
+        assertEquals(Message.Type.ENQ, message.getType());
+        assertEquals(agent.getIden(), message.getTo());
+    }
+    
+    @Test 
+    public void shouldNOTEnquiryUponReceivingMessagesFromCloud() throws Exception {
+        RemoteAgent agent = new RemoteAgent(randomUUID(), cloud, Collections.<Endpoint>emptySet() );
+        RemoteMicroservice remote = new RemoteMicroservice("name", agent, Collections.<RestApi>emptySet());
+
+        simulateMessageFromCloud(newHCKMessage(remote, true));
+        
+        assertEquals(0, sentMessages().size());
+    }
+    
+    @Test 
+    public void shouldNOTEnquiryUponReceivingLeavingPresenceFromAgent() throws Exception {
+        RemoteAgent agent = new RemoteAgent(randomUUID(), cloud, Collections.<Endpoint>emptySet() );
+
+        simulateMessageFromCloud(newLeaveMessage(agent));
+        
+        assertEquals(0, sentMessages().size());
+    }
+    
     private Message assertMesageSent(final Message.Type type, final Iden iden) throws MsnosException {
         for (Message message : sentMessages()) {
             if (message.getType() == type && message.getFrom().equals(iden))
@@ -276,12 +343,20 @@ public class MicrocloudTest {
     }
 
     private List<Message> sentMessages() throws MsnosException {
-        ArgumentCaptor<Message> captor = ArgumentCaptor.forClass(Message.class);
-        verify(cloud, atLeastOnce()).send(captor.capture());
-        List<Message> messages = captor.getAllValues();
-        return messages;
+        try {
+            ArgumentCaptor<Message> captor = ArgumentCaptor.forClass(Message.class);
+            verify(cloud, atLeastOnce()).send(captor.capture());
+            List<Message> messages = captor.getAllValues();
+            return messages;
+        } catch (Throwable ex) {
+            return Collections.emptyList();
+        }
     }
 
+    private void ensureLocalNetworkPresent(Network network) {
+        Endpoint endpoint = new BaseEndpoint(Type.UDP, network);
+        when(local.getAgent().getEndpoints()).thenReturn(asSet(endpoint));
+    }
 
     private RemoteMicroservice setupRemoteMicroservice(String host, String name, String apiPath) {
         short port = 9999;

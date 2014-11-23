@@ -9,6 +9,8 @@ import com.workshare.msnos.soup.json.Json;
 
 public class RemoteAgent extends RemoteEntity implements Agent {
 
+    private static final Set<Endpoint> NO_ENDPOINTS = Collections.emptySet();
+    
     private final Set<Endpoint> endpoints;
 
     public RemoteAgent(UUID uuid, Cloud cloud, Set<Endpoint> endpoints) {
@@ -18,7 +20,7 @@ public class RemoteAgent extends RemoteEntity implements Agent {
 
     private Set<Endpoint> toUnmodifiable(Set<Endpoint> endpoints) {
         if (endpoints == null)
-            return Collections.emptySet();
+            return NO_ENDPOINTS;
         else
             return Collections.unmodifiableSet(endpoints);
     }

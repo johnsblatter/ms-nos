@@ -19,7 +19,15 @@ public class CoreHelper {
     public static UUID randomUUID() {
         return UUID.randomUUID();
     }
-    
+
+    public static Iden newCloudIden() {
+        return new Iden(Iden.Type.CLD, UUID.randomUUID());
+    }
+
+    public static Iden newAgentIden() {
+        return new Iden(Iden.Type.AGT, UUID.randomUUID());
+    }
+
     public static <T> Set<T> asSet(T... items) {
         return new HashSet<T>(Arrays.asList(items));
     }

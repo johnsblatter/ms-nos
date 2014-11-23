@@ -14,6 +14,7 @@ import org.apache.http.util.EntityUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.workshare.msnos.core.Agent;
 import com.workshare.msnos.core.Cloud;
 import com.workshare.msnos.core.Gateway;
 import com.workshare.msnos.core.Iden;
@@ -99,6 +100,26 @@ public class HttpGateway implements Gateway {
                 if (ep.getTarget().equals(Iden.NULL))
                     throw new MsnosException("The HTTP gateway accepts only targeted endpoints", MsnosException.Code.UNRECOVERABLE_FAILURE);
                 return ep;
+            }
+
+            @Override
+            public Set<? extends Endpoint> of(Agent agent) {
+                HashSet<Endpoint> result = new HashSet<Endpoint>(endpoints.size());
+                for(HttpEndpoint endpoint : endpoints.values()) {
+                    if (agent.getIden().equals(endpoint.getTarget()))
+                        result.add(endpoint);
+                }
+                return result;
+            }
+
+            @Override
+            public Set<? extends Endpoint> publics() {
+                HashSet<Endpoint> result = new HashSet<Endpoint>(endpoints.size());
+                for(HttpEndpoint endpoint : endpoints.values()) {
+                    if (endpoint.getTarget() == Iden.NULL)
+                        result.add(endpoint);
+                }
+                return result;
             }};
     }
 

@@ -1,5 +1,7 @@
 package com.workshare.msnos.core;
 
+import static com.workshare.msnos.core.Message.Type.PRS;
+
 import com.workshare.msnos.core.cloud.*;
 import com.workshare.msnos.core.cloud.JoinSynchronizer.Status;
 import com.workshare.msnos.core.cloud.MessagePreProcessors.Result;
@@ -128,7 +130,7 @@ public class Cloud implements Identifiable {
     public boolean containsAgent(Iden iden) {
         return remoteAgents.containsKey(iden) || localAgents.containsKey(iden);
     }
-    
+
     public Long getNextSequence() {
         return seq.incrementAndGet();
     }
@@ -177,7 +179,7 @@ public class Cloud implements Identifiable {
 
         final Status status = synchronizer.start(agent);
         try {
-            send(new MessageBuilder(Message.Type.PRS, agent, this).with(new Presence(true)).make());
+            send(new MessageBuilder(Message.Type.PRS, agent, this).with(new Presence(true, agent)).make());
             send(new MessageBuilder(Message.Type.DSC, agent, this).make());
             synchronizer.wait(status);
         } finally {
@@ -188,7 +190,7 @@ public class Cloud implements Identifiable {
     void onLeave(LocalAgent agent) throws MsnosException {
         checkCloudAlive();
 
-        send(new MessageBuilder(Message.Type.PRS, agent, this).with(new Presence(false)).make());
+        send(new MessageBuilder(Message.Type.PRS, agent, this).with(new Presence(false, agent)).make());
         log.debug("Local agent left: {}", agent);
         localAgents.remove(agent.getIden());
     }
@@ -213,11 +215,27 @@ public class Cloud implements Identifiable {
             logRX(message);
 
             message.getData().process(message, internal);
+            enquiryAgentIfNecessary(message);
+
             caster.dispatch(message);
 
             postProcess(message);
         } else {
             logNN(message, result.reason());
+        }
+    }
+
+    private void enquiryAgentIfNecessary(Message message) {
+        final Iden from = message.getFrom();
+        if (from.getType() == Iden.Type.AGT && message.getType() != PRS) {
+            if (!remoteAgents.containsKey(from))
+                try {
+                    log.warn("Enquiring unknown agent {}", from);
+                    final Cloud cloud = internal.cloud();
+                    cloud.send(new MessageBuilder(Message.Type.DSC, cloud, from).make());
+                } catch (IOException e) {
+                    log.error("Unexpected exception sending message " + message, e);
+                }
         }
     }
 
@@ -242,6 +260,7 @@ public class Cloud implements Identifiable {
     }
 
     public void registerRemoteMsnosEndpoint(HttpEndpoint endpoint) throws MsnosException {
+        log.debug("Registering remote HTTP endpoint: {}", endpoint);
         for (Gateway gate : gates) {
             if (gate instanceof HttpGateway) {
                 gate.endpoints().install(endpoint);
@@ -249,12 +268,24 @@ public class Cloud implements Identifiable {
                 endpoint = null;
             }
         }
-        
+
         if (endpoint != null) {
             log.warn("Warning: unable to install endpoint, HTTP gateway not found!");
         }
     }
-    
+
+    public void registerLocalMsnosEndpoint(HttpEndpoint endpoint) {
+        log.debug("Registering local HTTP endpoint: {}", endpoint);
+        LocalAgent agent = localAgents.get(endpoint.getTarget());
+        if (agent == null) {
+            log.warn("Weird... a local agent registered an httpendpoint, but I do not know him");
+            return;
+        }
+
+        agent.registerEndpoint(endpoint);
+        log.debug("Agent {} updated, added endpoints {}", agent.getIden().getUUID(), endpoint);
+    }
+
     private void updateRemoteAgent(HttpEndpoint endpoint) {
         RemoteAgent agent = remoteAgents.get(endpoint.getTarget());
         if (agent == null) {
@@ -262,11 +293,15 @@ public class Cloud implements Identifiable {
             return;
         }
 
+        remoteAgents.add(agent.with(newEndpoints(endpoint, agent)));
+        log.debug("Agent {} updated, new endpoints are {}", agent, newEndpoints(endpoint, agent));
+    }
+
+    private Set<Endpoint> newEndpoints(HttpEndpoint endpoint, Agent agent) {
         Set<Endpoint> endpoints = new HashSet<Endpoint>();
         endpoints.addAll(agent.getEndpoints());
         endpoints.add(endpoint);
-        remoteAgents.add(agent.with(endpoints));
-        log.warn("Agent {} updated, new endpoints are {}", agent, endpoints);
+        return endpoints;
     }
 
     private Message sign(Message message) {
@@ -294,7 +329,7 @@ public class Cloud implements Identifiable {
     private void logTX(Message msg) {
         if (!proto.isInfoEnabled())
             return;
-        
+
         final String muid = shorten(msg.getUuid());
         final String payload = Json.toJsonString(msg.getData());
         final String mseq = shorten(msg.getSequence());
@@ -304,7 +339,7 @@ public class Cloud implements Identifiable {
     private void logNN(Message msg, String cause) {
         if (!proto.isDebugEnabled())
             return;
-        
+
         final String muid = shorten(msg.getUuid());
         final String payload = Json.toJsonString(msg.getData());
         final String mseq = shorten(msg.getSequence());
@@ -319,7 +354,7 @@ public class Cloud implements Identifiable {
     private void logRX(Message msg) {
         if (!proto.isInfoEnabled())
             return;
-        
+
         final String muid = shorten(msg.getUuid());
         final String payload = Json.toJsonString(msg.getData());
         final String mseq = shorten(msg.getSequence());
@@ -329,14 +364,13 @@ public class Cloud implements Identifiable {
     private String shorten(long number) {
         final String s = String.format("%08d", number);
         final int l = s.length();
-        return s.substring(l-5, l);
+        return s.substring(l - 5, l);
     }
 
     private String shorten(UUID uuid) {
         final String s = uuid.toString();
         final int l = s.length();
-        return s.substring(l-8, l);
+        return s.substring(l - 8, l);
     }
 
 }
-

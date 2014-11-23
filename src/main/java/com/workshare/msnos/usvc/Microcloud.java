@@ -45,11 +45,10 @@ public class Microcloud {
     private final Healthchecker healthcheck;
     private final Cloud cloud;
 
-
     public Microcloud(Cloud cloud) {
         this(cloud, ExecutorServices.newSingleThreadScheduledExecutor());
     }
-    
+
     public Microcloud(Cloud cloud, ScheduledExecutorService executor) {
         this.cloud = cloud;
         this.cloud.addListener(new Cloud.Listener() {
@@ -78,11 +77,11 @@ public class Microcloud {
     public void process(Message message) {
         cloud.process(message);
     }
-    
+
     public Listener addListener(Listener listener) {
         return cloud.addListener(listener);
     }
-    
+
     public void removeListener(Listener listener) {
         cloud.removeListener(listener);
     }
@@ -128,9 +127,9 @@ public class Microcloud {
         agent.leave();
     }
 
-    private void doProcess(Message message) throws MsnosException {
+    private void doProcess(Message message) throws MsnosException {        
         log.debug("Handling message {}", message);
-        switch(message.getType()) {
+        switch (message.getType()) {
             case QNE:
                 processQNE(message);
                 break;
@@ -146,7 +145,18 @@ public class Microcloud {
             default:
                 break;
         }
+        
+        enquiryMicroserviceIfUnknown(message);
     }
+
+    private void enquiryMicroserviceIfUnknown(Message message) throws MsnosException {
+        final Iden from = message.getFrom();
+        if (from.getType() == Iden.Type.AGT && message.getType() != PRS)
+            if (!remoteServices.containsKey(from)) {
+                log.warn("Enquiring unknown microservice {}", from);
+                send(new MessageBuilder(Message.Type.ENQ, cloud, from).make());
+            }
+   }
 
     private void processHealthcheck(Message message) {
         final HealthcheckPayload payload = ((HealthcheckPayload) message.getData());
@@ -156,15 +166,13 @@ public class Microcloud {
             if (!cloud.containsAgent(iden) && !passiveServices.containsKey(iden)) {
                 log.warn("Received a health status message about service {} not present in the cloud", iden);
             }
- 
             return;
         }
-        
+
         if (payload.isWorking()) {
             log.debug("Marking remote {} as working after cloud message received", remote);
             remote.markWorking();
-        }
-        else {
+        } else {
             log.info("Marking remote {} as faulty after cloud message received", remote);
             remote.markFaulty();
         }
@@ -189,7 +197,7 @@ public class Microcloud {
             }
 
             registerRemoteMsnosEndpoints(remote);
-            
+
             apis.register(remote);
         }
     }
@@ -226,16 +234,29 @@ public class Microcloud {
         Message message = new MessageBuilder(QNE, agent, cloud).with(new QnePayload(microservice.getName(), apis)).make();
         cloud.send(message);
 
-        sendUpdateIfPublishingMsnosApi(agent, apis);
+        handleMsnosApis(microservice, apis);
     }
 
-    private void sendUpdateIfPublishingMsnosApi(LocalAgent agent, RestApi... apis) throws MsnosException {
+    private void handleMsnosApis(Microservice microservice, RestApi... apis) throws MsnosException {
+        Set<RestApi> msnosApis = new HashSet<RestApi>();
         for (RestApi api : apis) {
             if (api.getType() == Type.MSNOS_HTTP) {
-                cloud.send(new MessageBuilder(PRS, agent, cloud).with(new Presence(true)).make());
-                break;
+                msnosApis.add(api);
             }
         }
+
+        if (msnosApis.size() == 0)
+            return;
+
+        final LocalAgent agent = microservice.getAgent();
+        msnosApis = RestApi.ensureHostIsPresent(agent, msnosApis);
+        log.debug("Registering msnos apis {} for agent {}", msnosApis, agent.getIden().getUUID());
+        
+        for (RestApi api : msnosApis) {
+           cloud.registerLocalMsnosEndpoint(new HttpEndpoint(microservice, api));
+        }
+
+        cloud.send(new MessageBuilder(PRS, agent, cloud).with(new Presence(true, agent)).make());
     }
 
     void onJoin(PassiveService passive) throws MsnosException {
@@ -247,13 +268,12 @@ public class Microcloud {
     }
 
     void publish(PassiveService passiveService, RestApi... apis) throws MsnosException {
-        if (!passiveServices.containsKey(passiveService.getUuid())) 
+        if (!passiveServices.containsKey(passiveService.getUuid()))
             throw new IllegalArgumentException("Cannot publish passive restApis that are from services which are not joined to the Cloud! ");
-            
+
         PassiveAgent agent = passiveService.getAgent();
         Message message = new MessageBuilder(Message.Type.QNE, agent, cloud).with(new QnePayload(passiveService.getName(), apis)).make();
 
         cloud.send(message);
     }
-
 }

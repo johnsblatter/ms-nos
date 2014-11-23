@@ -67,7 +67,7 @@ public class WireJsonSerializerTest {
 
     @Test
     public void shouldBeAbleToEncodeAndDecodeMessage() throws Exception {
-        Message source = new MessageBuilder(Message.Type.PRS, localAgent, remoteAgent).with(new Presence(true)).make();
+        Message source = new MessageBuilder(Message.Type.PRS, localAgent, remoteAgent).with(new Presence(true, localAgent)).make();
 
         byte[] data = sz.toBytes(source);
         Message decoded = sz.fromBytes(data, Message.class);

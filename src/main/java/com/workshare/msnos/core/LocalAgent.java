@@ -6,6 +6,7 @@ import static com.workshare.msnos.core.Message.Type.PIN;
 import java.util.Collections;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.slf4j.Logger;
@@ -23,23 +24,24 @@ public class LocalAgent implements Agent {
 
     private final Iden iden;
     private final AtomicLong seq;
+    private final Set<Endpoint> endpoints;
 
     private Cloud cloud;
     private Listener listener;
-    private Set<Endpoint> endpoints;
 
     public LocalAgent(UUID uuid) {
-        Iden iden = new Iden(Iden.Type.AGT, uuid);
-        validate(iden);
+        this(new Iden(Iden.Type.AGT, uuid), Collections.<Endpoint>emptySet());
+    }
 
+    private LocalAgent(Iden iden, Set<Endpoint> endpoints) {
         this.iden = iden;
         this.seq = new AtomicLong(SystemTime.asMillis());
-        this.endpoints = Collections.emptySet();
+        this.endpoints = new CopyOnWriteArraySet<Endpoint>(endpoints); 
     }
 
     @Override
     public Set<Endpoint> getEndpoints() {
-        return endpoints;
+        return Collections.unmodifiableSet(endpoints);
     }
 
     @Override
@@ -77,7 +79,7 @@ public class LocalAgent implements Agent {
                 process(message);
             }
         });
-        this.endpoints = Gateways.endpoints();
+        this.endpoints.addAll(Gateways.allPublicEndpoints());
         return this;
     }
 
@@ -96,8 +98,8 @@ public class LocalAgent implements Agent {
         return cloud.send(message);
     }
 
-    private void validate(Iden iden) {
-        if (iden == null || iden.getType() != Iden.Type.AGT) throw new IllegalArgumentException("Invalid iden");
+    void registerEndpoint(Endpoint newEndpoint) {
+        endpoints.add(newEndpoint);
     }
 
     private void process(Message message) {
@@ -116,7 +118,7 @@ public class LocalAgent implements Agent {
     private void processDiscovery(Message message) {
         log.debug("Processing discovery: {}", message);
         try {
-            send(new MessageBuilder(Message.Type.PRS, this, cloud).with(new Presence(true)).make());
+            send(new MessageBuilder(Message.Type.PRS, this, cloud).with(new Presence(true, this)).make());
         } catch (MsnosException e) {
             log.warn("Could not send message. ", e);
         }
@@ -149,4 +151,5 @@ public class LocalAgent implements Agent {
     public int hashCode() {
         return iden.hashCode();
     }
+
 }
