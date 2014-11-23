@@ -249,6 +249,16 @@ public class CloudTest {
     }
 
     @Test
+    public void shouldForwardAnyMessageSentToSameCloudUsingSpecificIden() throws Exception {
+        Iden iden = thisCloud.getIden();
+        Iden thisCloudSpecificIden = new Iden(iden.getType(), iden.getUUID(), 1234L);
+        
+        simulateMessageFromNetwork(newMessage(APP, SOMEONE, thisCloudSpecificIden));
+
+        assertEquals(1, receivedMessages.size());
+    }
+
+    @Test
     public void shouldNOTForwardAnyMessageSentFromALocalAgent() throws Exception {
         LocalAgent karl = new LocalAgent(UUID.randomUUID());
         karl.join(thisCloud);
@@ -589,8 +599,22 @@ public class CloudTest {
     @Test 
     public void shouldRegisterMsnosEndpointsOnHttpGateway() throws Exception {
         HttpEndpoint endpoint = mock(HttpEndpoint.class);
-        thisCloud.registerMsnosEndpoint(endpoint);
+        when(endpoint.getTarget()).thenReturn(new Iden(Iden.Type.AGT, UUID.randomUUID()));
+        thisCloud.registerRemoteMsnosEndpoint(endpoint);
         verify(httpGate.endpoints()).install(endpoint);
+    }
+
+    @Test 
+    public void shouldRegisterMsnosEndpointsOnRemoteAgent() throws Exception {
+        RemoteAgent frank = newRemoteAgent(thisCloud);
+        simulateAgentJoiningCloud(frank, thisCloud);
+
+        HttpEndpoint endpoint = mock(HttpEndpoint.class);
+        when(endpoint.getTarget()).thenReturn(frank.getIden());
+        thisCloud.registerRemoteMsnosEndpoint(endpoint);
+
+        RemoteAgent agent = thisCloud.getRemoteAgents().iterator().next();
+        assertTrue(agent.getEndpoints().contains(endpoint));
     }
 
     @Test 

@@ -14,6 +14,7 @@ import com.workshare.msnos.core.MsnosException.Code;
 import com.workshare.msnos.core.protocols.ip.Endpoint;
 import com.workshare.msnos.core.protocols.ip.HttpClientFactory;
 import com.workshare.msnos.core.protocols.ip.MulticastSocketFactory;
+import com.workshare.msnos.core.protocols.ip.http.HttpGateway;
 import com.workshare.msnos.core.protocols.ip.udp.UDPGateway;
 import com.workshare.msnos.core.protocols.ip.udp.UDPServer;
 import com.workshare.msnos.core.protocols.ip.www.WWWGateway;
@@ -32,6 +33,7 @@ public class Gateways {
 	        all = new LinkedHashSet<Gateway>();
 			addGateway(buildUDPGateway());
             addGateway(buildWWWGateway());
+            addGateway(buildHttpGateway());
 
             if (all.size() == 0)
                 throw new MsnosException("Unable to create at least one gateway", Code.UNRECOVERABLE_FAILURE);
@@ -42,7 +44,7 @@ public class Gateways {
 		return all;
 	}
 	
-	public synchronized static Set<Endpoint> endpoints() throws MsnosException {
+    public synchronized static Set<Endpoint> endpoints() throws MsnosException {
         HashSet<Endpoint> points = new HashSet<Endpoint>();
 	    for (Gateway gate : all()) {
             points.addAll(gate.endpoints().all());
@@ -76,6 +78,10 @@ public class Gateways {
                 }
             }
 		});
+    }
+
+    private static Gateway buildHttpGateway() {
+        return new HttpGateway(newHttpClient());
     }
 
     private static UDPGateway buildUDPGateway() {

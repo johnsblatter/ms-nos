@@ -16,6 +16,7 @@ import com.workshare.msnos.soup.json.ThreadSafeGson;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.Reader;
 import java.lang.reflect.Type;
 import java.nio.charset.Charset;
 import java.util.UUID;
@@ -37,6 +38,11 @@ public class WireJsonSerializer implements WireSerializer {
     @Override
     public String toText(Object anyObject) {
         return gson.toJson(anyObject);
+    }
+
+    @Override
+    public <T> T fromReader(Reader reader, Class<T> clazz) {
+        return gson.fromReader(reader, clazz);
     }
 
     @Override
@@ -247,6 +253,9 @@ public class WireJsonSerializer implements WireSerializer {
                         break;
                     case FLT:
                         data = (Payload) gson.fromJsonTree(dataJson, FltPayload.class);
+                        break;
+                    case HCK:
+                        data = (Payload) gson.fromJsonTree(dataJson, HealthcheckPayload.class);
                         break;
                     default:
                         data = (dataJson == null ? NullPayload.INSTANCE : new GenericPayload(dataJson));

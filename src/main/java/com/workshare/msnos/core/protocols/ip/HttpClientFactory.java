@@ -48,23 +48,23 @@ public class HttpClientFactory {
         return httpClient;
     }
 
-    private static String getHttpUserAgent() {
+    public static String getHttpUserAgent() {
         return System.getProperty("com.ws.nsnos.http.user-agent", "com.msnos.client-v1.0");
     }
 
-    private static int getHttpSocketTimeout() {
+    public static int getHttpSocketTimeout() {
         return Integer.getInteger("com.ws.nsnos.http.timeout.socket", 10000);
     }
 
-    private static int getHttpConnectTimeout() {
+    public static int getHttpConnectTimeout() {
         return Integer.getInteger("com.ws.nsnos.http.timeout.connection", 10000);
     }
 
-    private static int getHttpMaxTotalConnections() {
+    public static int getHttpMaxTotalConnections() {
         return Integer.getInteger("com.ws.nsnos.http.max.total.connection.num", 200);
     }
     
-    private static int getHttpMaxDefaultConnectionsPerRoute() {
+    public static int getHttpMaxDefaultConnectionsPerRoute() {
         return Integer.getInteger("com.ws.nsnos.http.max.route.connection.num", 200);
     }
 

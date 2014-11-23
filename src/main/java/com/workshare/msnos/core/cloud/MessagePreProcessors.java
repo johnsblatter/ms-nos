@@ -15,11 +15,31 @@ public class MessagePreProcessors {
 
     private static final Logger log = LoggerFactory.getLogger(MessagePreProcessors.class);
 
+    public static class Result {
+        private final boolean success;
+        private final String reason;
+
+        public Result(boolean success, String reason) {
+            super();
+            this.success = success;
+            this.reason = reason;
+        }
+
+        public boolean success() {
+            return success;
+        }
+
+        public String reason() {
+            return reason;
+        }
+    }
+    
     public static interface MessagePreProcessor {
-        public boolean isValid(Message message)
-        ;
+        public Result isValid(Message message);
     }
 
+    private static final Result SUCCESS = new Result(true, null);
+    
     private final Cloud.Internal cloud;
     private final List<MessagePreProcessor> validators;
 
@@ -34,23 +54,24 @@ public class MessagePreProcessors {
         validators.add(shouldHaveValidSignature());
     }
 
-    public boolean isValid(Message message) {
+    public Result isValid(Message message) {
         for (MessagePreProcessor validator : validators) {
-            if (!validator.isValid(message)) {
+            final Result result = validator.isValid(message);
+            if (!result.success()) {
                 log.debug("Message validation failed: {} - message: {}", validator, message);
-                return false;
+                return result;
             }
         }
         
-        return true;
+        return SUCCESS;
     }
 
     private MessagePreProcessor shouldHaveValidSignature() {
         return new AbstractMessageValidator("signature is not valid") {
             @Override
-            public boolean isValid(Message message) {
+            public Result isValid(Message message) {
                 Message signed = cloud.sign(message);
-                return parseNull(message.getSig()).equals(parseNull(signed.getSig()));
+                return asResult(parseNull(message.getSig()).equals(parseNull(signed.getSig())));
             }
             
             private String parseNull(String signature) {
@@ -61,12 +82,12 @@ public class MessagePreProcessors {
     private MessagePreProcessor shouldBeInSequence() {
         return new AbstractMessageValidator("out of sequence") {
             @Override
-            public boolean isValid(Message message) {
+            public Result isValid(Message message) {
                 RemoteEntity remote = getRemote(message);
                 if (remote == null) 
-                    return true;
+                    return SUCCESS;
                 else    
-                    return remote.accept(message);
+                    return asResult(remote.accept(message));
             }
 
             private RemoteEntity getRemote(Message message) {
@@ -98,33 +119,40 @@ public class MessagePreProcessors {
     private MessagePreProcessor shouldNotBeAddressedToAnotherCloud() {
         return new AbstractMessageValidator("addressed to another cloud") {
             @Override
-            public boolean isValid(Message message) {
+            public Result isValid(Message message) {
                 final Iden to = message.getTo();
-                return to.equals(cloud.cloud().getIden()) || cloud.localAgents().containsKey(to);        
+                boolean success = to.equalsAsIdens(cloud.cloud().getIden()) || cloud.localAgents().containsKey(to);
+                return asResult(success);
             }};
     }
 
     private MessagePreProcessor shouldNotBeAddressedToRemoteAgent() {
         return new AbstractMessageValidator("addressed to a remote agent") {
             @Override
-            public boolean isValid(Message message) {
-                return !cloud.remoteAgents().containsKey(message.getTo());
+            public Result isValid(Message message) {
+                return asResult(!cloud.remoteAgents().containsKey(message.getTo()));
             }};
     }
 
     private MessagePreProcessor shouldNotComeFromLocalAgent() {
         return new AbstractMessageValidator("coming from local agent") {
             @Override
-            public boolean isValid(Message message) {
-                return !cloud.localAgents().containsKey(message.getFrom());
+            public Result isValid(Message message) {
+                return asResult(!cloud.localAgents().containsKey(message.getFrom()));
             }};
     }
 
     abstract class AbstractMessageValidator implements MessagePreProcessor {
-        private String message;
+        protected final String message;
+        protected final Result failure;
 
         AbstractMessageValidator(String message) {
             this.message = message;
+            this.failure = new Result(false, message);
+        }
+        
+        public Result asResult(boolean success) {
+            return success ? SUCCESS : failure;
         }
         
         @Override

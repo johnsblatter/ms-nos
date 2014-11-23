@@ -16,6 +16,8 @@ import com.workshare.msnos.core.Cloud;
 import com.workshare.msnos.core.Gateway;
 import com.workshare.msnos.core.LocalAgent;
 import com.workshare.msnos.core.Message;
+import com.workshare.msnos.core.Message.Payload;
+import com.workshare.msnos.core.Iden;
 import com.workshare.msnos.core.MessageBuilder;
 import com.workshare.msnos.core.NoopGateway;
 import com.workshare.msnos.core.RemoteAgent;
@@ -23,6 +25,7 @@ import com.workshare.msnos.core.RemoteEntity;
 import com.workshare.msnos.core.Version;
 import com.workshare.msnos.core.cloud.JoinSynchronizer;
 import com.workshare.msnos.core.payloads.FltPayload;
+import com.workshare.msnos.core.payloads.HealthcheckPayload;
 import com.workshare.msnos.core.payloads.Presence;
 import com.workshare.msnos.core.payloads.QnePayload;
 import com.workshare.msnos.core.protocols.ip.Endpoint;
@@ -37,6 +40,8 @@ public class WireJsonSerializerTest {
 
     private static final UUID CLOUD_UUID = UUID.randomUUID();
     private static final Long CLOUD_INSTANCE_ID = 1274L;
+
+    private static final Iden A_CLOUD_IDEN = new Iden(Iden.Type.CLD, UUID.randomUUID());
 
     private static final Network SAMPLE_NETWORK = new Network(new byte[]{10,10,10,1}, (short)25);
 
@@ -121,7 +126,7 @@ public class WireJsonSerializerTest {
 
     @Test
     public void shouldCorrectlyDeserializeFLTMessage() throws Exception {
-        Message source = new MessageBuilder(MessageBuilder.Mode.RELAXED, Message.Type.FLT, cloud.getIden(), cloud.getIden()).with(new FltPayload(localAgent.getIden())).with(UUID.randomUUID()).make();
+        Message source = new MessageBuilder(MessageBuilder.Mode.RELAXED, Message.Type.FLT, A_CLOUD_IDEN, A_CLOUD_IDEN).with(new FltPayload(localAgent.getIden())).with(UUID.randomUUID()).make();
 
         byte[] data = sz.toBytes(source);
         Message decoded = sz.fromBytes(data, Message.class);
@@ -174,6 +179,18 @@ public class WireJsonSerializerTest {
         Endpoint current = sz.fromText(sz.toText(expected), Endpoint.class);
         assertEquals(expected, current);
     }
+
+    @Test
+    public void shouldCorrectlyDeserializeHCKMessage() throws Exception {
+        Payload payload = new HealthcheckPayload(localAgent, true);
+        Message source = new MessageBuilder(MessageBuilder.Mode.RELAXED, Message.Type.HCK, A_CLOUD_IDEN, A_CLOUD_IDEN).with(payload).with(UUID.randomUUID()).make();
+
+        byte[] data = sz.toBytes(source);
+        Message decoded = sz.fromBytes(data, Message.class);
+
+        assertEquals(source.getData(), decoded.getData());
+    }
+
 
     private String toShortString(UUID uuid) {
         return uuid.toString().replaceAll("-", "");

@@ -2,8 +2,10 @@ package com.workshare.msnos.core;
 
 import com.workshare.msnos.core.cloud.*;
 import com.workshare.msnos.core.cloud.JoinSynchronizer.Status;
+import com.workshare.msnos.core.cloud.MessagePreProcessors.Result;
 import com.workshare.msnos.core.payloads.FltPayload;
 import com.workshare.msnos.core.payloads.Presence;
+import com.workshare.msnos.core.protocols.ip.Endpoint;
 import com.workshare.msnos.core.protocols.ip.HttpEndpoint;
 import com.workshare.msnos.core.protocols.ip.http.HttpGateway;
 import com.workshare.msnos.core.security.Signer;
@@ -17,6 +19,7 @@ import java.io.IOException;
 import java.security.SecureRandom;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ScheduledExecutorService;
@@ -122,6 +125,10 @@ public class Cloud implements Identifiable {
         return iden;
     }
 
+    public boolean containsAgent(Iden iden) {
+        return remoteAgents.containsKey(iden) || localAgents.containsKey(iden);
+    }
+    
     public Long getNextSequence() {
         return seq.incrementAndGet();
     }
@@ -141,7 +148,7 @@ public class Cloud implements Identifiable {
     public Receipt send(Message message) throws MsnosException {
         checkCloudAlive();
 
-        proto.info("TX: {} {} {} {}", message.getType(), message.getFrom(), message.getTo(), message.getData());
+        logTX(message);
 
         Message signed = sign(message);
         MultiGatewayReceipt res = new MultiGatewayReceipt(signed);
@@ -201,15 +208,16 @@ public class Cloud implements Identifiable {
     }
 
     public void process(Message message) {
-        if (validators.isValid(message)) {
-            proto.info("RX: {} {} {} {}", message.getType(), message.getFrom(), message.getTo(), message.getData());
+        Result result = validators.isValid(message);
+        if (result.success()) {
+            logRX(message);
 
             message.getData().process(message, internal);
             caster.dispatch(message);
 
             postProcess(message);
         } else {
-            proto.debug("NN: {} {} {} {}", message.getType(), message.getFrom(), message.getTo(), message.getData());
+            logNN(message, result.reason());
         }
     }
 
@@ -233,10 +241,11 @@ public class Cloud implements Identifiable {
             caster.dispatch(new MessageBuilder(Message.Type.FLT, this, this).with(new FltPayload(agent.getIden())).make());
     }
 
-    public void registerMsnosEndpoint(HttpEndpoint endpoint) throws MsnosException {
+    public void registerRemoteMsnosEndpoint(HttpEndpoint endpoint) throws MsnosException {
         for (Gateway gate : gates) {
             if (gate instanceof HttpGateway) {
                 gate.endpoints().install(endpoint);
+                updateRemoteAgent(endpoint);
                 endpoint = null;
             }
         }
@@ -246,6 +255,20 @@ public class Cloud implements Identifiable {
         }
     }
     
+    private void updateRemoteAgent(HttpEndpoint endpoint) {
+        RemoteAgent agent = remoteAgents.get(endpoint.getTarget());
+        if (agent == null) {
+            log.warn("Weird... a remote agent registered an httpendpoint, but I do not know him");
+            return;
+        }
+
+        Set<Endpoint> endpoints = new HashSet<Endpoint>();
+        endpoints.addAll(agent.getEndpoints());
+        endpoints.add(endpoint);
+        remoteAgents.add(agent.with(endpoints));
+        log.warn("Agent {} updated, new endpoints are {}", agent, endpoints);
+    }
+
     private Message sign(Message message) {
         if (signid == null)
             return message;
@@ -267,5 +290,53 @@ public class Cloud implements Identifiable {
         }
         return remoteAgent;
     }
+
+    private void logTX(Message msg) {
+        if (!proto.isInfoEnabled())
+            return;
+        
+        final String muid = shorten(msg.getUuid());
+        final String payload = Json.toJsonString(msg.getData());
+        final String mseq = shorten(msg.getSequence());
+        proto.info("TX: {} {} {} {} {} {}", msg.getType(), muid, mseq, msg.getFrom(), msg.getTo(), payload);
+    }
+
+    private void logNN(Message msg, String cause) {
+        if (!proto.isDebugEnabled())
+            return;
+        
+        final String muid = shorten(msg.getUuid());
+        final String payload = Json.toJsonString(msg.getData());
+        final String mseq = shorten(msg.getSequence());
+
+        Iden from = msg.getFrom();
+        if (localAgents.containsKey(from))
+            proto.trace("NN: {} {} {} {} {} {} {}", msg.getType(), muid, mseq, msg.getFrom(), msg.getTo(), payload, cause);
+        else
+            proto.debug("NN: {} {} {} {} {} {} {}", msg.getType(), muid, mseq, msg.getFrom(), msg.getTo(), payload, cause);
+    }
+
+    private void logRX(Message msg) {
+        if (!proto.isInfoEnabled())
+            return;
+        
+        final String muid = shorten(msg.getUuid());
+        final String payload = Json.toJsonString(msg.getData());
+        final String mseq = shorten(msg.getSequence());
+        proto.info("RX: {} {} {} {} {} {}", msg.getType(), muid, mseq, msg.getFrom(), msg.getTo(), payload);
+    }
+
+    private String shorten(long number) {
+        final String s = String.format("%08d", number);
+        final int l = s.length();
+        return s.substring(l-5, l);
+    }
+
+    private String shorten(UUID uuid) {
+        final String s = uuid.toString();
+        final int l = s.length();
+        return s.substring(l-8, l);
+    }
+
 }
 

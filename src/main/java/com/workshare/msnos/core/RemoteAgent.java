@@ -46,4 +46,8 @@ public class RemoteAgent extends RemoteEntity implements Agent {
     public int hashCode() {
         return getIden().hashCode();
     }
+
+    public RemoteAgent with(Set<Endpoint> newEndpoints) {
+        return new RemoteAgent(getIden().getUUID(), getCloud(), newEndpoints);
+    }
 }

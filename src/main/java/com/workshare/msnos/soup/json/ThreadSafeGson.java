@@ -1,10 +1,18 @@
 package com.workshare.msnos.soup.json;
 
-import com.google.gson.*;
-import com.workshare.msnos.core.LocalAgent;
-import com.workshare.msnos.core.Cloud;
-
+import java.io.Reader;
 import java.lang.reflect.Type;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonPrimitive;
+import com.google.gson.JsonSerializationContext;
+import com.google.gson.JsonSerializer;
+import com.workshare.msnos.core.Cloud;
+import com.workshare.msnos.core.LocalAgent;
 
 public class ThreadSafeGson {
     private final ThreadLocal<Gson> threadSafeGson = new ThreadLocal<Gson>() {
@@ -56,6 +64,10 @@ public class ThreadSafeGson {
 
     public final <T> T fromJsonTree(JsonElement json, Type typeOfT) {
         return gson().fromJson(json, typeOfT);
+    }
+
+    public final <T> T fromReader(Reader reader, Type typeOfT) {
+        return gson().fromJson(reader, typeOfT);
     }
 
     public Gson gson() {

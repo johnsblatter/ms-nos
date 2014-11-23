@@ -30,13 +30,16 @@ import com.workshare.msnos.core.payloads.QnePayload;
 import com.workshare.msnos.core.protocols.ip.HttpEndpoint;
 import com.workshare.msnos.soup.threading.ExecutorServices;
 import com.workshare.msnos.usvc.api.RestApi;
+import com.workshare.msnos.usvc.api.RestApi.Type;
 import com.workshare.msnos.usvc.api.routing.ApiRepository;
+
+import static com.workshare.msnos.core.Message.Type.*;
 
 public class Microcloud {
 
     private static final Logger log = LoggerFactory.getLogger("STANDARD");
 
-    private final Map<Iden, RemoteMicroservice> microServices;
+    private final Map<Iden, RemoteMicroservice> remoteServices;
     private final Map<UUID, PassiveService> passiveServices;
     private final ApiRepository apis;
     private final Healthchecker healthcheck;
@@ -60,7 +63,7 @@ public class Microcloud {
             }
         });
 
-        microServices = new ConcurrentHashMap<Iden, RemoteMicroservice>();
+        remoteServices = new ConcurrentHashMap<Iden, RemoteMicroservice>();
         passiveServices = new ConcurrentHashMap<UUID, PassiveService>();
         apis = new ApiRepository();
 
@@ -105,7 +108,7 @@ public class Microcloud {
     }
 
     public List<RemoteMicroservice> getMicroServices() {
-        return Collections.unmodifiableList(new ArrayList<RemoteMicroservice>(microServices.values()));
+        return Collections.unmodifiableList(new ArrayList<RemoteMicroservice>(remoteServices.values()));
     }
 
     public List<PassiveService> getPassiveServices() {
@@ -146,10 +149,14 @@ public class Microcloud {
     }
 
     private void processHealthcheck(Message message) {
-        HealthcheckPayload payload = ((HealthcheckPayload) message.getData());
-        RemoteMicroservice remote = microServices.get(payload.getIden());
+        final HealthcheckPayload payload = ((HealthcheckPayload) message.getData());
+        final Iden iden = payload.getIden();
+        final RemoteMicroservice remote = remoteServices.get(iden);
         if (remote == null) {
-            log.warn("Received a health status message on service {} not present in the cloud", payload.getIden());
+            if (!cloud.containsAgent(iden) && !passiveServices.containsKey(iden)) {
+                log.warn("Received a health status message about service {} not present in the cloud", iden);
+            }
+ 
             return;
         }
         
@@ -173,25 +180,25 @@ public class Microcloud {
             RemoteMicroservice remote;
             Iden remoteKey = remoteAgent.getIden();
 
-            if (microServices.containsKey(remoteKey)) {
-                remote = microServices.get(remoteKey);
+            if (remoteServices.containsKey(remoteKey)) {
+                remote = remoteServices.get(remoteKey);
                 remote.setApis(qnePayload.getApis());
             } else {
                 remote = new RemoteMicroservice(qnePayload.getName(), remoteAgent, new HashSet<RestApi>(qnePayload.getApis()));
-                microServices.put(remoteKey, remote);
+                remoteServices.put(remoteKey, remote);
             }
 
-            registerMsnosEndpoints(remote);
+            registerRemoteMsnosEndpoints(remote);
             
             apis.register(remote);
         }
     }
 
-    private void registerMsnosEndpoints(RemoteMicroservice remote) throws MsnosException {
+    private void registerRemoteMsnosEndpoints(RemoteMicroservice remote) throws MsnosException {
         Set<RestApi> remoteApis = remote.getApis();
         for (RestApi restApi : remoteApis) {
             if (restApi.getType() == RestApi.Type.MSNOS_HTTP)
-                cloud.registerMsnosEndpoint(new HttpEndpoint(remote, restApi));
+                cloud.registerRemoteMsnosEndpoint(new HttpEndpoint(remote, restApi));
         }
     }
 
@@ -207,17 +214,28 @@ public class Microcloud {
     }
 
     private void removeMicroservice(Iden about) {
-        if (microServices.containsKey(about)) {
-            apis.unregister(microServices.get(about));
-            microServices.remove(about);
+        if (remoteServices.containsKey(about)) {
+            apis.unregister(remoteServices.get(about));
+            remoteServices.remove(about);
         }
     }
 
     void publish(Microservice microservice, RestApi... apis) throws MsnosException {
         LocalAgent agent = microservice.getAgent();
-        Message message = new MessageBuilder(Message.Type.QNE, agent, cloud).with(new QnePayload(microservice.getName(), apis)).make();
 
+        Message message = new MessageBuilder(QNE, agent, cloud).with(new QnePayload(microservice.getName(), apis)).make();
         cloud.send(message);
+
+        sendUpdateIfPublishingMsnosApi(agent, apis);
+    }
+
+    private void sendUpdateIfPublishingMsnosApi(LocalAgent agent, RestApi... apis) throws MsnosException {
+        for (RestApi api : apis) {
+            if (api.getType() == Type.MSNOS_HTTP) {
+                cloud.send(new MessageBuilder(PRS, agent, cloud).with(new Presence(true)).make());
+                break;
+            }
+        }
     }
 
     void onJoin(PassiveService passive) throws MsnosException {

@@ -43,15 +43,39 @@ public class Iden {
 
     @Override
     public int hashCode() {
-        return this.uuid.hashCode();
+        final int prime = 31;
+        int result = 1;
+        result = prime * result + ((suid == null) ? 0 : suid.hashCode());
+        result = prime * result + ((type == null) ? 0 : type.hashCode());
+        result = prime * result + ((uuid == null) ? 0 : uuid.hashCode());
+        return result;
     }
 
+    @Override
     public boolean equals(Object o) {
         try {
             Iden other = (Iden) o;
-            return this.type == other.type && this.uuid.equals(other.uuid);
+            return this.type == other.type && areEquals(this.uuid, other.uuid) && areEquals(this.suid, other.suid);
         } catch (Exception ignore) {
             return false;
         }
+    }
+    
+    public boolean equalsAsIdens(Object o) {
+        try {
+            Iden other = (Iden) o;
+            return this.type == other.type && areEquals(this.uuid, other.uuid);
+        } catch (Exception ignore) {
+            return false;
+        }
+    }
+    
+    private boolean areEquals(Object o1, Object o2) {
+        if (o1 == o2)
+            return true;
+        else if (o1 == null || o2 == null)
+            return false;
+        else 
+            return o1.equals(o2);
     }
 } 

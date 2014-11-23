@@ -9,12 +9,13 @@ public class RemoteEntity implements Identifiable {
     private final Iden iden;
     private final Cloud cloud;
     private final AtomicLong sequencer;
-    private long accessTime;
+    private final AtomicLong accessTime;
 
     public RemoteEntity(Iden iden, Cloud cloud) {
         this.iden = iden;
         this.cloud = cloud;
         this.sequencer = new AtomicLong();
+        this.accessTime = new AtomicLong();
     }
 
     public Iden getIden() {
@@ -39,10 +40,10 @@ public class RemoteEntity implements Identifiable {
     }
 
     public long getAccessTime() {
-        return accessTime;
+        return accessTime.longValue();
     }
 
     public void touch() {
-        this.accessTime = SystemTime.asMillis();
+        this.accessTime.set(SystemTime.asMillis());
     }
 }

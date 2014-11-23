@@ -103,10 +103,6 @@ public class HttpGateway implements Gateway {
     }
 
     private void consume(HttpResponse res)  {
-        try {
-            EntityUtils.consume(res.getEntity());
-        } catch (IOException ex) {
-            log.warn("Unexpected exception consuming response entity", res);
-        }
+        EntityUtils.consumeQuietly(res.getEntity());
     }
 }

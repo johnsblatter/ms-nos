@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory;
 import com.workshare.msnos.core.Message;
 import com.workshare.msnos.core.MessageBuilder;
 import com.workshare.msnos.core.payloads.HealthcheckPayload;
+import com.workshare.msnos.core.protocols.ip.HttpClientFactory;
 import com.workshare.msnos.soup.time.SystemTime;
 import com.workshare.msnos.usvc.api.RestApi;
 import com.workshare.msnos.usvc.api.RestApi.Type;
@@ -23,13 +24,11 @@ public class Healthchecker {
 
     public static final String SYSP_CHECK_PERIOD = "msnos.usvc.health.check.time";
     public static final String SYSP_ENQ_PERIOD = "msnos.usvc.health.enq.period";
-    public static final String SYSP_TIMEOUT_CONN = "msnos.usvc.health.connection.timeout.open";
-    public static final String SYSP_TIMEOUT_READ = "msnos.usvc.health.connection.timeout.read";
     
     public static final long CHECK_PERIOD = Long.getLong(SYSP_CHECK_PERIOD, 60000L);
     public static final long ENQ_PERIOD = Long.getLong(SYSP_ENQ_PERIOD, 5*CHECK_PERIOD);
-    public static final int TIMEOUT_CONN = Integer.getInteger(SYSP_TIMEOUT_CONN, 30000);
-    public static final int TIMEOUT_READ = Integer.getInteger(SYSP_TIMEOUT_READ, 120000);
+    public static final int TIMEOUT_CONN = HttpClientFactory.getHttpConnectTimeout();
+    public static final int TIMEOUT_READ = HttpClientFactory.getHttpSocketTimeout();
 
     private final Microcloud microcloud;
     private final ScheduledExecutorService scheduler;
