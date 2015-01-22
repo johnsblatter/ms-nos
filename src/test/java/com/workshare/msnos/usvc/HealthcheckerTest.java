@@ -210,7 +210,7 @@ public class HealthcheckerTest {
 
     private void setupHealthcheck(final int code) throws IOException {
         setupNOHealthcheck();
-        HttpContext context = httpServer.createContext("/content/files/");
+        HttpContext context = httpServer.createContext("/foo/");
         context.setHandler(new HttpHandler() {
             @Override
             public void handle(HttpExchange httpExchange) throws IOException {

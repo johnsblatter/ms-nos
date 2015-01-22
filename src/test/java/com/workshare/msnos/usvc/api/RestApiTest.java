@@ -24,4 +24,10 @@ public class RestApiTest {
         assertNotEquals(one, two);
     }
     
+    @Test
+    public void shouldGetUrlWorkAsExpected() {
+        assertEquals("http://host:8888/path", new RestApi("name", "path", 8888, "host").getUrl());
+        assertEquals("http://host:8888/path", new RestApi("name", "/path", 8888, "host").getUrl());
+    }
+    
 }

@@ -132,7 +132,12 @@ public class RestApi {
         if (hostname == null)
             hostname = "*";
         
-        return String.format("http://%s:%d/%s/%s/", hostname, getPort(), getName(), getPath());
+        String prefix = "";
+        String path = getPath();
+        if (!path.startsWith("/"))
+            prefix = "/";
+        
+        return String.format("http://%s:%d%s%s", hostname, getPort(), prefix, getPath());
     }
 
     public long getId() {

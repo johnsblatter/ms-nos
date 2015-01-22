@@ -20,7 +20,9 @@ public class ShutdownHooks {
     public static Set<Hook> hooks = Collections.<Hook> synchronizedSet(new TreeSet<Hook>(new Comparator<Hook>() {
         @Override
         public int compare(Hook h1, Hook h2) {
-            return Integer.compare(h2.priority(), h1.priority());
+            final int pri2 = h2.priority();
+            final int pri1 = h1.priority();
+            return (pri1 < pri2 ? -1 : (pri1 == pri2 ? 0 : 1));
         }
     }));
 

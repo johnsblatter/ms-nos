@@ -97,7 +97,10 @@ public class Healthchecker {
         try {
             HttpURLConnection connection = null;
             try {
-                connection = (HttpURLConnection) new URL(rest.getUrl()).openConnection();
+                final URL url = new URL(rest.getUrl());
+                log.debug("Healtcheck running agains url {}...", url);
+               
+                connection = (HttpURLConnection) url.openConnection();
                 connection.setConnectTimeout(TIMEOUT_CONN);
                 connection.setReadTimeout(TIMEOUT_READ);
                 connection.setRequestMethod("HEAD");
@@ -118,6 +121,7 @@ public class Healthchecker {
             log.warn("Unrecoverable exception while accessing remote microservice {} at URL {}: {}", remote.getName(), rest.getUrl(), toString(ex));
         }
         
+        log.debug("Remote microservice {} found faulty on healthcheck {} because of I/O issues", remote);
         return false;
     }
 

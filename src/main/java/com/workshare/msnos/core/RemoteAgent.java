@@ -16,6 +16,7 @@ public class RemoteAgent extends RemoteEntity implements Agent {
     public RemoteAgent(UUID uuid, Cloud cloud, Set<Endpoint> endpoints) {
         super(new Iden(Iden.Type.AGT, uuid), cloud);
         this.endpoints = toUnmodifiable(endpoints);
+        touch();
     }
 
     private Set<Endpoint> toUnmodifiable(Set<Endpoint> endpoints) {
