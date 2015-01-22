@@ -22,7 +22,7 @@ public class ShutdownHooks {
         public int compare(Hook h1, Hook h2) {
             final int pri2 = h2.priority();
             final int pri1 = h1.priority();
-            return (pri1 < pri2 ? -1 : (pri1 == pri2 ? 0 : 1));
+            return (pri1 < pri2 ? 1 : (pri1 == pri2 ? 0 : -1));
         }
     }));
 
@@ -35,11 +35,23 @@ public class ShutdownHooks {
         });
     }
 
-    public static void addHook(Hook hook) {
+    public static Hook addHook(Hook hook) {
+        log.debug("Adding hook: {}", hook.name());
         hooks.add(hook);
+        return hook;
     }
 
-    private static void onShutdown() {
+    public static void removeHook(Hook hook) {
+        log.debug("Removing hook: {}", hook.name());
+        hooks.remove(hook);
+    }
+    
+    public static void clearAll() {
+        log.warn("Removing ALL hooks - sure about that?");
+        hooks.clear();
+    }
+
+    static void onShutdown() {
         synchronized (hooks) {
             for (Hook hook : hooks) {
                 try {
@@ -48,7 +60,6 @@ public class ShutdownHooks {
                 } catch (Throwable ex) {
                     log.warn("Unexpected exception while running hook " + hook, ex);
                 }
-
             }
         }
 
