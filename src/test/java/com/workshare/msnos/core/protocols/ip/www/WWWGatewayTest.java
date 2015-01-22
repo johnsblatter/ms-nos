@@ -94,11 +94,12 @@ public class WWWGatewayTest {
     }
 
     @Test
-    public void shouldReturnAReceiptIOnSend() throws Exception {
+    public void shouldReturnAReceiptOnSend() throws Exception {
         Receipt receipt = gate.send(cloud, message(uuid1));
         assertNotNull(receipt);
         assertEquals(uuid1, receipt.getMessageUuid());
         assertEquals(Status.PENDING, receipt.getStatus());
+        assertEquals("WWW", receipt.getGate());
     }
 
     @Test

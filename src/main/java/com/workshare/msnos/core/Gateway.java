@@ -10,6 +10,8 @@ public interface Gateway {
         public void onMessage(Message message);
     }
 
+    public String name();
+
     public void addListener(Cloud cloud, Listener listener);
 
     public Endpoints endpoints();

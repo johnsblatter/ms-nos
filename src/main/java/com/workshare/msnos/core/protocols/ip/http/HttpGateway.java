@@ -41,7 +41,12 @@ public class HttpGateway implements Gateway {
         this.endpoints = new ConcurrentHashMap<Iden, HttpEndpoint>();
         this.serializer = new WireJsonSerializer();
     }
-    
+
+    @Override
+    public String name() {
+        return "HTTP";
+    }
+
     @Override
     public void addListener(Cloud cloud, Listener listener) {
     }
@@ -50,18 +55,22 @@ public class HttpGateway implements Gateway {
     public Receipt send(Cloud cloud, Message message) throws IOException {
         HttpEndpoint endpoint = endpoints.get(message.getTo());
         if (endpoint == null)
-            return new SingleReceipt(Status.FAILED, message);
+            return new SingleReceipt(this, Status.FAILED, message);
 
         try {
             HttpPost request = new HttpPost(endpoint.getUrl());
             request.setEntity(new StringEntity(serializer.toText(message)));
             HttpResponse res = client.execute(request);
             consume(res);
-            return new SingleReceipt(Status.DELIVERED, message);
+            return new SingleReceipt(this, Status.DELIVERED, message);
         }
         catch (IOException ex) {
-            log.warn("Unexpected exception sending message "+message+" to url "+endpoint.getUrl(), ex);
-            return new SingleReceipt(Status.FAILED, message);
+            if (log.isDebugEnabled())
+                log.debug("Unexpected exception sending message "+message+" to url "+endpoint.getUrl(), ex);
+            else
+                log.warn("Unexpected exception sending message "+message+" to url "+endpoint.getUrl());
+            
+            return new SingleReceipt(this, Status.FAILED, message);
         }
     }
 

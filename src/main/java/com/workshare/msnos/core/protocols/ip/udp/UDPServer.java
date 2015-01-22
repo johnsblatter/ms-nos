@@ -17,7 +17,8 @@ import java.util.logging.Logger;
 public class UDPServer {
 
     private static Logger logger = Logger.getLogger(UDPServer.class.getName());
-
+    private static final String THREAD_NAME = "UDP-Server";
+    
     private final ThreadFactory threads;
     private final Multicaster<Listener, Message> multicaster;
     private final WireSerializer sz;
@@ -57,16 +58,17 @@ public class UDPServer {
         });
 
         thread.setDaemon(true);
+        thread.setName(THREAD_NAME);
         thread.start();
     }
 
     public synchronized void stop() {
 
-        if (thread == null)
+        if (!THREAD_NAME.equals(thread.getName()))
             throw new RuntimeException("UDPServer stopped two times or never started? WTF?");
 
+        thread.setName("-ghost-");
         thread.interrupt();
-        thread = null;
     }
 
     private void loop() {

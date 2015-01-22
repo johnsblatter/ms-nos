@@ -26,8 +26,8 @@ public class LocalAgent implements Agent {
     private final AtomicLong seq;
     private final Set<Endpoint> endpoints;
 
-    private Cloud cloud;
-    private Listener listener;
+    transient private Listener listener;
+    transient private Cloud cloud;
 
     public LocalAgent(UUID uuid) {
         this(new Iden(Iden.Type.AGT, uuid), Collections.<Endpoint>emptySet());

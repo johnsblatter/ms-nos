@@ -31,10 +31,10 @@ public class Microservice implements IMicroService {
     private final String name;
     private final LocalAgent agent;
     private final Location location;
-    private final Listener listener;
     private final List<RestApi> localApis;
+    transient private final Listener listener;
 
-    private Microcloud cloud;
+    transient private Microcloud cloud;
 
     public Microservice(String name) {
         this(name, new LocalAgent(UUID.randomUUID()), ExecutorServices.newSingleThreadScheduledExecutor());

@@ -7,12 +7,19 @@ import com.workshare.msnos.core.Message.Status;
 
 public class SingleReceipt implements Receipt {
 
-    private Status status;
     private final UUID messageUuid;
+    private final String gate;
+    
+    private Status status;
 
-    public SingleReceipt(Status status, Message message) {
+    public SingleReceipt(Gateway gateway, Status status, Message message) {
+        this(gateway.name(), status, message);
+    }
+
+    private SingleReceipt(String gatewayName, Status status, Message message) {
         this.status = status;
         this.messageUuid = message.getUuid();
+        this.gate = gatewayName;
     }
 
     @Override
@@ -45,5 +52,19 @@ public class SingleReceipt implements Receipt {
                 this.wait(tt);
                 return status == Status.DELIVERED;
         }
+    }
+
+    @Override
+    public String getGate() {
+        return gate;
+    }
+    
+    @Override
+    public String toString() {
+        return getStatus()+":"+messageUuid;
+    }
+    
+    public static SingleReceipt failure(Message message) {
+        return new SingleReceipt("none", Status.FAILED, message);
     }
 }

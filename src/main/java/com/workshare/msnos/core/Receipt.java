@@ -13,4 +13,6 @@ public interface Receipt {
 
     public abstract boolean waitForDelivery(long amount, TimeUnit unit) throws InterruptedException;
 
+    public abstract String getGate();
+
 }

@@ -4,6 +4,7 @@ import static com.workshare.msnos.core.Message.Type.APP;
 import static com.workshare.msnos.core.Message.Type.FLT;
 import static com.workshare.msnos.core.Message.Type.PIN;
 import static com.workshare.msnos.core.Message.Type.PRS;
+import static com.workshare.msnos.core.MessagesHelper.newPingMessage;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -14,9 +15,8 @@ import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import java.io.File;
 import java.io.IOException;
@@ -28,7 +28,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -39,7 +38,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
-import org.mockito.Mockito;
 
 import com.workshare.msnos.core.Message.Status;
 import com.workshare.msnos.core.Message.Type;
@@ -66,14 +64,13 @@ public class CloudTest {
     private static final Iden SOMEONELSE = new Iden(Iden.Type.AGT, UUID.randomUUID());
     private static final Iden MY_CLOUD = new Iden(Iden.Type.CLD, UUID.randomUUID());
 
-    private Gateway gate1;
-    private Gateway gate2;
     private HttpGateway httpGate;
     private Set<Gateway> gates;
     
     private Cloud thisCloud;
     private Cloud otherCloud;
- 
+    private Sender sender;
+     
     private Iden thisCloudRemoteIden;
 
     private ScheduledExecutorService scheduler;
@@ -89,15 +86,12 @@ public class CloudTest {
         home.delete();
         home.mkdirs();
 
+        sender = mock(Sender.class);
         scheduler = mock(ScheduledExecutorService.class);
 
         Receipt unknownReceipt = mock(Receipt.class);
         when(unknownReceipt.getStatus()).thenReturn(Status.UNKNOWN);
 
-        gate1 = mock(Gateway.class);
-        when(gate1.send(any(Cloud.class), any(Message.class))).thenReturn(unknownReceipt);
-        gate2 = mock(Gateway.class);
-        when(gate2.send(any(Cloud.class), any(Message.class))).thenReturn(unknownReceipt);
         synchro = mock(JoinSynchronizer.class);
 
         httpGate = mock(HttpGateway.class);
@@ -111,8 +105,8 @@ public class CloudTest {
         NTPClient timeClient = mock(NTPClient.class);
         when(timeClient.getTime()).thenReturn(1234L);
 
-        gates = new LinkedHashSet<Gateway>(Arrays.asList(gate1, gate2, httpGate));
-        thisCloud = new Cloud(MY_CLOUD.getUUID(), KEY_ID, signer, gates, synchro, synchronousMulticaster(), scheduler, null);
+        gates = new LinkedHashSet<Gateway>(Arrays.asList(httpGate));
+        thisCloud = new Cloud(MY_CLOUD.getUUID(), KEY_ID, signer, sender, gates, synchro, synchronousMulticaster(), scheduler, null);
         thisCloud.addListener(new Cloud.Listener() {
             @Override
             public void onMessage(Message message) {
@@ -122,7 +116,7 @@ public class CloudTest {
 
         receivedMessages = new ArrayList<Message>();
 
-        otherCloud = new Cloud(UUID.randomUUID(), KEY_ID, signer, Collections.<Gateway>emptySet(), synchro, synchronousMulticaster(), Executors.newSingleThreadScheduledExecutor(), null);
+        otherCloud = new Cloud(UUID.randomUUID(), KEY_ID, signer, sender, Collections.<Gateway>emptySet(), synchro, synchronousMulticaster(), Executors.newSingleThreadScheduledExecutor(), null);
         thisCloudRemoteIden = new Iden(Iden.Type.CLD, thisCloud.getIden().getUUID(), 99l);
     }
 
@@ -205,13 +199,14 @@ public class CloudTest {
     }
 
     @Test
-    public void shouldSendAbsenceWhenLeavingCloud() throws Exception {
+    public void shouldSendAbsenceWhenLeavingCloudUsingSyncCall() throws Exception {
         LocalAgent karl = new LocalAgent(UUID.randomUUID());
         karl.join(thisCloud);
 
         karl.leave();
 
-        assertMessageContent(getLastMessageSent(), PRS, karl.getIden(), thisCloud.getIden(), new Presence(false, karl));
+        final Message message = getLastMessageSentSynchronously();
+        assertMessageContent(message, PRS, karl.getIden(), thisCloud.getIden(), new Presence(false, karl));
     }
 
     @Test(expected = Throwable.class)
@@ -278,74 +273,6 @@ public class CloudTest {
     }
 
     @Test
-    public void shouldSendMessagesTroughAllGateways() throws Exception {
-        Message message = newMessage(APP, SOMEONE, thisCloud.getIden());
-        thisCloud.send(message);
-        verify(gate1).send(thisCloud, message);
-        verify(gate2).send(thisCloud, message);
-    }
-
-    @Test
-    public void shouldSendMessagesTroughAllGatewaysUnlessDelivered() throws Exception {
-        Receipt okayReceipt = mock(Receipt.class);
-        when(okayReceipt.getStatus()).thenReturn(Status.DELIVERED);
-        when(gate1.send(any(Cloud.class), any(Message.class))).thenReturn(okayReceipt);
-        
-        Message message = newMessage(APP, SOMEONE, thisCloud.getIden());
-        thisCloud.send(message);
-
-        verify(gate1).send(thisCloud, message);
-        verify(gate2, never()).send(thisCloud, message);
-    }
-
-    @Test
-    public void shouldSendReturnUnknownStatusWhenUnreliable() throws Exception {
-        Message message = newMessage(APP, SOMEONE, thisCloud.getIden());
-        Receipt res = thisCloud.send(message);
-        assertEquals(Status.UNKNOWN, res.getStatus());
-    }
-
-    @Test
-    public void shouldSendReturnMultipleStatusWhenUsingMultipleGateways() throws Exception {
-        Receipt value1 = createMockFuture(Status.UNKNOWN);
-        when(gate1.send(any(Cloud.class), any(Message.class))).thenReturn(value1);
-
-        Receipt value2 = createMockFuture(Status.UNKNOWN);
-        when(gate2.send(any(Cloud.class), any(Message.class))).thenReturn(value2);
-
-        Message message = newReliableMessage(APP, SOMEONE, SOMEONELSE);
-        Receipt res = thisCloud.send(message);
-        assertEquals(MultiGatewayReceipt.class, res.getClass());
-
-        MultiGatewayReceipt multi = (MultiGatewayReceipt) res;
-        assertTrue(multi.getReceipts().contains(value1));
-        assertTrue(multi.getReceipts().contains(value2));
-    }
-
-    @Test(expected = MsnosException.class)
-    public void shouldThrowExceptionWhenSendFailedOnAllGateways() throws Exception {
-        for (Gateway gate : gates)
-            when(gate.send(any(Cloud.class), any(Message.class))).thenThrow(new IOException("boom"));
-
-        Message message = newMessage(APP, SOMEONE, SOMEONELSE);
-        thisCloud.send(message);
-    }
-
-    @Test
-    public void shouldNotThrowExceptionWhenSendFailedOnSomeGateways() throws Exception {
-        Receipt value1 = createMockFuture(Status.UNKNOWN);
-        when(gate1.send(any(Cloud.class), any(Message.class))).thenReturn(value1);
-        when(gate2.send(any(Cloud.class), any(Message.class))).thenThrow(new IOException("boom"));
-
-        Message message = newMessage(APP, SOMEONE, SOMEONELSE);
-        Receipt res = thisCloud.send(message);
-
-        MultiGatewayReceipt multi = (MultiGatewayReceipt) res;
-        assertTrue(multi.getReceipts().contains(value1));
-        assertEquals(gates.size()-1, multi.getReceipts().size());
-    }
-
-    @Test
     public void shouldUpdateRemoteAgentAccessTimeOnPresenceReceived() throws Exception {
         RemoteAgent remoteAgent = newRemoteAgent(thisCloud);
 
@@ -377,7 +304,7 @@ public class CloudTest {
         fakeSystemTime(99999L);
         forceRunCloudPeriodicCheck();
 
-        Message pingExpected = getLastMessageSentToNetwork();
+        Message pingExpected = getLastMessageSent();
         assertNotNull(pingExpected);
         assertEquals(PIN, pingExpected.getType());
         assertEquals(thisCloud.getIden(), pingExpected.getFrom());
@@ -484,7 +411,7 @@ public class CloudTest {
 
         thisCloud.send(newReliableMessage(APP, SOMEONE, SOMEONELSE));
 
-        Message message = getLastMessageSentToNetwork();
+        Message message = getLastMessageSent();
         assertNotNull(message.getSig());
         assertNotNull(message.getRnd());
     }
@@ -647,7 +574,7 @@ public class CloudTest {
         
         simulateMessageFromNetwork(new MessageBuilder(Message.Type.PIN, smith, thisCloud).make());
 
-        Message message = getLastMessageSentToNetwork();
+        Message message = getLastMessageSent();
         assertEquals(Message.Type.DSC, message.getType());
         assertEquals(smith.getIden(), message.getTo());
     }
@@ -669,6 +596,20 @@ public class CloudTest {
         assertEquals(0, getAllMessagesSent().size());
     }
     
+    @Test
+    public void shouldSendMessagesTroughSender() throws Exception {
+        Message message = newPingMessage(thisCloud);
+        thisCloud.send(message);
+        verify(sender).send(thisCloud, message);
+    }
+
+    @Test
+    public void shouldSendMessagesTroughSenderWhenSync() throws Exception {
+        Message message = newPingMessage(thisCloud);
+        thisCloud.sendSync(message);
+        verify(sender).sendSync(eq(thisCloud), eq(message), any(MultiReceipt.class));
+    }
+
     private Message simulateMessageFromOtherCloud(String uuidString, int seq, long instance) {
         final Message message = new MessageBuilder(MessageBuilder.Mode.RELAXED, APP, thisCloudRemoteIden, thisCloud.getIden()).with(UUID.randomUUID()).sequence(seq).make();
         simulateMessageFromNetwork(message);
@@ -714,12 +655,6 @@ public class CloudTest {
         throw new RuntimeException("Agent " + agent + " not found!");
     }
 
-    private Receipt createMockFuture(final Status status) throws InterruptedException, ExecutionException {
-        Receipt value = Mockito.mock(Receipt.class);
-        when(value.getStatus()).thenReturn(status);
-        return value;
-    }
-
     private Message simulateAgentJoiningCloud(Agent agent, Cloud cloud) throws MsnosException {
         Message message = new MessageBuilder(Message.Type.PRS, agent, cloud).with(new Presence(true, agent)).make();
         simulateMessageFromNetwork(message);
@@ -732,7 +667,7 @@ public class CloudTest {
 
     private void simulateMessageFromNetwork(final Message message) {
         ArgumentCaptor<Gateway.Listener> gateListener = ArgumentCaptor.forClass(Gateway.Listener.class);
-        verify(gate1).addListener(any(Cloud.class), gateListener.capture());
+        verify(httpGate).addListener(any(Cloud.class), gateListener.capture());
         gateListener.getValue().onMessage(message);
     }
 
@@ -744,16 +679,10 @@ public class CloudTest {
             return null;
     }
 
-    private Message getLastMessageSentToNetwork() throws IOException {
-        ArgumentCaptor<Message> captor = ArgumentCaptor.forClass(Message.class);
-        verify(gate1).send(any(Cloud.class), captor.capture());
-        return captor.getValue();
-    }
-
     private List<Message> getAllMessagesSent() throws IOException {
         try {
             ArgumentCaptor<Message> captor = ArgumentCaptor.forClass(Message.class);
-            verify(gate1, atLeastOnce()).send(any(Cloud.class), captor.capture());
+            verify(sender, atLeastOnce()).send(any(Cloud.class), captor.capture());
             return captor.getAllValues();
         } catch (Throwable any) {
             return Collections.emptyList();
@@ -765,6 +694,15 @@ public class CloudTest {
         return messageList.get(messageList.size() - 1);
     }
 
+    private Message getLastMessageSentSynchronously() throws IOException {
+        try {
+            ArgumentCaptor<Message> captor = ArgumentCaptor.forClass(Message.class);
+            verify(sender, atLeastOnce()).sendSync(any(Cloud.class), captor.capture(), any(MultiReceipt.class));
+            return captor.getAllValues().get(0);
+        } catch (Throwable any) {
+            return mock(Message.class);
+        }
+    }
 
     private Message newMessage(final Message.Type type, final Iden idenFrom, final Iden idenTo) {
         return new MessageBuilder(MessageBuilder.Mode.RELAXED, type, idenFrom, idenTo).with(1).reliable(false).make();

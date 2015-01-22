@@ -3,6 +3,7 @@ package com.workshare.msnos.core.protocols.ip.udp;
 import static com.workshare.msnos.core.CoreHelper.synchronousGatewayMulticaster;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.eq;
@@ -29,9 +30,11 @@ import org.mockito.ArgumentCaptor;
 import com.workshare.msnos.core.Cloud;
 import com.workshare.msnos.core.Cloud.Internal;
 import com.workshare.msnos.core.Gateway.Listener;
+import com.workshare.msnos.core.Message.Status;
 import com.workshare.msnos.core.Iden;
 import com.workshare.msnos.core.Message;
 import com.workshare.msnos.core.MessageBuilder;
+import com.workshare.msnos.core.Receipt;
 import com.workshare.msnos.core.protocols.ip.MulticastSocketFactory;
 import com.workshare.msnos.core.serializers.WireJsonSerializer;
 
@@ -113,6 +116,17 @@ public class UDPGatewayTest {
     }
 
     @Test
+    public void shouldReturnAReceiptOnSend() throws Exception {
+        Message message = UDPGatewayTest.newSampleMessage();
+        Receipt receipt = gate().send(cloud, message);
+
+        assertNotNull(receipt);
+        assertEquals(message.getUuid(), receipt.getMessageUuid());
+        assertEquals(Status.PENDING, receipt.getStatus());
+        assertEquals("UDP", receipt.getGate());
+    }
+
+    @Test
     public void shouldSendAMessageToEachPort() throws Exception {
         System.setProperty(UDPGateway.SYSP_UDP_GROUP, "230.31.32.33");
         System.setProperty(UDPGateway.SYSP_PORT_NUM, "2727");
@@ -168,6 +182,14 @@ public class UDPGatewayTest {
 
         gate().send(cloud, message);
     }
+
+    @Test
+    public void shouldStopServerAndCloseSocketOnClose() throws Exception {
+        gate().close();
+        verify(server).stop();
+        verify(socket).close();
+    }
+
 
     private Message getMessageWithPayload(final BigPayload payload) {
         return new MessageBuilder(MessageBuilder.Mode.RELAXED, Message.Type.PRS, SOMEONE, ME).with(payload).make();

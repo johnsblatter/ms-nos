@@ -10,19 +10,19 @@ import java.util.concurrent.TimeUnit;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
-public class MultiGatewayReceiptTest {
+public class MultiReceiptTest {
 
     private static final Message MESSAGE = new MessageBuilder(Message.Type.PIN, new LocalAgent(UUID.randomUUID()), new LocalAgent(UUID.randomUUID())).make();
 
-    private MultiGatewayReceipt multi;
+    private MultiReceipt multi;
     private Receipt[] receipts = new Receipt[3];
 
     @Before
     public void before() throws Exception {
-        multi = new MultiGatewayReceipt(MESSAGE);
+        multi = new MultiReceipt(MESSAGE);
 
         for (int i = 0; i < receipts.length; i++) {
-            receipts[i] = createMockReceipt(Status.UNKNOWN);
+            receipts[i] = createMockReceipt(Status.UNKNOWN, i);
             multi.add(receipts[i]);
         }
     }
@@ -33,8 +33,16 @@ public class MultiGatewayReceiptTest {
     }
 
     @Test
+    public void shouldReturnFailedWhenOneFailedAndOtherUnknown() throws Exception {
+        mockStatus(receipts[1], Status.FAILED);
+        assertEquals(Status.FAILED, multi.getStatus());
+    }
+
+    @Test
     public void shouldReturnPendingWhenOnePending() throws Exception {
-        mockStatus(receipts[1], Status.PENDING);
+        mockStatus(receipts[0], Status.PENDING);
+        mockStatus(receipts[1], Status.FAILED);
+        mockStatus(receipts[2], Status.FAILED);
         assertEquals(Status.PENDING, multi.getStatus());
     }
 
@@ -78,15 +86,30 @@ public class MultiGatewayReceiptTest {
         assertEquals(MESSAGE.getUuid(), multi.getMessageUuid());
     }
 
+    @Test
+    public void shouldReturnCombinedNameWhenAllUnknown() throws Exception {
+        String gate = multi.getGate();
+        for (Receipt receipt : receipts) {
+            assertTrue(gate.contains(receipt.getGate()));
+        }
+    }
 
-    private Receipt createMockReceipt(final Status status) throws Exception {
+    @Test
+    public void shouldReturnNameForTheFirstDelivered() throws InterruptedException {
+        mockStatus(receipts[1], Status.DELIVERED);
+        assertEquals(receipts[1].getGate(), multi.getGate());
+    }
+
+
+
+    private Receipt createMockReceipt(final Status status, int number) throws Exception {
         Receipt value = mock(Receipt.class);
         mockStatus(value, status);
+        when(value.getGate()).thenReturn(Integer.toString(number));
         return value;
     }
 
     private void mockStatus(Receipt receipt, final Status status) {
         when(receipt.getStatus()).thenReturn(status);
     }
-
 }

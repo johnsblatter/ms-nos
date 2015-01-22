@@ -7,9 +7,9 @@ import java.util.concurrent.atomic.AtomicLong;
 public class RemoteEntity implements Identifiable {
 
     private final Iden iden;
-    private final Cloud cloud;
     private final AtomicLong sequencer;
     private final AtomicLong accessTime;
+    transient private final Cloud cloud;
 
     public RemoteEntity(Iden iden, Cloud cloud) {
         this.iden = iden;

@@ -117,7 +117,7 @@ public class MessagePreProcessors {
     }
 
     private MessagePreProcessor shouldNotBeAddressedToAnotherCloud() {
-        return new AbstractMessageValidator("addressed to another cloud") {
+        return new AbstractMessageValidator("addressed to unknown cloud or agent") {
             @Override
             public Result isValid(Message message) {
                 final Iden to = message.getTo();

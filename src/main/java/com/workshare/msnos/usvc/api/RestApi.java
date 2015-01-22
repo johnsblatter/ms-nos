@@ -20,7 +20,7 @@ public class RestApi {
     private final String path;
     private final String host;
     private final int port;
-    private final boolean sessionAffinity;
+    private final boolean sticky;
     private final Type type;
     private final int priority;
 
@@ -51,7 +51,7 @@ public class RestApi {
         this.path = path;
         this.port = port;
         this.host = host;
-        this.sessionAffinity = sessionAffinity;
+        this.sticky = sessionAffinity;
         this.type = type;
         this.priority = priority;
         this.id = NEXT_ID.getAndIncrement();
@@ -59,23 +59,23 @@ public class RestApi {
     }
 
     public RestApi asHealthCheck() {
-        return new RestApi(name, path, port, host, Type.HEALTHCHECK, sessionAffinity, priority);
+        return new RestApi(name, path, port, host, Type.HEALTHCHECK, sticky, priority);
     }
 
     public RestApi asInternal() {
-        return new RestApi(name, path, port, host, Type.INTERNAL, sessionAffinity, priority);
+        return new RestApi(name, path, port, host, Type.INTERNAL, sticky, priority);
     }
 
     public RestApi withPriority(int priority) {
-        return new RestApi(name, path, port, host, type, sessionAffinity, priority);
+        return new RestApi(name, path, port, host, type, sticky, priority);
     }
 
     public RestApi onHost(String host) {
-        return new RestApi(name, path, port, host, type, sessionAffinity, priority);
+        return new RestApi(name, path, port, host, type, sticky, priority);
     }
 
     public RestApi onPort(int port) {
-        return new RestApi(name, path, port, host, type, sessionAffinity, priority);
+        return new RestApi(name, path, port, host, type, sticky, priority);
     }
 
     public RestApi withAffinity() {
@@ -83,7 +83,7 @@ public class RestApi {
     }
 
     public boolean hasAffinity() {
-        return sessionAffinity;
+        return sticky;
     }
 
     public boolean isFaulty() {
@@ -149,7 +149,7 @@ public class RestApi {
         int prime = 31;
         result = prime * result + path.hashCode();
         result = prime * result + port;
-        result = prime * result + (sessionAffinity ? 1231 : 1237);
+        result = prime * result + (sticky ? 1231 : 1237);
         result = prime * result + type.hashCode();
         result = prime * result + ((host == null) ? 0 : host.hashCode());
         return result;
@@ -164,7 +164,7 @@ public class RestApi {
         RestApi restApi = (RestApi) o;
 
         if (port != restApi.port) return false;
-        if (sessionAffinity != restApi.sessionAffinity) return false;
+        if (sticky != restApi.sticky) return false;
         if (!name.equals(restApi.name)) return false;
         if (!path.equals(restApi.path)) return false;
         if (type != restApi.type) return false;

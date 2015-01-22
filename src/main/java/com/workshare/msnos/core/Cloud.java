@@ -2,21 +2,6 @@ package com.workshare.msnos.core;
 
 import static com.workshare.msnos.core.Message.Type.PRS;
 
-import com.workshare.msnos.core.cloud.*;
-import com.workshare.msnos.core.cloud.JoinSynchronizer.Status;
-import com.workshare.msnos.core.cloud.MessagePreProcessors.Result;
-import com.workshare.msnos.core.payloads.FltPayload;
-import com.workshare.msnos.core.payloads.Presence;
-import com.workshare.msnos.core.protocols.ip.Endpoint;
-import com.workshare.msnos.core.protocols.ip.HttpEndpoint;
-import com.workshare.msnos.core.protocols.ip.http.HttpGateway;
-import com.workshare.msnos.core.security.Signer;
-import com.workshare.msnos.soup.json.Json;
-import com.workshare.msnos.soup.threading.ExecutorServices;
-import com.workshare.msnos.soup.time.SystemTime;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.security.SecureRandom;
 import java.util.Collection;
@@ -26,6 +11,28 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.workshare.msnos.core.cloud.AgentWatchdog;
+import com.workshare.msnos.core.cloud.IdentifiablesList;
+import com.workshare.msnos.core.cloud.JoinSynchronizer;
+import com.workshare.msnos.core.cloud.JoinSynchronizer.Status;
+import com.workshare.msnos.core.cloud.MessagePreProcessors;
+import com.workshare.msnos.core.cloud.MessagePreProcessors.Result;
+import com.workshare.msnos.core.cloud.Multicaster;
+import com.workshare.msnos.core.payloads.FltPayload;
+import com.workshare.msnos.core.payloads.Presence;
+import com.workshare.msnos.core.protocols.ip.Endpoint;
+import com.workshare.msnos.core.protocols.ip.HttpEndpoint;
+import com.workshare.msnos.core.protocols.ip.http.HttpGateway;
+import com.workshare.msnos.core.security.Signer;
+import com.workshare.msnos.soup.ShutdownHooks;
+import com.workshare.msnos.soup.ShutdownHooks.Hook;
+import com.workshare.msnos.soup.json.Json;
+import com.workshare.msnos.soup.threading.ExecutorServices;
+import com.workshare.msnos.soup.time.SystemTime;
 
 public class Cloud implements Identifiable {
 
@@ -53,6 +60,7 @@ public class Cloud implements Identifiable {
     transient private final JoinSynchronizer synchronizer;
     transient private final Signer signer;
     transient private final Internal internal;
+    transient private final Sender sender;
 
     public class Internal {
         public IdentifiablesList<LocalAgent> localAgents() {
@@ -85,10 +93,10 @@ public class Cloud implements Identifiable {
     }
 
     public Cloud(UUID uuid, String signid, Set<Gateway> gates, JoinSynchronizer synchronizer, Long instanceId) {
-        this(uuid, signid, new Signer(), gates, synchronizer, new Multicaster(), DEFAULT_SCHEDULER, instanceId);
+        this(uuid, signid, new Signer(), new Sender(), gates, synchronizer, new Multicaster(), DEFAULT_SCHEDULER, instanceId);
     }
 
-    Cloud(UUID uuid, String signid, Signer signer, Set<Gateway> gates, JoinSynchronizer synchronizer, Multicaster multicaster, ScheduledExecutorService executor, Long instanceId) {
+    Cloud(final UUID uuid, String signid, Signer signer, Sender sender, Set<Gateway> gates, JoinSynchronizer synchronizer, Multicaster multicaster, ScheduledExecutorService executor, Long instanceId) {
         this.iden = new Iden(Iden.Type.CLD, uuid, instanceId);
 
         this.localAgents = new IdentifiablesList<LocalAgent>();
@@ -97,7 +105,8 @@ public class Cloud implements Identifiable {
 
         this.seq = new AtomicLong(SystemTime.asMillis());
         this.caster = multicaster;
-        this.gates = gates;
+        this.gates = Collections.unmodifiableSet(gates);
+        this.sender = sender;
         this.signer = signer;
         this.signid = signid;
         this.synchronizer = synchronizer;
@@ -115,6 +124,37 @@ public class Cloud implements Identifiable {
         this.validators = new MessagePreProcessors(this.internal);
 
         new AgentWatchdog(this, executor).start();
+        
+        ShutdownHooks.addHook(new Hook() {
+            @Override
+            public void run() {
+                log.info("Asking all agents to leave...");
+                for(LocalAgent agent : localAgents.list()) {
+                    ensureLeft(agent);
+                }
+            }
+
+            private void ensureLeft(LocalAgent agent) {
+                try {
+                    log.info("- agent {} is leaving...", agent.getIden().getUUID());
+                    agent.leave();
+                } catch (Throwable ex) {
+                    log.warn("Unexpected exception while enforcing agent to leave the cloud", ex);
+                }
+            }
+
+            @Override
+            public String name() {
+                return "Ensure all agents left the cloud "+uuid;
+            }
+
+            @Override
+            public int priority() {
+                return 0;
+            }
+        });
+
+
     }
 
     @Override
@@ -144,31 +184,23 @@ public class Cloud implements Identifiable {
     }
 
     public Set<Gateway> getGateways() {
-        return Collections.unmodifiableSet(gates);
+        return gates;
     }
 
     public Receipt send(Message message) throws MsnosException {
         checkCloudAlive();
-
         logTX(message);
+        
+        return sender.send(this, sign(message));
+    }
 
-        Message signed = sign(message);
-        MultiGatewayReceipt res = new MultiGatewayReceipt(signed);
-        for (Gateway gate : gates) {
-            try {
-                final Receipt receipt = gate.send(this, signed);
-                res.add(receipt);
-                if (receipt.getStatus() == Message.Status.DELIVERED)
-                    break;
-            } catch (IOException ex) {
-                log.warn("Unable to send message " + message + " trough gateway " + gate, ex);
-            }
-        }
-
-        if (res.size() == 0)
-            throw new MsnosException("Unable to send message " + message, MsnosException.Code.SEND_FAILED);
-
-        return res;
+    public Receipt sendSync(Message message) throws MsnosException {
+        checkCloudAlive();
+        logTX(message);
+        
+        final MultiReceipt receipt = new MultiReceipt(message);
+        sender.sendSync(this, sign(message), receipt);
+        return receipt;
     }
 
     void onJoin(LocalAgent agent) throws MsnosException {
@@ -190,7 +222,7 @@ public class Cloud implements Identifiable {
     void onLeave(LocalAgent agent) throws MsnosException {
         checkCloudAlive();
 
-        send(new MessageBuilder(Message.Type.PRS, agent, this).with(new Presence(false, agent)).make());
+        sendSync(new MessageBuilder(Message.Type.PRS, agent, this).with(new Presence(false, agent)).make());
         log.debug("Local agent left: {}", agent);
         localAgents.remove(agent.getIden());
     }
@@ -254,6 +286,7 @@ public class Cloud implements Identifiable {
     }
 
     public void removeFaultyAgent(RemoteEntity agent) {
+        log.warn("Removing faulty agent "+agent);
         RemoteEntity result = remoteAgents.remove(agent.getIden());
         if (result != null)
             caster.dispatch(new MessageBuilder(Message.Type.FLT, this, this).with(new FltPayload(agent.getIden())).make());

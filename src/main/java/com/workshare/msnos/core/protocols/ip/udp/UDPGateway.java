@@ -46,21 +46,29 @@ public class UDPGateway implements Gateway {
     private final WireSerializer sz;
     private final int packetSize;
     private final Endpoints endpoints;
+    private final UDPServer server;
 
-    public UDPGateway(MulticastSocketFactory sockets, UDPServer server, Multicaster<Listener, Message> caster) throws IOException {
+    public UDPGateway(MulticastSocketFactory sockets, UDPServer aServer, Multicaster<Listener, Message> caster) throws IOException {
         this.caster = caster;
-        this.sz = server.serializer();
+        this.sz = aServer.serializer();
         this.packetSize = Integer.getInteger(SYSP_UDP_PACKET_SIZE, 512);
         this.endpoints = createEndpoints();
+        this.server = aServer;
         
         loadPorts();
         openSocket(sockets);
-        startServer(server);
+        startServer(aServer);
+    }
+    
+    @Override
+    public String name() {
+        return "UDP";
     }
 
     @Override
     public void close() throws IOException {
-        // TODO please fixme, I am unimplemented :)
+        server.stop();
+        socket.close();
     }
 
     private void startServer(UDPServer server) {
@@ -135,7 +143,7 @@ public class UDPGateway implements Gateway {
             }
         }
 
-        return new SingleReceipt(Status.PENDING, message);
+        return new SingleReceipt(this, Status.PENDING, message);
     }
 
     private List<Payload> getSplitPayloads(List<Payload> payloads, Payload payload, int msgLength) throws IOException {

@@ -1,5 +1,8 @@
 package com.workshare.msnos.usvc;
 
+import static com.workshare.msnos.core.Message.Type.PRS;
+import static com.workshare.msnos.core.Message.Type.QNE;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -33,8 +36,6 @@ import com.workshare.msnos.usvc.api.RestApi;
 import com.workshare.msnos.usvc.api.RestApi.Type;
 import com.workshare.msnos.usvc.api.routing.ApiRepository;
 
-import static com.workshare.msnos.core.Message.Type.*;
-
 public class Microcloud {
 
     private static final Logger log = LoggerFactory.getLogger("STANDARD");
@@ -42,9 +43,8 @@ public class Microcloud {
     private final Map<Iden, RemoteMicroservice> remoteServices;
     private final Map<UUID, PassiveService> passiveServices;
     private final ApiRepository apis;
-    private final Healthchecker healthcheck;
     private final Cloud cloud;
-
+    
     public Microcloud(Cloud cloud) {
         this(cloud, ExecutorServices.newSingleThreadScheduledExecutor());
     }
@@ -66,7 +66,7 @@ public class Microcloud {
         passiveServices = new ConcurrentHashMap<UUID, PassiveService>();
         apis = new ApiRepository();
 
-        healthcheck = new Healthchecker(this, executor);
+        Healthchecker healthcheck = new Healthchecker(this, executor);
         healthcheck.start();
     }
 
@@ -164,16 +164,16 @@ public class Microcloud {
         final RemoteMicroservice remote = remoteServices.get(iden);
         if (remote == null) {
             if (!cloud.containsAgent(iden) && !passiveServices.containsKey(iden)) {
-                log.warn("Received a health status message about service {} not present in the cloud", iden);
+                log.warn("Received health report on service {} not present in the cloud", iden);
             }
             return;
         }
 
         if (payload.isWorking()) {
-            log.debug("Marking remote {} as working after cloud message received", remote);
+            log.debug("Marking remote {} as working after cloud message received", remote.getName());
             remote.markWorking();
         } else {
-            log.info("Marking remote {} as faulty after cloud message received", remote);
+            log.info("Marking remote {} as faulty after cloud message received", remote.getName());
             remote.markFaulty();
         }
     }

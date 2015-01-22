@@ -21,6 +21,10 @@ public class MessagesHelper {
                 .make();
     }
     
+    public static Message newPingMessage(Cloud from) {
+        return new MessageBuilder(MessageBuilder.Mode.RELAXED, Message.Type.PIN, from.getIden(), from.getIden()).make();
+    }
+
     public static Message newAPPMessage(RemoteMicroservice remote, Identifiable to) {
         RemoteAgent from = remote.getAgent();
         return new MessageBuilder(Message.Type.APP, from, to).make();

@@ -9,12 +9,12 @@ import java.util.concurrent.TimeUnit;
 
 import com.workshare.msnos.core.Message.Status;
 
-public class MultiGatewayReceipt implements Receipt {
+public class MultiReceipt implements Receipt {
 
-    private final Set<Receipt> receipts;
     private final UUID messageUuid;
-
-    public MultiGatewayReceipt(Message message, Receipt... someReceipts) {
+    private final Set<Receipt> receipts;
+     
+    public MultiReceipt(Message message, Receipt... someReceipts) {
         this.messageUuid = message.getUuid();
         this.receipts = Collections.newSetFromMap(new ConcurrentHashMap<Receipt, Boolean>());
         receipts.addAll(Arrays.asList(someReceipts));
@@ -35,7 +35,10 @@ public class MultiGatewayReceipt implements Receipt {
     public Status getStatus() {
         Status status = Status.UNKNOWN;
         for (Receipt receipt : receipts) {
-            if (receipt.getStatus() == Status.PENDING) {
+            if (receipt.getStatus() == Status.FAILED  && status == Status.UNKNOWN) {
+                status = Status.FAILED;
+            }
+            else if (receipt.getStatus() == Status.PENDING) {
                 status = Status.PENDING;
             }
             else if (receipt.getStatus() == Status.DELIVERED) {
@@ -62,4 +65,23 @@ public class MultiGatewayReceipt implements Receipt {
         return receipts.size();
     }
 
+    @Override
+    public String getGate() {
+        StringBuilder buffer = new StringBuilder();
+        for (Receipt receipt : receipts) {
+            if (receipt.getStatus() == Status.DELIVERED)
+                return receipt.getGate();
+            
+            if (buffer.length() > 0)
+                buffer.append("+");
+            buffer.append(receipt.getGate());
+        }
+        
+        return buffer.toString();
+    }
+
+    @Override
+    public String toString() {
+        return getStatus()+":"+messageUuid;
+    }
 }

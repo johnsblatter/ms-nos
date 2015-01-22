@@ -90,11 +90,11 @@ public class HttpGatewayTest {
     }
     
     @Test
-    public void shouldReturnFailedDeliveryReceiptWhenDirectedToCloud() throws Exception {
-        Message message = newSampleMessage(AGT, CLD);
+    public void shouldStampReceiptWithGatewayName() throws Exception {
+        Message message = newSampleMessage(newIden(AGT), newIden(CLD));
         Receipt receipt = gate.send(cloud, message);
 
-        assertEquals(Message.Status.FAILED, receipt.getStatus());
+        assertEquals("HTTP", receipt.getGate());
     }
 
     @Test
@@ -155,10 +155,6 @@ public class HttpGatewayTest {
         return new Iden(idenType, UUID.randomUUID());
     }
     
-     private Message newSampleMessage(com.workshare.msnos.core.Iden.Type from, com.workshare.msnos.core.Iden.Type to) {
-        return newSampleMessage(newIden(from), newIden(to));
-    }
-
     private Message newSampleMessage(Iden from, Iden to) {
         return new MessageBuilder(Mode.RELAXED, Type.APP, from, to).with(UUID.randomUUID()).make();
     }

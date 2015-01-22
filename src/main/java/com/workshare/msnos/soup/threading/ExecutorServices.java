@@ -2,8 +2,11 @@ package com.workshare.msnos.soup.threading;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 import com.workshare.msnos.soup.threading.ThreadFactories.Customizer;
 
@@ -22,7 +25,11 @@ public class ExecutorServices {
     
 
     public static ExecutorService newFixedDaemonThreadPool(final int size) {
-		return Executors.newFixedThreadPool(size, DAEMON_THREAD_FACTORY);
+        return new ThreadPoolExecutor(size, size,
+                0L, TimeUnit.MILLISECONDS,
+                new LinkedBlockingQueue<Runnable>(),
+                DAEMON_THREAD_FACTORY, 
+                new ThreadPoolExecutor.CallerRunsPolicy());
 	}
 
     public static ScheduledExecutorService newSingleThreadScheduledExecutor() {

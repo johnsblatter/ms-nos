@@ -1,7 +1,6 @@
 package com.workshare.msnos.core;
 
 import java.io.IOException;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
@@ -20,6 +19,8 @@ import com.workshare.msnos.core.protocols.ip.udp.UDPGateway;
 import com.workshare.msnos.core.protocols.ip.udp.UDPServer;
 import com.workshare.msnos.core.protocols.ip.www.WWWGateway;
 import com.workshare.msnos.core.serializers.WireJsonSerializer;
+import com.workshare.msnos.soup.ShutdownHooks;
+import com.workshare.msnos.soup.ShutdownHooks.Hook;
 import com.workshare.msnos.soup.threading.ExecutorServices;
 import com.workshare.msnos.soup.threading.Multicaster;
 
@@ -77,7 +78,7 @@ public class Gateways {
     }
 
     private static void addShutdownHook() {
-        Runtime.getRuntime().addShutdownHook(new Thread() {
+        ShutdownHooks.addHook(new Hook() {
 		    @Override
 		    public void run() {
                 log.info("Closing gateways...");
@@ -94,6 +95,16 @@ public class Gateways {
                 } catch (IOException ex) {
                     log.warn("Unexpected exception closing gateway "+name);
                 }
+            }
+
+            @Override
+            public String name() {
+                return "Gateway closer";
+            }
+
+            @Override
+            public int priority() {
+                return -1000;
             }
 		});
     }

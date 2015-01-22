@@ -8,7 +8,12 @@ import com.workshare.msnos.core.protocols.ip.Endpoints;
 
 public class NoopGateway implements Gateway {
 
-	@Override
+    @Override
+    public String name() {
+        return "NOOP";
+    }
+
+    @Override
 	public void addListener(Cloud cloud, Listener listener) {
 	}
 
@@ -19,7 +24,7 @@ public class NoopGateway implements Gateway {
 
 	@Override
 	public Receipt send(Cloud cloud, Message message) throws IOException {
-		return new SingleReceipt(Status.UNKNOWN, message);
+		return new SingleReceipt(this, Status.UNKNOWN, message);
 	}
 
     @Override

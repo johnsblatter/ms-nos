@@ -90,6 +90,11 @@ public class WWWGateway implements Gateway {
         ping(client);
     }
 
+    @Override
+    public String name() {
+        return "WWW";
+    }
+
     private void ping(HttpClient client) throws IOException, ClientProtocolException, MalformedURLException {
         HttpResponse response = client.execute(new HttpGet(composeUrl("ping")));
         EntityUtils.consume(response.getEntity());
@@ -118,7 +123,7 @@ public class WWWGateway implements Gateway {
     @Override
     public Receipt send(Cloud cloud, Message message) throws IOException {
         cloudMessages.get(cloud).add(message);
-        return new SingleReceipt(Status.PENDING, message);
+        return new SingleReceipt(this, Status.PENDING, message);
     }
 
     private void sync() {

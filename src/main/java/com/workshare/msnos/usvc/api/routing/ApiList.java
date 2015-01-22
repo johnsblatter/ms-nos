@@ -19,13 +19,13 @@ public class ApiList {
 
     private static Logger log = LoggerFactory.getLogger(ApiList.class);
 
-    private final Lock addRemoveLock = new ReentrantLock();
-
     private volatile List<ApiEndpoint> endpoints;
     private volatile RestApi affinite;
 
-    private final RoutingStrategy routing;
-    private final LocationFactory locations;
+    transient private final RoutingStrategy routing;
+    transient private final LocationFactory locations;
+
+    transient private final Lock addRemoveLock = new ReentrantLock();
 
     public ApiList() {
         this(defaultRoutingStrategy(), LocationFactory.DEFAULT);
@@ -101,7 +101,6 @@ public class ApiList {
         }
         return res == null ? null : res.api();
     }
-
 
     static RoutingStrategy defaultRoutingStrategy() {
         List<RoutingStrategy> strategies = new ArrayList<RoutingStrategy>(Arrays.asList(new SkipFaultiesRoutingStrategy(), new LocationBasedStrategy(), new RoundRobinRoutingStrategy()));
