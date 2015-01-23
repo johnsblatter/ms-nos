@@ -563,7 +563,7 @@ public class CloudTest {
         simulateAgentJoiningCloud(agent, thisCloud);
 
         Message current = new MessageBuilder(APP, agent, thisCloud).make();
-        thisCloud.process(current);
+        thisCloud.process(current, "TEST");
 
         assertEquals(current, getLastMessageSentToCloudListeners());
     }

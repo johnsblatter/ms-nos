@@ -3,6 +3,10 @@ package com.workshare.msnos.soup.threading;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.Executor;
+import java.util.concurrent.ThreadPoolExecutor;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This class is an asynchronous multicaster, allows you to send asynchronous
@@ -20,6 +24,7 @@ import java.util.concurrent.Executor;
  */
 public abstract class Multicaster<L,M> {
 	
+    private static final Logger log = LoggerFactory.getLogger(Multicaster.class);
     public static final Executor THREADPOOL = ExecutorServices.newFixedDaemonThreadPool(Integer.getInteger("msnos.multicaster.threads.num", 5));
             
 	private Set<L> listeners = new HashSet<L>();
@@ -48,6 +53,14 @@ public abstract class Multicaster<L,M> {
 	}
 
 	public void dispatch(final M message) {
+	    if (log.isTraceEnabled()) {
+    	    ThreadPoolExecutor pool = (ThreadPoolExecutor)executor;
+    	    int active = pool.getActiveCount();
+            int queued = pool.getQueue().size();
+            long total = pool.getTaskCount();
+            log.trace(String.format("%d %d %d\n", active, queued, total));
+	    }
+	    
 		synchronized (listeners) {
 			for (final L listener : listeners) {
 				executor.execute(new Runnable(){

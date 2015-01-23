@@ -1,6 +1,7 @@
 package com.workshare.msnos.core;
 
 import static com.workshare.msnos.core.Message.Type.PRS;
+import static com.workshare.msnos.soup.Shorteners.shorten;
 
 import java.io.IOException;
 import java.security.SecureRandom;
@@ -111,11 +112,11 @@ public class Cloud implements Identifiable {
         this.signid = signid;
         this.synchronizer = synchronizer;
 
-        for (Gateway gate : gates) {
+        for (final Gateway gate : gates) {
             gate.addListener(this, new Gateway.Listener() {
                 @Override
                 public void onMessage(Message message) {
-                    process(message);
+                    process(message, gate.name());
                 }
             });
         }
@@ -189,14 +190,11 @@ public class Cloud implements Identifiable {
 
     public Receipt send(Message message) throws MsnosException {
         checkCloudAlive();
-        logTX(message);
-        
         return sender.send(this, sign(message));
     }
 
     public Receipt sendSync(Message message) throws MsnosException {
         checkCloudAlive();
-        logTX(message);
         
         final MultiReceipt receipt = new MultiReceipt(message);
         sender.sendSync(this, sign(message), receipt);
@@ -241,10 +239,10 @@ public class Cloud implements Identifiable {
         caster.removeListener(listener);
     }
 
-    public void process(Message message) {
+    public void process(Message message, String gateName) {
         Result result = validators.isValid(message);
         if (result.success()) {
-            logRX(message);
+            logRX(message, gateName);
 
             message.getData().process(message, internal);
             enquiryAgentIfNecessary(message);
@@ -253,7 +251,7 @@ public class Cloud implements Identifiable {
 
             postProcess(message);
         } else {
-            logNN(message, result.reason());
+            logNN(message, gateName, result.reason());
         }
     }
 
@@ -359,17 +357,7 @@ public class Cloud implements Identifiable {
         return remoteAgent;
     }
 
-    private void logTX(Message msg) {
-        if (!proto.isInfoEnabled())
-            return;
-
-        final String muid = shorten(msg.getUuid());
-        final String payload = Json.toJsonString(msg.getData());
-        final String mseq = shorten(msg.getSequence());
-        proto.info("TX: {} {} {} {} {} {}", msg.getType(), muid, mseq, msg.getFrom(), msg.getTo(), payload);
-    }
-
-    private void logNN(Message msg, String cause) {
+    private void logNN(Message msg, String gateName, String cause) {
         if (!proto.isDebugEnabled())
             return;
 
@@ -379,31 +367,18 @@ public class Cloud implements Identifiable {
 
         Iden from = msg.getFrom();
         if (localAgents.containsKey(from))
-            proto.trace("NN: {} {} {} {} {} {} {}", msg.getType(), muid, mseq, msg.getFrom(), msg.getTo(), payload, cause);
+            proto.trace("NN({}): {} {} {} {} {} {} {}", shorten(gateName,3), msg.getType(), muid, mseq, msg.getFrom(), msg.getTo(), payload, cause);
         else
-            proto.debug("NN: {} {} {} {} {} {} {}", msg.getType(), muid, mseq, msg.getFrom(), msg.getTo(), payload, cause);
+            proto.debug("NN({}): {} {} {} {} {} {} {}", shorten(gateName,3), msg.getType(), muid, mseq, msg.getFrom(), msg.getTo(), payload, cause);
     }
 
-    private void logRX(Message msg) {
+    private void logRX(Message msg, String gateName) {
         if (!proto.isInfoEnabled())
             return;
 
         final String muid = shorten(msg.getUuid());
         final String payload = Json.toJsonString(msg.getData());
         final String mseq = shorten(msg.getSequence());
-        proto.info("RX: {} {} {} {} {} {}", msg.getType(), muid, mseq, msg.getFrom(), msg.getTo(), payload);
+        proto.info("RX({}): {} {} {} {} {} {}", shorten(gateName,3), msg.getType(), muid, mseq, msg.getFrom(), msg.getTo(), payload);
     }
-
-    private String shorten(long number) {
-        final String s = String.format("%08d", number);
-        final int l = s.length();
-        return s.substring(l - 5, l);
-    }
-
-    private String shorten(UUID uuid) {
-        final String s = uuid.toString();
-        final int l = s.length();
-        return s.substring(l - 8, l);
-    }
-
 }

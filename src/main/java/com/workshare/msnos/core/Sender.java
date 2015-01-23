@@ -1,16 +1,21 @@
 package com.workshare.msnos.core;
 
+import static com.workshare.msnos.soup.Shorteners.shorten;
+
 import java.util.Set;
 import java.util.concurrent.Executor;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.workshare.msnos.soup.json.Json;
 import com.workshare.msnos.soup.threading.ExecutorServices;
 
 public class Sender {
 
     public static final String SYSP_SENDER_THREADS_NUM = "com.ws.msnos.sender.threads.num";
+
+    private static final Logger proto = LoggerFactory.getLogger("protocol");
 
     public class Transmission implements Runnable {
         private Cloud cloud;
@@ -45,11 +50,10 @@ public class Sender {
     private static final Logger log = LoggerFactory.getLogger(Sender.class);
     private final Executor executor;
 
-    
     Sender() {
-        this(ExecutorServices.newFixedDaemonThreadPool(getThreadNum()));  
+        this(ExecutorServices.newFixedDaemonThreadPool(getThreadNum()));
     }
-    
+
     Sender(Executor executor) {
         this.executor = executor;
     }
@@ -61,6 +65,7 @@ public class Sender {
     }
 
     void sendSync(final Cloud cloud, final Message message, final MultiReceipt multi) {
+        String gateName = "ANYOF";
         final Set<Gateway> allGates = cloud.getGateways();
         for (Gateway gate : allGates) {
             try {
@@ -68,8 +73,10 @@ public class Sender {
                 final Receipt receipt = gate.send(cloud, message);
                 multi.add(receipt);
                 log.debug("Status: {}", receipt.getStatus());
-                if (receipt.getStatus() == Message.Status.DELIVERED)
+                if (receipt.getStatus() == Message.Status.DELIVERED) {
+                    gateName = gate.name();
                     break;
+                }
             } catch (Throwable ex) {
                 log.warn("Unable to send message " + message + " trough gateway " + gate, ex);
             }
@@ -77,12 +84,25 @@ public class Sender {
 
         if (multi.size() == 0) {
             multi.add(SingleReceipt.failure(message));
+            logTX(message, "FAIL");
         }
+        else
+            logTX(message, gateName);
+
     }
 
     private static Integer getThreadNum() {
         return Integer.getInteger(SYSP_SENDER_THREADS_NUM, 3);
     }
 
+    private void logTX(Message msg, String gateName) {
+        if (!proto.isInfoEnabled())
+            return;
+
+        final String muid = shorten(msg.getUuid());
+        final String payload = Json.toJsonString(msg.getData());
+        final String mseq = shorten(msg.getSequence());
+        proto.info("TX({}): {} {} {} {} {} {}", shorten(gateName,3), msg.getType(), muid, mseq, msg.getFrom(), msg.getTo(), payload);
+    }
 
 }

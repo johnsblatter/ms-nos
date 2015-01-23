@@ -74,8 +74,8 @@ public class Microcloud {
         return cloud.send(message);
     }
 
-    public void process(Message message) {
-        cloud.process(message);
+    public void process(Message message, String gateName) {
+        cloud.process(message, gateName);
     }
 
     public Listener addListener(Listener listener) {
