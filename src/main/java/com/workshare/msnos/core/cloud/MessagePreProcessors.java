@@ -13,13 +13,22 @@ import com.workshare.msnos.core.RemoteEntity;
 
 public class MessagePreProcessors {
 
+    public enum Reason {
+        FROM_LOCAL,     // coming from local agent
+        FOR_REMOTE,     // addressed to a remote agent
+        UNKNOWN_TO,     // addressed to unknown cloud or agent
+        BAD_SIGNED,     // signature is not valid
+        OUT_OF_SEQ,     // out of sequence
+    }
+
+
     private static final Logger log = LoggerFactory.getLogger(MessagePreProcessors.class);
 
     public static class Result {
         private final boolean success;
-        private final String reason;
+        private final Reason reason;
 
-        public Result(boolean success, String reason) {
+        public Result(boolean success, Reason reason) {
             super();
             this.success = success;
             this.reason = reason;
@@ -30,7 +39,7 @@ public class MessagePreProcessors {
         }
 
         public String reason() {
-            return reason;
+            return reason.toString();
         }
     }
     
@@ -67,7 +76,7 @@ public class MessagePreProcessors {
     }
 
     private MessagePreProcessor shouldHaveValidSignature() {
-        return new AbstractMessageValidator("signature is not valid") {
+        return new AbstractMessageValidator(Reason.BAD_SIGNED) {
             @Override
             public Result isValid(Message message) {
                 Message signed = cloud.sign(message);
@@ -80,7 +89,7 @@ public class MessagePreProcessors {
     }
 
     private MessagePreProcessor shouldBeInSequence() {
-        return new AbstractMessageValidator("out of sequence") {
+        return new AbstractMessageValidator(Reason.OUT_OF_SEQ) {
             @Override
             public Result isValid(Message message) {
                 RemoteEntity remote = getRemote(message);
@@ -117,7 +126,7 @@ public class MessagePreProcessors {
     }
 
     private MessagePreProcessor shouldNotBeAddressedToAnotherCloud() {
-        return new AbstractMessageValidator("addressed to unknown cloud or agent") {
+        return new AbstractMessageValidator(Reason.UNKNOWN_TO) {
             @Override
             public Result isValid(Message message) {
                 final Iden to = message.getTo();
@@ -127,7 +136,7 @@ public class MessagePreProcessors {
     }
 
     private MessagePreProcessor shouldNotBeAddressedToRemoteAgent() {
-        return new AbstractMessageValidator("addressed to a remote agent") {
+        return new AbstractMessageValidator(Reason.FOR_REMOTE) {
             @Override
             public Result isValid(Message message) {
                 return asResult(!cloud.remoteAgents().containsKey(message.getTo()));
@@ -135,7 +144,7 @@ public class MessagePreProcessors {
     }
 
     private MessagePreProcessor shouldNotComeFromLocalAgent() {
-        return new AbstractMessageValidator("coming from local agent") {
+        return new AbstractMessageValidator(Reason.FROM_LOCAL) {
             @Override
             public Result isValid(Message message) {
                 return asResult(!cloud.localAgents().containsKey(message.getFrom()));
@@ -143,11 +152,11 @@ public class MessagePreProcessors {
     }
 
     abstract class AbstractMessageValidator implements MessagePreProcessor {
-        protected final String message;
+        protected final Reason reason;
         protected final Result failure;
 
-        AbstractMessageValidator(String message) {
-            this.message = message;
+        AbstractMessageValidator(Reason message) {
+            this.reason = message;
             this.failure = new Result(false, message);
         }
         
@@ -157,7 +166,7 @@ public class MessagePreProcessors {
         
         @Override
         public final String toString() {
-            return message;
+            return reason.toString();
         }
         
     }

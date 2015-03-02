@@ -20,7 +20,7 @@ public class AgentWatchdog {
     private final Cloud cloud;
     private final ScheduledExecutorService scheduler;
 
-    private static final long AGENT_TIMEOUT = Long.getLong("msnos.core.agents.timeout.millis", 60000L);
+    private static final long AGENT_TIMEOUT = Long.getLong("msnos.core.agents.timeout.millis", 90000L);
     private static final long AGENT_RETRIES = Long.getLong("msnos.core.agents.retries.num", 3);
 
     public AgentWatchdog(Cloud cloud, ScheduledExecutorService executor) {

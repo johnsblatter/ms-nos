@@ -367,9 +367,9 @@ public class Cloud implements Identifiable {
 
         Iden from = msg.getFrom();
         if (localAgents.containsKey(from))
-            proto.trace("NN({}): {} {} {} {} {} {} {}", shorten(gateName,3), msg.getType(), muid, mseq, msg.getFrom(), msg.getTo(), payload, cause);
+            proto.trace("NN({}): ={}= {} {} {} {} {} {}", shorten(gateName,3), cause, msg.getType(), muid, mseq, msg.getFrom(), msg.getTo(), payload);
         else
-            proto.debug("NN({}): {} {} {} {} {} {} {}", shorten(gateName,3), msg.getType(), muid, mseq, msg.getFrom(), msg.getTo(), payload, cause);
+            proto.debug("NN({}): ={}= {} {} {} {} {} {}", shorten(gateName,3), cause, msg.getType(), muid, mseq, msg.getFrom(), msg.getTo(), payload);
     }
 
     private void logRX(Message msg, String gateName) {
