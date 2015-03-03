@@ -1,20 +1,25 @@
 package com.workshare.msnos.core.protocols.ip;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
-import java.net.*;
+import java.net.InetAddress;
+import java.net.InterfaceAddress;
+import java.net.NetworkInterface;
+import java.net.SocketException;
+import java.net.UnknownHostException;
 import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class Network {
 
-    private static Logger log = LoggerFactory.getLogger(Network.class);
+    public static final String SYSP_NET_BINDINGS = "com.ws.msnos.network.bindings";
 
+    private static Logger log = LoggerFactory.getLogger(Network.class);
+    
     private final byte[] address;
     private final short prefix;
 
@@ -62,7 +67,6 @@ public class Network {
 
         return netmask;
     }
-
 
     public String getHostString() {
         StringBuffer sb = new StringBuffer();
@@ -112,43 +116,77 @@ public class Network {
         }
     }
 
-    public static Set<Network> listAll(boolean ipv4only) {
-        Set<Network> nets = new HashSet<Network>();
+    public static Set<Network> listAll(boolean ipv4only, boolean includeVirtual) {
+        Enumeration<NetworkInterface> nics = null;
         try {
-            Enumeration<NetworkInterface> nics = NetworkInterface.getNetworkInterfaces();
-            while (nics.hasMoreElements()) {
-                NetworkInterface nic = nics.nextElement();
-                nets.addAll(list(nic, ipv4only));
-            }
+            nics = NetworkInterface.getNetworkInterfaces();
         } catch (SocketException e) {
-            log.error("Socket Exception getting NIC info", e);
+            log.error("FATAL - Socket Exception getting NIC info", e);
+            System.exit(-1);
+        }
+
+        return listAll(nics, ipv4only, includeVirtual, new AddressResolver());
+    }
+
+    static Set<Network> listAll(Enumeration<NetworkInterface> nics, boolean ipv4only, boolean includeVirtual, AddressResolver addresResolver) {
+        String bindings = System.getProperty(SYSP_NET_BINDINGS);
+        
+        Set<Network> nets = new HashSet<Network>();
+        while (nics.hasMoreElements()) {
+            NetworkInterface nic = nics.nextElement();
+
+            if (bindings != null && !bindings.contains(nic.getName())) {
+                log.warn("Interface \"{}\" excluded as listed bindings are \"{}\"", nic.getName(), bindings);
+                continue;
+            }
+                
+            if (!includeVirtual && nic.isVirtual())
+                continue;
+
+            if (isLoopback(nic))
+                continue;
+
+            nets.addAll(list(nic, ipv4only));
+        }
+
+        try {
+            log.debug("Trying to resolve a public address on the cloud...");
+            Network publicIP = addresResolver.findPublicIP();
+            if (publicIP != null)
+                nets.add(publicIP);
+        } catch (IOException e) {
+            log.info("Unable to get a public IP for this machine", e);
+            if (log.isDebugEnabled())
+                log.debug("Unable to get a public IP", e);
         }
         return nets;
     }
 
     public static Set<Network> list(NetworkInterface nic, boolean ipv4Only) {
-        return list(nic, ipv4Only, new AddressResolver());
-    }
 
-    public static Set<Network> list(NetworkInterface nic, boolean ipv4Only, AddressResolver resolver) {
         Set<Network> lans = new HashSet<Network>();
+        
         final List<InterfaceAddress> nicAddresses = nic.getInterfaceAddresses();
         for (InterfaceAddress nicAddress : nicAddresses) {
-            if (!nicAddress.getAddress().isLoopbackAddress()) {
-                final Network net = new Network(nicAddress);
-                if (!ipv4Only || net.isIpv4()) {
-                    if (net.isPrivate())
-                        try {
-                            Network publicIP = resolver.findPublicIP();
-                            if (publicIP != null)
-                                lans.add(publicIP);
-                        } catch (IOException e) {
-                            log.error("IOException trying to find public IP ", e);
-                        }
-                    lans.add(net);
-                }
-            }
+            if (nicAddress.getAddress().isLoopbackAddress())
+                continue;
+
+            final Network net = new Network(nicAddress);
+            if (!net.isIpv4() && ipv4Only)
+                continue;
+            
+            lans.add(net);
         }
+
         return lans;
+    }
+
+    private static boolean isLoopback(NetworkInterface nic) {
+        try {
+            return nic.isLoopback();
+        } catch (SocketException e) {
+            log.warn("Unable to determine if interface {} is a loopback", nic);
+            return false;
+        }
     }
 }

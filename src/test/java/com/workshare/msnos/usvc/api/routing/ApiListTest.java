@@ -197,6 +197,7 @@ public class ApiListTest {
         final RestApi alfa = newRestApi("alfa");
         apiList().add(getRemoteMicroservice(), alfa);
 
+        when(routing.select(svc, apiList.getEndpoints())).thenReturn(apiList.getEndpoints());
         apiList().get(svc);
 
         ArgumentCaptor<List> apis = ArgumentCaptor.forClass(List.class);

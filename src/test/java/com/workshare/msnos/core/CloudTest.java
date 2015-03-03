@@ -301,7 +301,7 @@ public class CloudTest {
         RemoteAgent remoteAgent = newRemoteAgent(thisCloud);
         simulateAgentJoiningCloud(remoteAgent, thisCloud);
 
-        fakeSystemTime(99999L);
+        fakeSystemTime(9999999999L);
         forceRunCloudPeriodicCheck();
 
         Message pingExpected = getLastMessageSent();

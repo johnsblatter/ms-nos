@@ -38,6 +38,9 @@ public class UDPGateway implements Gateway {
     public static final String SYSP_UDP_GROUP = "com.ws.nsnos.udp.group";
     public static final String SYSP_UDP_PACKET_SIZE = "com.ws.nsnos.udp.packet.size";
 
+    public static final String SYSP_NET_IPV6ALSO = "com.ws.msnos.network.ipv6also";
+    public static final String SYSP_NET_VIRTUAL = "com.ws.msnos.network.includevirtual";
+
     private MulticastSocket socket;
     private InetAddress group;
     private int ports[];
@@ -190,11 +193,17 @@ public class UDPGateway implements Gateway {
     }
     
     private Endpoints createEndpoints() {
-        Set<Network> nets = Network.listAll(true);
+        boolean ipv6Also= Boolean.getBoolean(SYSP_NET_IPV6ALSO);
+        boolean includeVirtual = Boolean.getBoolean(SYSP_NET_VIRTUAL);
+
+        logger.debug("Collecting endpoints: ipv6 {}, virtual {}", ipv6Also, includeVirtual);
+        Set<Network> nets = Network.listAll(!ipv6Also, includeVirtual);
         Set<BaseEndpoint> ends = new HashSet<BaseEndpoint>();
         for (Network net : nets) {
             ends.add(new BaseEndpoint(Type.UDP, net));
         }
+        logger.debug("Loaded endpoints: {}", ends);
+
         return BaseEndpoint.create(ends);
         
     }
