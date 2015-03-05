@@ -151,5 +151,25 @@ public class ConcurrentBuildingMap<K, V> implements Map<K,V> {
             readLock.unlock();
         }
     }
+    
+    @Override 
+    public String toString() {
+        readLock.lock();
+        try {
+            return map.toString();
+        } finally {
+            readLock.unlock();
+        } 
+    }
 
+
+    @Override 
+    public int hashCode() {
+        readLock.lock();
+        try {
+            return map.hashCode();
+        } finally {
+            readLock.unlock();
+        } 
+    }
 }

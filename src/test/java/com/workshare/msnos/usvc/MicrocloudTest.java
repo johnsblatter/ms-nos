@@ -144,10 +144,10 @@ public class MicrocloudTest {
     public void shouldRemoveRemoteApisOnAgentFault() throws Exception {
         RemoteMicroservice remote = setupRemoteMicroservice("24.24.24.24", "content", "/files");
         RestApi api = getFirstRestApi(remote);
-        assertEquals(api, microcloud.searchApi(local, "content", "/files"));
+        assertEquals(api, microcloud.searchApi(local, "/files"));
 
         simulateMessageFromCloud(newFaultMessage(remote.getAgent()));
-        assertNull(microcloud.searchApi(local, "content", "/files"));
+        assertNull(microcloud.searchApi(local, "/files"));
     }
 
     @Test
@@ -175,10 +175,10 @@ public class MicrocloudTest {
         setupRemoteMicroservice("10.10.10.10", "content", endpoint);
         setupRemoteMicroservice("10.10.10.11", "content", endpoint);
 
-        RestApi result1 = microcloud.searchApi(local, "content", endpoint);
+        RestApi result1 = microcloud.searchApi(local, endpoint);
         result1.markFaulty();
 
-        RestApi result2 = microcloud.searchApi(local, "content", endpoint);
+        RestApi result2 = microcloud.searchApi(local, endpoint);
         assertNotEquals(result2.getId(), result1.getId());
     }
 
@@ -187,7 +187,7 @@ public class MicrocloudTest {
         setupRemoteMicroservice("10.10.10.10", "content", "/files");
         setupRemoteMicroservice("10.10.10.10", "content", "/folders");
 
-        RestApi result = microcloud.searchApi(local, "content", "/files");
+        RestApi result = microcloud.searchApi(local, "/files");
 
         assertTrue("/files".equals(result.getPath()));
     }
@@ -200,13 +200,13 @@ public class MicrocloudTest {
         RestApi expected = getFirstRestApi(remote);
         
         assertEquals(expected, local.searchApi("test", "alfa"));
-        assertEquals(expected, microcloud.searchApi(local, "test", "alfa"));
+        assertEquals(expected, microcloud.searchApi(local, "alfa"));
     }
 
 
     @Test
     public void shouldSearchesReturnNullIfApiListIsEmpty() throws Exception {
-        assertNull(microcloud.searchApi(local, "something", "don't care"));
+        assertNull(microcloud.searchApi(local, "don't care"));
         assertNull(microcloud.searchApiById(1033l));
     }
 

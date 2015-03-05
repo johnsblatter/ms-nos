@@ -98,8 +98,8 @@ public class Microcloud {
         return passiveServices.get(search);
     }
 
-    public RestApi searchApi(Microservice microservice, String name, String path) {
-        return getApis().searchApi(microservice, name, path);
+    public RestApi searchApi(Microservice microservice, String path) {
+        return getApis().searchApi(microservice, path);
     }
 
     public RestApi searchApiById(long id) throws Exception {
@@ -153,7 +153,7 @@ public class Microcloud {
         final Iden from = message.getFrom();
         if (from.getType() == Iden.Type.AGT && message.getType() != PRS)
             if (!remoteServices.containsKey(from)) {
-                log.warn("Enquiring unknown microservice {}", from);
+                log.warn("Enquiring unknown microservice {} on message {} received", from, message.getType());
                 send(new MessageBuilder(Message.Type.ENQ, cloud, from).make());
             }
    }

@@ -7,6 +7,7 @@ import com.workshare.msnos.usvc.api.RestApi;
 
 import java.util.Collections;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -106,5 +107,9 @@ public class RemoteMicroservice implements IMicroService {
 
     public long getLastChecked() {
         return lastChecked.get();
+    }
+
+    public UUID getUuid() {
+        return agent.getIden().getUUID();
     }
 }

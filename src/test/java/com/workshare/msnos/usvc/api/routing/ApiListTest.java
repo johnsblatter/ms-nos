@@ -17,6 +17,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
 import java.util.List;
+import java.util.UUID;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
@@ -60,7 +61,7 @@ public class ApiListTest {
     @Test
     public void shouldStoreOneApi() {
         RestApi rest = newRestApi("alfa");
-        RemoteMicroservice remote = getRemoteMicroservice();
+        RemoteMicroservice remote = newtRemoteMicroservice();
 
         apiList().add(remote, rest);
 
@@ -71,7 +72,7 @@ public class ApiListTest {
     @Test
     public void shouldNotReturnFaultyApis() {
         RestApi rest = newRestApi("alfa");
-        RemoteMicroservice remote = getRemoteMicroservice();
+        RemoteMicroservice remote = newtRemoteMicroservice();
         apiList().add(remote, rest);
 
         markAsFaulty(rest);
@@ -84,7 +85,7 @@ public class ApiListTest {
         RestApi alfa = newRestApi("alfa");
         RestApi beta = newRestApi("beta");
 
-        RemoteMicroservice remote = getRemoteMicroservice();
+        RemoteMicroservice remote = newtRemoteMicroservice();
         apiList().add(remote, alfa);
         apiList().add(remote, beta);
 
@@ -99,8 +100,8 @@ public class ApiListTest {
         RestApi oneBeta = newRestApi("one,beta");
         RestApi twoAlfa = newRestApi("two.alfa");
 
-        RemoteMicroservice one = getRemoteMicroservice();
-        RemoteMicroservice two = getRemoteMicroservice();
+        RemoteMicroservice one = newtRemoteMicroservice();
+        RemoteMicroservice two = newtRemoteMicroservice();
         apiList().add(one, oneAlfa);
         apiList().add(one, oneBeta);
         apiList().add(two, twoAlfa);
@@ -115,7 +116,7 @@ public class ApiListTest {
         RestApi alfa = newRestApi("alfa");
         RestApi beta = newRestApiWithAffinity("beta");
 
-        RemoteMicroservice remote = getRemoteMicroservice();
+        RemoteMicroservice remote = newtRemoteMicroservice();
         apiList().add(remote, alfa);
         apiList().add(remote, beta);
 
@@ -130,9 +131,9 @@ public class ApiListTest {
         RestApi beta = newRestApiWithAffinity("beta");
         RestApi thre = newRestApi("thre");
 
-        apiList().add(getRemoteMicroservice(), alfa);
-        apiList().add(getRemoteMicroservice(), beta);
-        apiList().add(getRemoteMicroservice(), thre);
+        apiList().add(newtRemoteMicroservice(), alfa);
+        apiList().add(newtRemoteMicroservice(), beta);
+        apiList().add(newtRemoteMicroservice(), thre);
 
         markAsFaulty(beta);
 
@@ -147,9 +148,9 @@ public class ApiListTest {
         RestApi beta = newRestApiWithAffinity("beta");
         RestApi thre = newRestApi("thre");
 
-        apiList().add(getRemoteMicroservice(), alfa);
-        apiList().add(getRemoteMicroservice(), beta);
-        apiList().add(getRemoteMicroservice(), thre);
+        apiList().add(newtRemoteMicroservice(), alfa);
+        apiList().add(newtRemoteMicroservice(), beta);
+        apiList().add(newtRemoteMicroservice(), thre);
 
         markAsFaulty(alfa);
 
@@ -164,9 +165,9 @@ public class ApiListTest {
         RestApi beta = newRestApiWithAffinity("beta");
         RestApi thre = newRestApi("thre");
 
-        apiList().add(getRemoteMicroservice(), alfa);
-        apiList().add(getRemoteMicroservice(), beta);
-        apiList().add(getRemoteMicroservice(), thre);
+        apiList().add(newtRemoteMicroservice(), alfa);
+        apiList().add(newtRemoteMicroservice(), beta);
+        apiList().add(newtRemoteMicroservice(), thre);
 
         markAsFaulty(alfa);
 
@@ -185,7 +186,7 @@ public class ApiListTest {
         Location location = mock(Location.class);
         when(locations.make("1.1.1.1")).thenReturn(location);
 
-        apiList().add(getRemoteMicroservice(), newRestApiWithHost("alfa", "1.1.1.1"));
+        apiList().add(newtRemoteMicroservice(), newRestApiWithHost("alfa", "1.1.1.1"));
 
         ApiEndpoint ep = apiList().getEndpoints().get(0);
         assertEquals(location, ep.location());
@@ -195,7 +196,7 @@ public class ApiListTest {
     public void shouldInvokeUnderlyingStrategy() {
         routing = mock(RoutingStrategy.class);
         final RestApi alfa = newRestApi("alfa");
-        apiList().add(getRemoteMicroservice(), alfa);
+        apiList().add(newtRemoteMicroservice(), alfa);
 
         when(routing.select(svc, apiList.getEndpoints())).thenReturn(apiList.getEndpoints());
         apiList().get(svc);
@@ -213,8 +214,8 @@ public class ApiListTest {
 
         final RestApi alfa = newRestApiWithHighPriority("alfa");
         final RestApi beta = newRestApi("beta");
-        apiList().add(getRemoteMicroservice(), alfa);
-        apiList().add(getRemoteMicroservice(), beta);
+        apiList().add(newtRemoteMicroservice(), alfa);
+        apiList().add(newtRemoteMicroservice(), beta);
 
         assertEquals(alfa, apiList().get(svc));
         assertEquals(alfa, apiList().get(svc));
@@ -225,17 +226,19 @@ public class ApiListTest {
     public void shouldNOTInvokePriorityStrategyWhenHighPriorityNOTEngaged() throws Exception {
         final RestApi alfa = newRestApiWithHighPriority("alfa");
         final RestApi beta = newRestApi("beta");
-        apiList().add(getRemoteMicroservice(), alfa);
-        apiList().add(getRemoteMicroservice(), beta);
+        apiList().add(newtRemoteMicroservice(), alfa);
+        apiList().add(newtRemoteMicroservice(), beta);
 
         assertEquals(alfa, apiList().get(svc));
         assertEquals(beta, apiList().get(svc));
         assertEquals(alfa, apiList().get(svc));
     }
 
-    private RemoteMicroservice getRemoteMicroservice() {
+    private RemoteMicroservice newtRemoteMicroservice() {
         final RemoteMicroservice micro = Mockito.mock(RemoteMicroservice.class);
         Mockito.when(micro.getName()).thenReturn("usvc");
+        Mockito.when(micro.getLocation()).thenReturn(Location.UNKNOWN);
+        Mockito.when(micro.getUuid()).thenReturn(UUID.randomUUID());
         return micro;
     }
 
@@ -251,6 +254,7 @@ public class ApiListTest {
         RestApi api = Mockito.mock(RestApi.class);
         Mockito.when(api.toString()).thenReturn(name);
         Mockito.when(api.getName()).thenReturn(name);
+        Mockito.when(api.getHost()).thenReturn("127.0.0.1");
         return api;
     }
 

@@ -27,7 +27,6 @@ public class ApiRepository {
         return remoteApis;
     }
 
-    // TODO put a concurrent map here for performance reasons
     public RestApi searchApiById(long id) throws Exception {
         Collection<ApiList> apiListCol = getRemoteApis().values();
         for (ApiList apiList : apiListCol) {
@@ -40,9 +39,8 @@ public class ApiRepository {
         return null;
     }
 
-    public RestApi searchApi(Microservice from, String name, String path) {
-        String key = name + path;
-        ApiList apiList = getRemoteApis().get(key);
+    public RestApi searchApi(Microservice from, String path) {
+        ApiList apiList = getRemoteApis().get(path);
         return apiList == null ? null : apiList.get(from);
     }
 
@@ -50,7 +48,7 @@ public class ApiRepository {
         Set<RestApi> apis = new CopyOnWriteArraySet<RestApi>(remote.getApis());
 
         for (RestApi rest : apis) {
-            String key = rest.getName() + rest.getPath();
+            final String key = rest.getPath();
             if (getRemoteApis().containsKey(key)) {
                 getRemoteApis().get(key).add(remote, rest);
             } else {
@@ -63,11 +61,10 @@ public class ApiRepository {
 
     public void unregister(RemoteMicroservice faulty) {
         for (RestApi rest : faulty.getApis()) {
-            String key = rest.getName() + rest.getPath();
+            final String key = rest.getPath();
             if (getRemoteApis().containsKey(key)) {
                 ApiList apiList = getRemoteApis().get(key);
                 apiList.remove(faulty);
-                break;
             }
         }
     }

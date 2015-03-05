@@ -207,10 +207,6 @@ public class Location {
 
     @Override
     public String toString() {
-        return "{\"location\":\""+computeLocationForToString()+"\", \"precision\":"+precision+"}";
-    }
-    
-    private String computeLocationForToString() {
         StringBuilder sb = new StringBuilder();
         if (continent != Place.NOWHERE)
             appendPlaceForToString(sb, continent.getName());

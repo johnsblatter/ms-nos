@@ -82,7 +82,7 @@ public class Microservice implements IMicroService {
     }
 
     public RestApi searchApi(String name, String path) {
-        return cloud.searchApi(this, name, path);
+        return cloud.searchApi(this, path);
     }
 
     public List<RestApi> getLocalApis() {

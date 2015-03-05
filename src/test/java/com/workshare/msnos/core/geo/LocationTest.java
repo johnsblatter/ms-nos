@@ -179,19 +179,19 @@ public class LocationTest {
     @Test
     public void shouldToStringNicelyGoodLocation() {
         Location loc = new Location (response(NORTH_AMERICA, UNITED_STATES, NEW_YORK, SYRACUSE));
-        assertEquals("{\"location\":\"North America, United States, New York, Syracuse\", \"precision\":15}", loc.toString());
+        assertEquals("North America, United States, New York, Syracuse", loc.toString());
     }
     
     @Test
     public void shouldToStringNicelyDecentLocation() {
         Location loc = new Location (response(NORTH_AMERICA, UNITED_STATES, null, null));
-        assertEquals("{\"location\":\"North America, United States\", \"precision\":3}", loc.toString());
+        assertEquals("North America, United States", loc.toString());
     }
     
     @Test
     public void shouldToStringNicelyUnknownLocation() {
         Location loc = Location.UNKNOWN;
-        assertEquals("{\"location\":\"unknown\", \"precision\":0}", loc.toString());
+        assertEquals("unknown", loc.toString());
     }
     
     private OmniResponse response(Continent continent) {

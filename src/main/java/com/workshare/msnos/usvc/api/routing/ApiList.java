@@ -1,6 +1,7 @@
 package com.workshare.msnos.usvc.api.routing;
 
 import com.workshare.msnos.core.geo.LocationFactory;
+import com.workshare.msnos.soup.json.Json;
 import com.workshare.msnos.usvc.Microservice;
 import com.workshare.msnos.usvc.RemoteMicroservice;
 import com.workshare.msnos.usvc.api.RestApi;
@@ -11,6 +12,7 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -19,7 +21,7 @@ public class ApiList {
 
     private static Logger log = LoggerFactory.getLogger(ApiList.class);
 
-    private volatile List<ApiEndpoint> endpoints;
+    private volatile List<ApiEndpoint> endpointsList;
     private volatile RestApi affinite;
 
     transient private final RoutingStrategy routing;
@@ -32,7 +34,7 @@ public class ApiList {
     }
 
     public ApiList(RoutingStrategy routingStrategy, LocationFactory locations) {
-        this.endpoints = new ArrayList<ApiEndpoint>();
+        this.endpointsList = new ArrayList<ApiEndpoint>();
         this.routing = routingStrategy;
         this.locations = locations;
     }
@@ -40,9 +42,9 @@ public class ApiList {
     public void add(RemoteMicroservice remote, RestApi rest) {
         addRemoveLock.lock();
         try {
-            List<ApiEndpoint> newEndpoints = new ArrayList<ApiEndpoint>(endpoints);
+            LinkedHashSet<ApiEndpoint> newEndpoints = new LinkedHashSet<ApiEndpoint>(endpointsList);
             newEndpoints.add(new ApiEndpoint(remote, rest, locations.make(rest.getHost())));
-            endpoints = newEndpoints;
+            endpointsList = new ArrayList<ApiEndpoint>(newEndpoints);
         } finally {
             addRemoveLock.unlock();
         }
@@ -51,33 +53,35 @@ public class ApiList {
     public void remove(RemoteMicroservice toRemove) {
         addRemoveLock.lock();
         try {
-            List<ApiEndpoint> newEndpoints = new ArrayList<ApiEndpoint>(endpoints);
+            List<ApiEndpoint> newEndpoints = new ArrayList<ApiEndpoint>(endpointsList);
             for (int i = 0; i < newEndpoints.size(); i++) {
                 if (newEndpoints.get(i).service().equals(toRemove)) {
                     newEndpoints.remove(i);
                     break;
                 }
             }
-            endpoints = newEndpoints;
+            endpointsList = newEndpoints;
         } finally {
             addRemoveLock.unlock();
         }
     }
 
+    // TODO FIXME this need to be changed for performance reason 
+    // as we are creating a new list every time
     public List<RestApi> getApis() {
         List<RestApi> result = new ArrayList<RestApi>();
-        for (ApiEndpoint api : endpoints) {
+        for (ApiEndpoint api : endpointsList) {
             result.add(api.api());
         }
         return result;
     }
 
     public List<ApiEndpoint> getEndpoints() {
-        return Collections.unmodifiableList(endpoints);
+        return Collections.unmodifiableList(endpointsList);
     }
 
     public RestApi get(Microservice from) {
-        if (endpoints.size() == 0)
+        if (endpointsList.size() == 0)
             return null;
 
         if (affinite != null && !affinite.isFaulty())
@@ -94,12 +98,18 @@ public class ApiList {
     private RestApi getUsingStrategies(Microservice from) {
         ApiEndpoint res;
         try {
-            res = routing.select(from, endpoints).get(0);
+            res = routing.select(from, endpointsList).get(0);
         } catch (Throwable ex) {
             log.warn("Unexpected error selecting API using round robin", ex);
-            res = endpoints.size() > 0 ? endpoints.get(0) : null;
+            res = endpointsList.size() > 0 ? endpointsList.get(0) : null;
         }
         return res == null ? null : res.api();
+    }
+    
+
+    @Override
+    public String toString() {
+        return Json.toJsonString(this.endpointsList);
     }
 
     static RoutingStrategy defaultRoutingStrategy() {
