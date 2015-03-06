@@ -13,12 +13,14 @@ import org.slf4j.LoggerFactory;
 
 import com.workshare.msnos.core.Cloud;
 import com.workshare.msnos.core.Cloud.Listener;
+import com.workshare.msnos.core.Gateways;
 import com.workshare.msnos.core.LocalAgent;
 import com.workshare.msnos.core.Message;
 import com.workshare.msnos.core.MessageBuilder;
 import com.workshare.msnos.core.MsnosException;
 import com.workshare.msnos.core.geo.Location;
 import com.workshare.msnos.core.payloads.QnePayload;
+import com.workshare.msnos.core.protocols.ip.Endpoint;
 import com.workshare.msnos.soup.json.Json;
 import com.workshare.msnos.soup.threading.ExecutorServices;
 import com.workshare.msnos.usvc.api.RestApi;
@@ -47,7 +49,7 @@ public class Microservice implements IMicroService {
     public Microservice(String name, LocalAgent agent, ScheduledExecutorService executor) {
         this.name = name;
         this.agent = agent;
-        this.location = Location.computeMostPreciseLocation(agent.getEndpoints());
+        this.location = Location.computeMostPreciseLocation(endpoints(agent));
         this.localApis = new CopyOnWriteArrayList<RestApi>();
 
         this.listener = new Cloud.Listener() {
@@ -60,6 +62,17 @@ public class Microservice implements IMicroService {
                 }
             }
         };
+    }
+
+    public Set<Endpoint> endpoints(LocalAgent agent) {
+        Set<Endpoint> points = new HashSet<Endpoint>();
+        try {
+            points.addAll(Gateways.allEndpoints());
+        } catch (MsnosException e) {
+            log.warn("Unable to endpoints from gateways... wooot?", e);
+        }
+        points.addAll(agent.getEndpoints());
+        return points;
     }
 
     public Microcloud getCloud() {

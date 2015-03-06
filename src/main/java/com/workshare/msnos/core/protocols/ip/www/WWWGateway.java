@@ -95,6 +95,10 @@ public class WWWGateway implements Gateway {
         return "WWW";
     }
 
+    public String root() {
+        return this.urlRoot;
+    }
+    
     private void ping(HttpClient client) throws IOException, ClientProtocolException, MalformedURLException {
         HttpResponse response = client.execute(new HttpGet(composeUrl("ping")));
         EntityUtils.consume(response.getEntity());

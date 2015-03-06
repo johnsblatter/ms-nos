@@ -13,6 +13,9 @@ import org.slf4j.LoggerFactory;
 
 public class AddressResolver {
 
+    // instance-data is usually 169.254.169.254
+    private static final String AMAZON_IPV4_DISCOVERY_ENDPOINT = "http://instance-data/latest/meta-data/public-ipv4";
+
     private static Logger log = LoggerFactory.getLogger(AddressResolver.class);
 
     private final HttpClient httpClient;
@@ -35,25 +38,34 @@ public class AddressResolver {
                 result = new Network(publicFromAWS, (short) 32);
         }
 
+        if (result == null)
+            log.info("Unable to collect public IP");
+        else
+            log.info("Using public address {}", result);
+
         return result;
     }
 
     private byte[] getPublicFromAWS() {
+        byte[] address = null;
         try {
             HttpEntity entity = null;
             try {
-                HttpResponse response = httpClient.execute(new HttpGet("http://instance-data/latest/meta-data/public-ipv4"));
+                final HttpGet request = new HttpGet(AMAZON_IPV4_DISCOVERY_ENDPOINT);
+                log.debug("Getting public address trough {}", request.getURI());
+                HttpResponse response = httpClient.execute(request);
                 if (response != null) {
                     entity = response.getEntity();
+                    address = (entity == null) ? null : createAddressFromString(EntityUtils.toString(entity));
                 }
             } finally {
                 EntityUtils.consume(entity);
             }
-            return entity == null ? null : createAddressFromString(EntityUtils.toString(entity));
-        } catch (IOException ex) {
+        } catch (Throwable ex) {
             log.debug("Unable to resolve IP from AWS", ex);
-            return null;
         }
+
+        return address;
     }
 
     private byte[] createAddressFromString(String address) throws IOException {

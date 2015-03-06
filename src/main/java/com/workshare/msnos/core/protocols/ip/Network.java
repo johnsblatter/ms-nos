@@ -6,6 +6,7 @@ import java.net.InterfaceAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.List;
@@ -13,6 +14,8 @@ import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.workshare.msnos.soup.SingleElementSet;
 
 public class Network {
 
@@ -128,7 +131,15 @@ public class Network {
         return listAll(nics, ipv4only, includeVirtual, new AddressResolver());
     }
 
-    static Set<Network> listAll(Enumeration<NetworkInterface> nics, boolean ipv4only, boolean includeVirtual, AddressResolver addresResolver) {
+    public static Set<Network> listAll(Enumeration<NetworkInterface> nics, boolean ipv4only, boolean includeVirtual, AddressResolver addresResolver) {
+        Set<Network> nets = resolvePublicIPs(addresResolver);
+        if (nets.size() == 0)
+            nets = getHardwareAddresses(nics, ipv4only, includeVirtual);
+
+        return nets;
+    }
+
+    public static Set<Network> getHardwareAddresses(Enumeration<NetworkInterface> nics, boolean ipv4only, boolean includeVirtual) {
         String bindings = System.getProperty(SYSP_NET_BINDINGS);
         
         Set<Network> nets = new HashSet<Network>();
@@ -148,18 +159,22 @@ public class Network {
 
             nets.addAll(list(nic, ipv4only));
         }
+        return nets;
+    }
 
+    public static Set<Network> resolvePublicIPs(AddressResolver addresResolver) {
         try {
             log.debug("Trying to resolve a public address on the cloud...");
             Network publicIP = addresResolver.findPublicIP();
             if (publicIP != null)
-                nets.add(publicIP);
+                return new SingleElementSet<Network>(publicIP);
         } catch (IOException e) {
             log.info("Unable to get a public IP for this machine", e);
             if (log.isDebugEnabled())
                 log.debug("Unable to get a public IP", e);
         }
-        return nets;
+        
+        return Collections.emptySet();
     }
 
     public static Set<Network> list(NetworkInterface nic, boolean ipv4Only) {

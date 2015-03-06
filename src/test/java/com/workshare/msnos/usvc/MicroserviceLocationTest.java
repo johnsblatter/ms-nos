@@ -11,18 +11,25 @@ import java.util.UUID;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.powermock.api.mockito.PowerMockito;
+import org.powermock.core.classloader.annotations.PrepareForTest;
+import org.powermock.modules.junit4.PowerMockRunner;
 
 import com.workshare.msnos.core.Cloud;
+import com.workshare.msnos.core.Gateways;
 import com.workshare.msnos.core.Iden;
 import com.workshare.msnos.core.LocalAgent;
 import com.workshare.msnos.core.RemoteAgent;
 import com.workshare.msnos.core.geo.Location;
 import com.workshare.msnos.core.geo.LocationFactory;
+import com.workshare.msnos.core.protocols.ip.BaseEndpoint;
 import com.workshare.msnos.core.protocols.ip.Endpoint;
 import com.workshare.msnos.core.protocols.ip.Network;
-import com.workshare.msnos.core.protocols.ip.BaseEndpoint;
 import com.workshare.msnos.usvc.api.RestApi;
 
+@RunWith(PowerMockRunner.class)
+@PrepareForTest({Gateways.class})
 public class MicroserviceLocationTest {
 
     private static final String SYRACUSE = "24.24.24.24";
@@ -30,9 +37,12 @@ public class MicroserviceLocationTest {
     private Cloud cloud;
 
     @Before
-    public void prepare() {
+    public void prepare() throws Exception {
         cloud = mock(Cloud.class);
         when(cloud.getIden()).thenReturn(new Iden(Iden.Type.CLD, UUID.randomUUID()));
+        
+        PowerMockito.mockStatic(Gateways.class);
+        when(Gateways.allEndpoints()).thenReturn(Collections.<Endpoint>emptySet());
     }
 
     @Test
@@ -77,7 +87,7 @@ public class MicroserviceLocationTest {
     public void shouldLocalStoreMostPreciseServiceLocationWhenMultiHomed() {
 
         LocalAgent agent = mock(LocalAgent.class);
-        when(agent.getEndpoints()).thenReturn(singleHomedEndpoints(SYRACUSE));
+        when(agent.getEndpoints()).thenReturn(multiHomedEndpoints(SYRACUSE));
         Microservice micro = new Microservice("wombats", agent);
 
         Location expected = LocationFactory.DEFAULT.make(SYRACUSE);
@@ -88,10 +98,9 @@ public class MicroserviceLocationTest {
 
     private Set<Endpoint> multiHomedEndpoints(String city) {
         final String country1 = "31.29.0.0";    // Kyrgyzstan, Asia
-        final String country2 = "202.2.96.00";  // Tuvalu, Oceania
         final String city2 = "46.36.195.0";     // Antarctica, Antarctica (no region)
 
-        return endpoints(country1, "10.10.0.1", city2, city, country2);
+        return endpoints(country1, "10.10.0.1", city2, city);
     }
 
     private Set<Endpoint> singleHomedEndpoints(String host) {

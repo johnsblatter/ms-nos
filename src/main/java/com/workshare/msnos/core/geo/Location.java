@@ -2,6 +2,9 @@ package com.workshare.msnos.core.geo;
 
 import java.util.Set;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.maxmind.geoip2.model.OmniResponse;
 import com.maxmind.geoip2.record.AbstractNamedRecord;
 import com.maxmind.geoip2.record.City;
@@ -12,6 +15,7 @@ import com.workshare.msnos.core.protocols.ip.Endpoint;
 import com.workshare.msnos.soup.json.Json;
 
 public class Location {
+    private static final Logger log = LoggerFactory.getLogger(Location.class);
 
     public static Location UNKNOWN = new Location(Place.NOWHERE, Place.NOWHERE, Place.NOWHERE, Place.NOWHERE);
 
@@ -235,16 +239,19 @@ public class Location {
     }
 
     public static Location computeMostPreciseLocation(final Set<Endpoint> endpoints) {
-        
+
+        log.debug("Computing location for endpoints {}", endpoints);
         Location res = UNKNOWN;
         if (endpoints != null)
             for (Endpoint endpoint : endpoints) {
                 final String hostString = endpoint.getNetwork().getHostString();
                 Location loc = computeLocation(hostString);
+                log.debug("Location for endpoints {}: [{}]", hostString, loc);
                 if (loc.getPrecision() > res.getPrecision())
                     res = loc;
             }
         
+        log.debug("Location is: ", res);
         return res;
     }
 

@@ -7,7 +7,8 @@ import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.ScheduledExecutorService;
 
 import org.apache.http.client.HttpClient;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.workshare.msnos.core.Gateway.Listener;
 import com.workshare.msnos.core.MsnosException.Code;
@@ -26,7 +27,7 @@ import com.workshare.msnos.soup.threading.Multicaster;
 
 public class Gateways {
 
-    private static Logger log = Logger.getLogger(Gateways.class);
+    private static Logger log = LoggerFactory.getLogger(Gateways.class);
 
     private static Set<Gateway> all = new CopyOnWriteArraySet<Gateway>();
 
@@ -131,7 +132,9 @@ public class Gateways {
         }
         
         try {
-            return new WWWGateway(newHttpClient(), newScheduler(), new WireJsonSerializer(), newMulticaster()); 
+            WWWGateway gate = new WWWGateway(newHttpClient(), newScheduler(), new WireJsonSerializer(), newMulticaster()); 
+            log.info("Succesfully connected to WWW gateway at {}", gate.root());
+            return gate;
         } catch (Throwable ex) {
             log.error("Unable to create WWW gateway", ex);
             return null;

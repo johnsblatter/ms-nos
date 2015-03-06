@@ -19,6 +19,7 @@ public class MessagePreProcessors {
         UNKNOWN_TO,     // addressed to unknown cloud or agent
         BAD_SIGNED,     // signature is not valid
         OUT_OF_SEQ,     // out of sequence
+        TOO_OLD,     // out of sequence
     }
 
 
