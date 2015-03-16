@@ -35,6 +35,7 @@ import com.workshare.msnos.core.Iden;
 import com.workshare.msnos.core.Message;
 import com.workshare.msnos.core.MessageBuilder;
 import com.workshare.msnos.core.Receipt;
+import com.workshare.msnos.core.protocols.ip.Endpoint;
 import com.workshare.msnos.core.protocols.ip.MulticastSocketFactory;
 import com.workshare.msnos.core.serializers.WireJsonSerializer;
 
@@ -163,6 +164,17 @@ public class UDPGatewayTest {
     }
 
     @Test
+    public void shouldStampMessageReceivedAsUDP() throws Exception {
+        addListenerToGateway();
+
+        Message message = newSampleMessage(SOMEONE, ME);
+        simulateMessageFromNetwork(message);
+
+        Message received = assertMessageReceived(message);
+        assertEquals(Endpoint.Type.UDP, received.getEndpoint());
+    }
+
+    @Test
     public void shouldSplitUDPPacketsToMaxPacketSizeOrLess() throws IOException {
         System.setProperty(UDPGateway.SYSP_UDP_PACKET_SIZE, Integer.toString(333));
         Message message = getMessageWithPayload(new BigPayload(1000));
@@ -213,9 +225,10 @@ public class UDPGatewayTest {
         return packetCaptor.getAllValues();
     }
 
-    private void assertMessageReceived(Message message) {
+    private Message assertMessageReceived(Message message) {
         assertEquals(1, messages.size());
         assertEquals(message, messages.get(0));
+        return messages.get(0);
     }
 
     private UDPGateway gate() throws IOException {

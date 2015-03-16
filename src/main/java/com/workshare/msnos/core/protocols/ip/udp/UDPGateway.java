@@ -22,6 +22,7 @@ import com.workshare.msnos.core.Message.Status;
 import com.workshare.msnos.core.Receipt;
 import com.workshare.msnos.core.SingleReceipt;
 import com.workshare.msnos.core.protocols.ip.Endpoint.Type;
+import com.workshare.msnos.core.protocols.ip.Endpoint;
 import com.workshare.msnos.core.protocols.ip.Endpoints;
 import com.workshare.msnos.core.protocols.ip.MulticastSocketFactory;
 import com.workshare.msnos.core.protocols.ip.Network;
@@ -79,6 +80,7 @@ public class UDPGateway implements Gateway {
         server.addListener(new Listener() {
             @Override
             public void onMessage(Message message) {
+                message.setEndpoint(Endpoint.Type.UDP);
                 caster.dispatch(message);
             }
         });

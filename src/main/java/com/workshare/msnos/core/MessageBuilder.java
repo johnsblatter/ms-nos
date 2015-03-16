@@ -16,7 +16,7 @@ public class MessageBuilder {
     private Mode mode;
 
     private UUID uuid = null;
-    private int hops = 2;
+    private int hops = 3;
     private long seq;
     private boolean reliable = false;
     private Payload data = null;
@@ -58,7 +58,7 @@ public class MessageBuilder {
         return this;
     }
 
-    public MessageBuilder with(int hops) {
+    public MessageBuilder withHops(int hops) {
         this.hops = hops;
         return this;
     }

@@ -59,13 +59,18 @@ public class Sender {
     }
 
     public Receipt send(final Cloud acloud, final Message amessage) throws MsnosException {
-        Transmission tx = new Transmission(amessage, acloud);
+        if (amessage.getHops() == 0) {
+            logNX(amessage, "ANY");
+            return SingleReceipt.failure(amessage);
+        }
+            
+        Transmission tx = new Transmission(amessage.hopped(), acloud);
         executor.execute(tx);
         return tx.receipt();
     }
 
     void sendSync(final Cloud cloud, final Message message, final MultiReceipt multi) {
-        String gateName = "ANYOF";
+        String gateName = "ANY";
         final Set<Gateway> allGates = cloud.getGateways();
         for (Gateway gate : allGates) {
             try {
@@ -103,6 +108,16 @@ public class Sender {
         final String payload = Json.toJsonString(msg.getData());
         final String mseq = shorten(msg.getSequence());
         proto.info("TX({}): {} {} {} {} {} {}", shorten(gateName,3), msg.getType(), muid, mseq, msg.getFrom(), msg.getTo(), payload);
+    }
+
+    private void logNX(Message msg, String gateName) {
+        if (!proto.isDebugEnabled())
+            return;
+
+        final String muid = shorten(msg.getUuid());
+        final String payload = Json.toJsonString(msg.getData());
+        final String mseq = shorten(msg.getSequence());
+        proto.debug("NX({}): {} {} {} {} {} {}", shorten(gateName,3), msg.getType(), muid, mseq, msg.getFrom(), msg.getTo(), payload);
     }
 
 }

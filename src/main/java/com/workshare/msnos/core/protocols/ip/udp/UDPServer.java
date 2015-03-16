@@ -1,18 +1,19 @@
 package com.workshare.msnos.core.protocols.ip.udp;
 
-import com.workshare.msnos.core.Gateway.Listener;
-import com.workshare.msnos.core.Message;
-import com.workshare.msnos.core.serializers.WireJsonSerializer;
-import com.workshare.msnos.core.serializers.WireSerializer;
-import com.workshare.msnos.soup.threading.Multicaster;
-import com.workshare.msnos.soup.threading.ThreadFactories;
-
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.MulticastSocket;
 import java.util.concurrent.ThreadFactory;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import com.workshare.msnos.core.Gateway.Listener;
+import com.workshare.msnos.core.Message;
+import com.workshare.msnos.core.protocols.ip.Endpoint;
+import com.workshare.msnos.core.serializers.WireJsonSerializer;
+import com.workshare.msnos.core.serializers.WireSerializer;
+import com.workshare.msnos.soup.threading.Multicaster;
+import com.workshare.msnos.soup.threading.ThreadFactories;
 
 public class UDPServer {
 

@@ -264,7 +264,7 @@ public class WireJsonSerializer implements WireSerializer {
             }
 
             return new MessageBuilder(MessageBuilder.Mode.RELAXED, type, from, to)
-                    .with(hops)
+                    .withHops(hops)
                     .with(data)
                     .with(uuid)
                     .sequence(seq)

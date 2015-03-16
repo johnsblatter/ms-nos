@@ -15,7 +15,7 @@ public class MessageTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void shouldNotBeAbleToCreateAReliableMessageToTheCloud() {
-        new MessageBuilder(MessageBuilder.Mode.RELAXED, Message.Type.APP, AGENT_IDEN, CLOUD_IDEN).with(1).reliable(true).make();
+        new MessageBuilder(MessageBuilder.Mode.RELAXED, Message.Type.APP, AGENT_IDEN, CLOUD_IDEN).withHops(1).reliable(true).make();
     }
 
     @Test

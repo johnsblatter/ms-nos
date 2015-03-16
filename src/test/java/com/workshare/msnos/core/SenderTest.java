@@ -8,7 +8,7 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -56,9 +56,32 @@ public class SenderTest {
     @Test
     public void shouldSendMessagesTroughAllGateways() throws Exception {
         Message message = newPingMessage(cloud);
+        
         sendAndWait(message);
-        verify(gate1).send(cloud, message);
-        verify(gate2).send(cloud, message);
+
+        verifyMessageSent(message, gate1);
+        verifyMessageSent(message, gate2);
+    }
+
+    @Test
+    public void shouldDecreaseHopsBeforeSending() throws Exception {
+        Message message = newPingMessage(cloud);
+        
+        sendAndWait(message);
+
+        int expectedHops = message.getHops()-1;
+        assertEquals(expectedHops, verifyMessageSent(message, gate1).getHops());
+        assertEquals(expectedHops, verifyMessageSent(message, gate2).getHops());
+    }
+
+    @Test
+    public void shouldNotSendMessageOnZeroHops() throws Exception {
+        Message message = new MessageBuilder(MessageBuilder.Mode.RELAXED, Message.Type.PIN, cloud.getIden(), cloud.getIden()).withHops(0).make();
+        Receipt receipt = sender.send(cloud, message);
+        
+        verify(gate1, never()).send(eq(cloud), any(Message.class));
+        verify(gate2, never()).send(eq(cloud), any(Message.class));
+        assertEquals(Message.Status.FAILED, receipt.getStatus());
     }
 
     @Test
@@ -70,7 +93,7 @@ public class SenderTest {
         Message message = newPingMessage(cloud);
         sendAndWait(message);
 
-        verify(gate1).send(cloud, message);
+        verifyMessageSent(message, gate1);
         verify(gate2, never()).send(cloud, message);
     }
 
@@ -124,6 +147,14 @@ public class SenderTest {
         assertEquals(Status.UNKNOWN, receipt.getStatus());
     }
 
+    private Message verifyMessageSent(final Message message, final Gateway gate) throws IOException {
+        ArgumentCaptor<Message> runnableCaptor = ArgumentCaptor.forClass(Message.class);
+        verify(gate).send(eq(cloud), runnableCaptor.capture());
+        Message captured = runnableCaptor.getValue();
+        assertEquals(message.getUuid(), captured.getUuid());
+        return captured;
+    }
+
     private Receipt sendAndWait(Message message) throws MsnosException {
         Receipt receipt = sender.send(cloud, message);
 
@@ -139,5 +170,4 @@ public class SenderTest {
         when(value.getStatus()).thenReturn(status);
         return value;
     }
-
 }

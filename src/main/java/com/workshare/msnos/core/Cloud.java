@@ -1,7 +1,6 @@
 package com.workshare.msnos.core;
 
 import static com.workshare.msnos.core.Message.Type.PRS;
-import static com.workshare.msnos.soup.Shorteners.shorten;
 
 import java.io.IOException;
 import java.security.SecureRandom;
@@ -20,8 +19,6 @@ import com.workshare.msnos.core.cloud.AgentWatchdog;
 import com.workshare.msnos.core.cloud.IdentifiablesList;
 import com.workshare.msnos.core.cloud.JoinSynchronizer;
 import com.workshare.msnos.core.cloud.JoinSynchronizer.Status;
-import com.workshare.msnos.core.cloud.MessagePreProcessors;
-import com.workshare.msnos.core.cloud.MessagePreProcessors.Result;
 import com.workshare.msnos.core.cloud.Multicaster;
 import com.workshare.msnos.core.payloads.FltPayload;
 import com.workshare.msnos.core.payloads.Presence;
@@ -40,7 +37,6 @@ public class Cloud implements Identifiable {
     private static final ScheduledExecutorService DEFAULT_SCHEDULER = ExecutorServices.newSingleThreadScheduledExecutor();
 
     private static final Logger log = LoggerFactory.getLogger(Cloud.class);
-    private static final Logger proto = LoggerFactory.getLogger("protocol");
 
     private static final SecureRandom random = new SecureRandom();
 
@@ -55,13 +51,12 @@ public class Cloud implements Identifiable {
     private final IdentifiablesList<RemoteEntity> remoteClouds;
     private final AtomicLong seq;
 
-    transient private final MessagePreProcessors validators;
     transient private final Set<Gateway> gates;
-    transient private final Multicaster caster;
     transient private final JoinSynchronizer synchronizer;
     transient private final Signer signer;
     transient private final Internal internal;
     transient private final Sender sender;
+    transient private final Receiver receiver;
 
     public class Internal {
         public IdentifiablesList<LocalAgent> localAgents() {
@@ -105,24 +100,15 @@ public class Cloud implements Identifiable {
         this.remoteClouds = new IdentifiablesList<RemoteEntity>();
 
         this.seq = new AtomicLong(SystemTime.asMillis());
-        this.caster = multicaster;
         this.gates = Collections.unmodifiableSet(gates);
-        this.sender = sender;
+        this.internal = new Internal();
+
         this.signer = signer;
         this.signid = signid;
         this.synchronizer = synchronizer;
 
-        for (final Gateway gate : gates) {
-            gate.addListener(this, new Gateway.Listener() {
-                @Override
-                public void onMessage(Message message) {
-                    process(message, gate.name());
-                }
-            });
-        }
-
-        this.internal = new Internal();
-        this.validators = new MessagePreProcessors(this.internal);
+        this.sender = sender;
+        this.receiver = new Receiver(this, gates, multicaster);
 
         new AgentWatchdog(this, executor).start();
         
@@ -231,28 +217,11 @@ public class Cloud implements Identifiable {
     }
 
     public Listener addListener(com.workshare.msnos.core.Cloud.Listener listener) {
-        return caster.addListener(listener);
+        return receiver.caster().addListener(listener);
     }
 
     public void removeListener(com.workshare.msnos.core.Cloud.Listener listener) {
-        log.debug("Removing listener: {}", listener);
-        caster.removeListener(listener);
-    }
-
-    public void process(Message message, String gateName) {
-        Result result = validators.isValid(message);
-        if (result.success()) {
-            logRX(message, gateName);
-
-            message.getData().process(message, internal);
-            enquiryAgentIfNecessary(message);
-
-            caster.dispatch(message);
-
-            postProcess(message);
-        } else {
-            logNN(message, gateName, result.reason());
-        }
+        receiver.caster().removeListener(listener);
     }
 
     private void enquiryAgentIfNecessary(Message message) {
@@ -269,9 +238,10 @@ public class Cloud implements Identifiable {
         }
     }
 
-    private void postProcess(Message message) {
-        final Iden from = message.getFrom();
+    void postProcess(Message message) {
+        enquiryAgentIfNecessary(message);
 
+        final Iden from = message.getFrom();
         touch(remoteAgents.get(from));
         touch(remoteClouds.get(from));
 
@@ -287,7 +257,7 @@ public class Cloud implements Identifiable {
         log.warn("Removing faulty agent "+agent);
         RemoteEntity result = remoteAgents.remove(agent.getIden());
         if (result != null)
-            caster.dispatch(new MessageBuilder(Message.Type.FLT, this, this).with(new FltPayload(agent.getIden())).make());
+            receiver.caster().dispatch(new MessageBuilder(Message.Type.FLT, this, this).with(new FltPayload(agent.getIden())).make());
     }
 
     public void registerRemoteMsnosEndpoint(HttpEndpoint endpoint) throws MsnosException {
@@ -357,28 +327,11 @@ public class Cloud implements Identifiable {
         return remoteAgent;
     }
 
-    private void logNN(Message msg, String gateName, String cause) {
-        if (!proto.isDebugEnabled())
-            return;
-
-        final String muid = shorten(msg.getUuid());
-        final String payload = Json.toJsonString(msg.getData());
-        final String mseq = shorten(msg.getSequence());
-
-        Iden from = msg.getFrom();
-        if (localAgents.containsKey(from))
-            proto.trace("NN({}): ={}= {} {} {} {} {} {}", shorten(gateName,3), cause, msg.getType(), muid, mseq, msg.getFrom(), msg.getTo(), payload);
-        else
-            proto.debug("NN({}): ={}= {} {} {} {} {} {}", shorten(gateName,3), cause, msg.getType(), muid, mseq, msg.getFrom(), msg.getTo(), payload);
+    public void process(Message message, String gateName) {
+        receiver.process(message, gateName);
     }
 
-    private void logRX(Message msg, String gateName) {
-        if (!proto.isInfoEnabled())
-            return;
-
-        final String muid = shorten(msg.getUuid());
-        final String payload = Json.toJsonString(msg.getData());
-        final String mseq = shorten(msg.getSequence());
-        proto.info("RX({}): {} {} {} {} {} {}", shorten(gateName,3), msg.getType(), muid, mseq, msg.getFrom(), msg.getTo(), payload);
+    Internal internal() {
+        return internal;
     }
 }

@@ -1,12 +1,13 @@
 package com.workshare.msnos.core;
 
-import com.workshare.msnos.core.payloads.NullPayload;
-import com.workshare.msnos.core.payloads.PongPayload;
-import com.workshare.msnos.soup.json.Json;
-
 import java.math.BigInteger;
 import java.security.SecureRandom;
 import java.util.UUID;
+
+import com.workshare.msnos.core.payloads.NullPayload;
+import com.workshare.msnos.core.payloads.PongPayload;
+import com.workshare.msnos.core.protocols.ip.Endpoint;
+import com.workshare.msnos.soup.json.Json;
 
 public class Message {
 
@@ -32,6 +33,8 @@ public class Message {
 
     private final String sig;
     private final String rnd;
+
+    private transient Endpoint.Type endpoint;
 
     private static final SecureRandom random = new SecureRandom();
 
@@ -132,9 +135,20 @@ public class Message {
         return new Message(type, from, to, hops, reliable, load, uuid, sig, rnd, seq);
     }
 
+    public Message hopped() {
+        return new Message(type, from, to, hops-1, reliable, data, uuid, sig, rnd, seq);
+    }
+
     public Message signed(String keyId, String signature) {
         String sign = keyId + ":" + signature;
         return new Message(type, from, to, hops, reliable, data, uuid, sign, rnd, seq);
     }
 
+    public Endpoint.Type getEndpoint() {
+        return endpoint;
+    }
+
+    public void setEndpoint(Endpoint.Type endpoint) {
+        this.endpoint = endpoint;
+    }
 }

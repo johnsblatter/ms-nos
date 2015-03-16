@@ -563,7 +563,7 @@ public class CloudTest {
         simulateAgentJoiningCloud(agent, thisCloud);
 
         Message current = new MessageBuilder(APP, agent, thisCloud).make();
-        thisCloud.process(current, "TEST");
+        simulateMessageFromNetwork(current);
 
         assertEquals(current, getLastMessageSentToCloudListeners());
     }
@@ -705,11 +705,11 @@ public class CloudTest {
     }
 
     private Message newMessage(final Message.Type type, final Iden idenFrom, final Iden idenTo) {
-        return new MessageBuilder(MessageBuilder.Mode.RELAXED, type, idenFrom, idenTo).with(1).reliable(false).make();
+        return new MessageBuilder(MessageBuilder.Mode.RELAXED, type, idenFrom, idenTo).withHops(1).reliable(false).make();
     }
 
     private Message newReliableMessage(final Message.Type type, final Iden idenFrom, final Iden idenTo) {
-        return new MessageBuilder(MessageBuilder.Mode.RELAXED, type, idenFrom, idenTo).with(1).reliable(true).make();
+        return new MessageBuilder(MessageBuilder.Mode.RELAXED, type, idenFrom, idenTo).withHops(1).reliable(true).make();
     }
 
     private void assertNoMessagesSent() throws IOException {
