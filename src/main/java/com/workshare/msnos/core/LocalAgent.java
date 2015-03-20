@@ -28,12 +28,13 @@ public class LocalAgent implements Agent {
 
     transient private Listener listener;
     transient private Cloud cloud;
-
+    transient private Ring ring;
+    
     public LocalAgent(UUID uuid) {
         this(new Iden(Iden.Type.AGT, uuid), Collections.<Endpoint>emptySet());
     }
 
-    private LocalAgent(Iden iden, Set<Endpoint> endpoints) {
+    LocalAgent(Iden iden, Set<Endpoint> endpoints) {
         this.iden = iden;
         this.seq = new AtomicLong(SystemTime.asMillis());
         this.endpoints = new CopyOnWriteArraySet<Endpoint>(endpoints); 
@@ -68,6 +69,10 @@ public class LocalAgent implements Agent {
         return SystemTime.asMillis();
     }
 
+    public Ring getRing() {
+        return ring;
+    }
+
     public LocalAgent join(Cloud cloud) throws MsnosException {
         this.cloud = cloud;
         cloud.onJoin(this);
@@ -80,6 +85,8 @@ public class LocalAgent implements Agent {
             }
         });
         this.endpoints.addAll(Gateways.allPublicEndpoints());
+        this.ring = cloud.getRing();
+        
         return this;
     }
 

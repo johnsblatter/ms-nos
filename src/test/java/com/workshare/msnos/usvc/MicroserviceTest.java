@@ -42,6 +42,7 @@ import com.workshare.msnos.core.payloads.FltPayload;
 import com.workshare.msnos.core.payloads.QnePayload;
 import com.workshare.msnos.core.protocols.ip.BaseEndpoint;
 import com.workshare.msnos.core.protocols.ip.Endpoint;
+import com.workshare.msnos.core.protocols.ip.Endpoints;
 import com.workshare.msnos.core.protocols.ip.Endpoint.Type;
 import com.workshare.msnos.core.protocols.ip.Network;
 import com.workshare.msnos.soup.time.SystemTime;
@@ -332,7 +333,9 @@ public class MicroserviceTest {
     }
 
     private Set<Gateway> mockGateways() throws IOException {
+        Endpoints epoints = mock(Endpoints.class);
         Gateway gate = mock(Gateway.class);
+        when(gate.endpoints()).thenReturn(epoints);
         Receipt receipt = mock(Receipt.class);
         when(gate.send(any(Cloud.class), any(Message.class))).thenReturn(receipt);
         return new HashSet<Gateway>(Arrays.asList(new Gateway[]{gate}));

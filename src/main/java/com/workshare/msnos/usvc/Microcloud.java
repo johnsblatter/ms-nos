@@ -30,6 +30,7 @@ import com.workshare.msnos.core.payloads.FltPayload;
 import com.workshare.msnos.core.payloads.HealthcheckPayload;
 import com.workshare.msnos.core.payloads.Presence;
 import com.workshare.msnos.core.payloads.QnePayload;
+import com.workshare.msnos.core.protocols.ip.Endpoint;
 import com.workshare.msnos.core.protocols.ip.HttpEndpoint;
 import com.workshare.msnos.soup.threading.ExecutorServices;
 import com.workshare.msnos.usvc.api.RestApi;
@@ -74,8 +75,8 @@ public class Microcloud {
         return cloud.send(message);
     }
 
-    public void process(Message message, String gateName) {
-        cloud.process(message, gateName);
+    public void process(Message message, Endpoint.Type endpoint) {
+        cloud.process(message, endpoint.toString());
     }
 
     public Listener addListener(Listener listener) {

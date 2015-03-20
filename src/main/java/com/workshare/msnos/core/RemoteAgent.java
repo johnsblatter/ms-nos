@@ -12,10 +12,17 @@ public class RemoteAgent extends RemoteEntity implements Agent {
     private static final Set<Endpoint> NO_ENDPOINTS = Collections.emptySet();
     
     private final Set<Endpoint> endpoints;
+    private final Ring ring;
 
     public RemoteAgent(UUID uuid, Cloud cloud, Set<Endpoint> endpoints) {
+        this(uuid, cloud, endpoints, Ring.make(endpoints));
+    }
+
+    public RemoteAgent(UUID uuid, Cloud cloud, Set<Endpoint> endpoints, Ring ring) {
         super(new Iden(Iden.Type.AGT, uuid), cloud);
         this.endpoints = toUnmodifiable(endpoints);
+        this.ring = ring;
+        
         touch();
     }
 
@@ -29,6 +36,11 @@ public class RemoteAgent extends RemoteEntity implements Agent {
     @Override
     public Set<Endpoint> getEndpoints() {
         return endpoints;
+    }
+
+    @Override
+    public Ring getRing() {
+        return ring;
     }
 
     @Override

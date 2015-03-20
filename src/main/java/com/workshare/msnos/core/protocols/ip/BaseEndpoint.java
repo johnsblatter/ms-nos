@@ -85,7 +85,7 @@ public class BaseEndpoint implements Endpoint {
             }
             
             @Override
-            public Set<? extends BaseEndpoint> all() {
+            public Set<? extends Endpoint> all() {
                 return endpoints;
             }
 

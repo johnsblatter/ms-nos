@@ -8,8 +8,11 @@ import com.workshare.msnos.core.protocols.ip.Endpoint;
 
 public class PassiveAgent extends RemoteEntity implements Agent {
 
+    private final Ring ring;
+
     public PassiveAgent(Cloud cloud, UUID uuid) {
         super(new Iden(Iden.Type.AGT, uuid), cloud);
+        this.ring = Ring.random();
     }
 
     @Override
@@ -29,5 +32,10 @@ public class PassiveAgent extends RemoteEntity implements Agent {
     @Override
     public int hashCode() {
         return getIden().hashCode();
+    }
+
+    @Override
+    public Ring getRing() {
+        return ring;
     }
 }

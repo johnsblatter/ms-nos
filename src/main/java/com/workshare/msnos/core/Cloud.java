@@ -53,6 +53,7 @@ public class Cloud implements Identifiable {
 
     transient private final Set<Gateway> gates;
     transient private final JoinSynchronizer synchronizer;
+    transient private final Ring ring;
     transient private final Signer signer;
     transient private final Internal internal;
     transient private final Sender sender;
@@ -106,10 +107,11 @@ public class Cloud implements Identifiable {
         this.signer = signer;
         this.signid = signid;
         this.synchronizer = synchronizer;
-
+        this.ring = calculateRing(gates);
+                
         this.sender = sender;
         this.receiver = new Receiver(this, gates, multicaster);
-
+        
         new AgentWatchdog(this, executor).start();
         
         ShutdownHooks.addHook(new Hook() {
@@ -140,8 +142,17 @@ public class Cloud implements Identifiable {
                 return 0;
             }
         });
+    }
 
-
+    private Ring calculateRing(Set<Gateway> gateways) {
+        HashSet<Endpoint> endpoints = new HashSet<Endpoint>();
+        for (Gateway gate : gateways) {
+            final Set<? extends Endpoint> points = gate.endpoints().all();
+            if (points != null)
+                endpoints.addAll(points);
+        }
+        
+        return Ring.make(endpoints);
     }
 
     @Override
@@ -329,6 +340,10 @@ public class Cloud implements Identifiable {
 
     public void process(Message message, String gateName) {
         receiver.process(message, gateName);
+    }
+
+    public Ring getRing() {
+        return ring;
     }
 
     Internal internal() {

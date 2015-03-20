@@ -16,4 +16,6 @@ public interface Agent extends Identifiable {
     long getAccessTime();
 
     void touch();
+
+    Ring getRing();
 }

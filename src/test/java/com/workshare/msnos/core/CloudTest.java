@@ -1,11 +1,15 @@
 package com.workshare.msnos.core;
 
+import static com.workshare.msnos.core.CoreHelper.asNetwork;
+import static com.workshare.msnos.core.CoreHelper.asPublicNetwork;
+import static com.workshare.msnos.core.CoreHelper.*;
+import static com.workshare.msnos.core.CoreHelper.newAgentIden;
 import static com.workshare.msnos.core.Message.Type.APP;
 import static com.workshare.msnos.core.Message.Type.FLT;
 import static com.workshare.msnos.core.Message.Type.PIN;
 import static com.workshare.msnos.core.Message.Type.PRS;
 import static com.workshare.msnos.core.MessagesHelper.newPingMessage;
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.*;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -34,6 +38,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -41,10 +46,12 @@ import org.mockito.InOrder;
 
 import com.workshare.msnos.core.Message.Status;
 import com.workshare.msnos.core.Message.Type;
+import com.workshare.msnos.core.MsnosException.Code;
 import com.workshare.msnos.core.cloud.JoinSynchronizer;
 import com.workshare.msnos.core.cloud.Multicaster;
 import com.workshare.msnos.core.payloads.FltPayload;
 import com.workshare.msnos.core.payloads.Presence;
+import com.workshare.msnos.core.protocols.ip.BaseEndpoint;
 import com.workshare.msnos.core.protocols.ip.Endpoint;
 import com.workshare.msnos.core.protocols.ip.Endpoints;
 import com.workshare.msnos.core.protocols.ip.HttpEndpoint;
@@ -66,19 +73,20 @@ public class CloudTest {
 
     private HttpGateway httpGate;
     private Set<Gateway> gates;
-    
+
     private Cloud thisCloud;
     private Cloud otherCloud;
     private Sender sender;
-     
+
     private Iden thisCloudRemoteIden;
 
     private ScheduledExecutorService scheduler;
     private List<Message> receivedMessages;
     private JoinSynchronizer synchro;
     private KeysStore keystore;
+    private Signer signer;
     private File home;
-    
+
     @Before
     public void init() throws Exception {
         home = File.createTempFile("msnos-", ".tmp");
@@ -96,11 +104,11 @@ public class CloudTest {
 
         httpGate = mock(HttpGateway.class);
         Endpoints endpoints = mock(Endpoints.class);
-        when(httpGate.endpoints()).thenReturn(endpoints );
+        when(httpGate.endpoints()).thenReturn(endpoints);
         when(httpGate.send(any(Cloud.class), any(Message.class))).thenReturn(unknownReceipt);
-        
+
         keystore = mock(KeysStore.class);
-        Signer signer = new Signer(keystore);
+        signer = new Signer(keystore);
 
         NTPClient timeClient = mock(NTPClient.class);
         when(timeClient.getTime()).thenReturn(1234L);
@@ -116,7 +124,7 @@ public class CloudTest {
 
         receivedMessages = new ArrayList<Message>();
 
-        otherCloud = new Cloud(UUID.randomUUID(), KEY_ID, signer, sender, Collections.<Gateway>emptySet(), synchro, synchronousMulticaster(), Executors.newSingleThreadScheduledExecutor(), null);
+        otherCloud = new Cloud(UUID.randomUUID(), KEY_ID, signer, sender, Collections.<Gateway> emptySet(), synchro, synchronousMulticaster(), Executors.newSingleThreadScheduledExecutor(), null);
         thisCloudRemoteIden = new Iden(Iden.Type.CLD, thisCloud.getIden().getUUID(), 99l);
     }
 
@@ -247,7 +255,7 @@ public class CloudTest {
     public void shouldForwardAnyMessageSentToSameCloudUsingSpecificIden() throws Exception {
         Iden iden = thisCloud.getIden();
         Iden thisCloudSpecificIden = new Iden(iden.getType(), iden.getUUID(), 1234L);
-        
+
         simulateMessageFromNetwork(newMessage(APP, SOMEONE, thisCloudSpecificIden));
 
         assertEquals(1, receivedMessages.size());
@@ -431,7 +439,7 @@ public class CloudTest {
         RemoteAgent remoteAgent = mockRemoteWithIden(new Iden(Iden.Type.AGT, UUID.randomUUID()));
         simulateAgentJoiningCloudWithSeq(remoteAgent, 42L);
         receivedMessages.clear();
-        
+
         Message msg = new MockMessageHelper(APP, remoteAgent.getIden(), thisCloud.getIden()).sequence(32L).make();
         simulateMessageFromNetwork(msg);
 
@@ -522,8 +530,8 @@ public class CloudTest {
         assertTrue(receivedMessages.contains(fromOne));
         assertTrue(receivedMessages.contains(fromTwo));
     }
-    
-    @Test 
+
+    @Test
     public void shouldRegisterMsnosEndpointsOnHttpGateway() throws Exception {
         HttpEndpoint endpoint = mock(HttpEndpoint.class);
         when(endpoint.getTarget()).thenReturn(new Iden(Iden.Type.AGT, UUID.randomUUID()));
@@ -531,7 +539,7 @@ public class CloudTest {
         verify(httpGate.endpoints()).install(endpoint);
     }
 
-    @Test 
+    @Test
     public void shouldRegisterMsnosEndpointsOnRemoteAgent() throws Exception {
         RemoteAgent frank = newRemoteAgent(thisCloud);
         simulateAgentJoiningCloud(frank, thisCloud);
@@ -544,7 +552,7 @@ public class CloudTest {
         assertTrue(agent.getEndpoints().contains(endpoint));
     }
 
-    @Test 
+    @Test
     public void shouldRegisterMsnosEndpointsOnLocalAgent() throws Exception {
         LocalAgent smith = new LocalAgent(UUID.randomUUID());
         smith.join(thisCloud);
@@ -557,7 +565,7 @@ public class CloudTest {
         assertTrue(agent.getEndpoints().contains(endpoint));
     }
 
-    @Test 
+    @Test
     public void shouldProcessExternalMessage() throws MsnosException {
         RemoteAgent agent = newRemoteAgent(thisCloud);
         simulateAgentJoiningCloud(agent, thisCloud);
@@ -567,27 +575,27 @@ public class CloudTest {
 
         assertEquals(current, getLastMessageSentToCloudListeners());
     }
-    
-    @Test 
+
+    @Test
     public void shouldEnquiryUponReceivingMessagesFromUnknownAgents() throws Exception {
         RemoteAgent smith = newRemoteAgent(thisCloud);
-        
+
         simulateMessageFromNetwork(new MessageBuilder(Message.Type.PIN, smith, thisCloud).make());
 
         Message message = getLastMessageSent();
         assertEquals(Message.Type.DSC, message.getType());
         assertEquals(smith.getIden(), message.getTo());
     }
-    
-    @Test 
+
+    @Test
     public void shouldNOTEnquiryUponReceivingMessagesFromCloud() throws Exception {
-        
+
         simulateMessageFromNetwork(new MessageBuilder(Message.Type.PIN, thisCloud, thisCloud).make());
 
         assertEquals(0, getAllMessagesSent().size());
     }
-    
-    @Test 
+
+    @Test
     public void shouldNOTEnquiryUponReceivingPresenceLeaveFromAgent() throws Exception {
         RemoteAgent smith = newRemoteAgent(thisCloud);
 
@@ -595,7 +603,7 @@ public class CloudTest {
 
         assertEquals(0, getAllMessagesSent().size());
     }
-    
+
     @Test
     public void shouldSendMessagesTroughSender() throws Exception {
         Message message = newPingMessage(thisCloud);
@@ -610,12 +618,60 @@ public class CloudTest {
         verify(sender).sendSync(eq(thisCloud), eq(message), any(MultiReceipt.class));
     }
 
+    @Test
+    public void shouldAutomaticallyCalculateRing() {
+        final Endpoint htp = new HttpEndpoint(asPublicNetwork("25.25.25.25"), "http://25.25.25.25");
+        final Endpoint udp = new BaseEndpoint(Endpoint.Type.UDP, asNetwork("192.168.0.199", (short) 16));
+        final Set<Endpoint> endpoints = asSet(htp, udp);
+        final Gateway gate = mock(Gateway.class);
+        when(gate.endpoints()).thenReturn(makeEndpoints(endpoints));
+
+        Cloud cloud = new Cloud(randomUUID(), KEY_ID, signer, sender, asSet(gate), synchro, synchronousMulticaster(), scheduler, null);
+
+        assertEquals(Ring.make(endpoints), cloud.getRing());
+    }
+
+    @Test
+    public void shouldAssingCloudRingToLocalAgentOnJoin() throws Exception {
+        LocalAgent smith = new LocalAgent(UUID.randomUUID());
+        
+        smith.join(thisCloud);
+        
+        assertEquals(thisCloud.getRing(), smith.getRing());
+    }
+
+    @Test
+    public void shouldAssingCloudRingToRemoteAgentWhenJoiningTroughUDP() throws Exception {
+        RemoteAgent frank = newRemoteAgent(thisCloud);
+        
+        Message message = new MessageBuilder(Message.Type.PRS, frank, thisCloud).with(new Presence(true, frank)).make();
+        message.setEndpoint(Endpoint.Type.UDP);
+        simulateMessageFromNetwork(message);
+
+        frank = getRemoteAgent(thisCloud, frank.getIden());
+        assertEquals(thisCloud.getRing(), frank.getRing());
+    }
+
+    @Test
+    public void shouldAssingComputedRingToRemoteAgentWhenJoiningNotTroughUDP() throws Exception {
+        RemoteAgent frank = newRemoteAgent(thisCloud);
+        
+        Message message = new MessageBuilder(Message.Type.PRS, frank, thisCloud).with(new Presence(true, frank)).make();
+        message.setEndpoint(Endpoint.Type.HTTP);
+        simulateMessageFromNetwork(message);
+
+        frank = getRemoteAgent(thisCloud, frank.getIden());
+        assertNotEquals(thisCloud.getRing(), frank.getRing());
+    }
+
+    
     private Message simulateMessageFromOtherCloud(String uuidString, int seq, long instance) {
         final Message message = new MessageBuilder(MessageBuilder.Mode.RELAXED, APP, thisCloudRemoteIden, thisCloud.getIden()).with(UUID.randomUUID()).sequence(seq).make();
         simulateMessageFromNetwork(message);
 
         return message;
     }
+
     private void simulateAgentJoiningCloudWithSeq(Agent remoteAgent, long seq) throws MsnosException {
         Message message = (new MockMessageHelper(Type.PRS, remoteAgent.getIden(), thisCloud.getIden()).data(new Presence(true, remoteAgent)).sequence(seq).make());
         simulateMessageFromNetwork(message);
@@ -629,7 +685,8 @@ public class CloudTest {
 
     private RemoteAgent getRemoteAgent(Cloud thisCloud, Iden iden) {
         for (RemoteAgent agent : thisCloud.getRemoteAgents()) {
-            if (agent.getIden().equals(iden)) return agent;
+            if (agent.getIden().equals(iden))
+                return agent;
         }
         return null;
     }
@@ -752,7 +809,36 @@ public class CloudTest {
     }
 
     private RemoteAgent newRemoteAgent(Cloud cloud) {
-        return new RemoteAgent(UUID.randomUUID(), cloud, Collections.<Endpoint>emptySet());
+        return new RemoteAgent(UUID.randomUUID(), cloud, Collections.<Endpoint> emptySet());
     }
 
+    private Endpoints makeEndpoints(final Set<Endpoint> endpointsSet) {
+        Endpoints endpoints = new Endpoints() {
+            @Override
+            public Set<? extends Endpoint> all() {
+                return endpointsSet;
+            }
+
+            @Override
+            public Set<? extends Endpoint> publics() {
+                return asSet();
+            }
+
+            @Override
+            public Set<? extends Endpoint> of(Agent agent) {
+                return asSet();
+            }
+
+            @Override
+            public Endpoint install(Endpoint endpoint) throws MsnosException {
+                throw new MsnosException("I am a test :)", Code.UNRECOVERABLE_FAILURE);
+            }
+
+            @Override
+            public Endpoint remove(Endpoint endpoint) throws MsnosException {
+                throw new MsnosException("I am a test :)", Code.UNRECOVERABLE_FAILURE);
+            }
+        };
+        return endpoints;
+    }
 }

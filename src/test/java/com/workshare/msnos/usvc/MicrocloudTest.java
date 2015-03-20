@@ -294,9 +294,10 @@ public class MicrocloudTest {
         RemoteMicroservice remote = simulateRemoteMicroserviceJoin(randomUUID(), "24.24.24.24", "name", createRestApi("name", "/foo"));
 
         Message message = newAPPMessage(remote, cloud);
-        microcloud.process(message, "TEST");
+        final Type type = Endpoint.Type.HTTP;
+        microcloud.process(message, type);
         
-        verify(cloud).process(message, "TEST");
+        verify(cloud).process(message, type.toString());
     }
     
     @Test 

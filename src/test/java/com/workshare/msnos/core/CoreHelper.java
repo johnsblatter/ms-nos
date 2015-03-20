@@ -44,7 +44,7 @@ public class CoreHelper {
         String[] tokens = host.split("\\.");
         byte[] addr = new byte[4];
         for (int i = 0; i < addr.length; i++) {
-            addr[i] = Byte.valueOf(tokens[i]);            
+            addr[i] = (byte)(Integer.valueOf(tokens[i])&0xff);            
         }
         return addr;
     }

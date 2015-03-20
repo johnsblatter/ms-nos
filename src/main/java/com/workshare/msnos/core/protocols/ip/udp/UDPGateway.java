@@ -101,7 +101,7 @@ public class UDPGateway implements Gateway {
         }
 
         if (socket == null)
-            throw new IOException("Unable to open socket, I tried to binding on ports " + Arrays.asList(ports));
+            throw new IOException("Unable to open socket, I tried to bind on ports " + Arrays.asList(ports));
 
         String groupAddressName = loadUDPGroup();
         group = InetAddress.getByName(groupAddressName);
