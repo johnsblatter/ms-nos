@@ -13,29 +13,51 @@ import org.slf4j.LoggerFactory;
 
 public class AddressResolver {
 
-    // instance-data is usually 169.254.169.254
-    private static final String AMAZON_IPV4_DISCOVERY_ENDPOINT = "http://instance-data/latest/meta-data/public-ipv4";
+    public static final String SYSP_PUBLIC_IP = "com.ws.msnos.public.ip";
+    public static final String SYSP_EXTERNAL_IP = "com.ws.msnos.external.ip";
 
+    // instance-data is usually 169.254.169.254
+    public static final String AMAZON_IPV4_DISCOVERY_ENDPOINT = "http://instance-data/latest/meta-data/public-ipv4";
+    public static final String AMAZON_EXTERNAL_DISCOVERY_ENDPOINT = "http://checkip.amazonaws.com";
+    
     private static Logger log = LoggerFactory.getLogger(AddressResolver.class);
 
     private final HttpClient httpClient;
 
     public AddressResolver() {
-        httpClient = HttpClientFactory.sharedHttpCliet();
+        httpClient = HttpClientFactory.sharedHttpClient();
     }
 
     public AddressResolver(HttpClient httpClient) {
         this.httpClient = httpClient;
     }
 
+    public Network findExternalIP() throws IOException {
+        Network result = null;
+        if (System.getProperty(SYSP_EXTERNAL_IP) != null) {
+            result = new Network(createAddressFromString(System.getProperty(SYSP_EXTERNAL_IP)), (short) 32);
+            log.debug("external ip loaded from system property: {}", result);
+        } else {
+            result = newNetwork(getIPFromAWS(AMAZON_EXTERNAL_DISCOVERY_ENDPOINT));
+            log.debug("public ip loaded from amazon: {}", result);
+        }
+
+        if (result == null)
+            log.info("Unable to collect public IP");
+        else
+            log.info("Using public address {}", result);
+
+        return result;
+    }
+    
     public Network findPublicIP() throws IOException {
         Network result = null;
-        if (System.getProperty("public.ip") != null) {
-            result = new Network(createAddressFromString(System.getProperty("public.ip")), (short) 32);
+        if (System.getProperty(SYSP_PUBLIC_IP) != null) {
+            result = new Network(createAddressFromString(System.getProperty(SYSP_PUBLIC_IP)), (short) 32);
+            log.debug("public ip loaded from system property: {}", result);
         } else {
-            byte[] publicFromAWS = getPublicFromAWS();
-            if (publicFromAWS != null)
-                result = new Network(publicFromAWS, (short) 32);
+            result = newNetwork(getIPFromAWS(AMAZON_IPV4_DISCOVERY_ENDPOINT));
+            log.debug("public ip loaded from amazon: {}", result);
         }
 
         if (result == null)
@@ -46,12 +68,16 @@ public class AddressResolver {
         return result;
     }
 
-    private byte[] getPublicFromAWS() {
+    private Network newNetwork(byte[] ip) {
+        return (ip != null) ? new Network(ip, (short) 32) : null;
+    }
+    
+    private byte[] getIPFromAWS(final String url) {
         byte[] address = null;
         try {
             HttpEntity entity = null;
             try {
-                final HttpGet request = new HttpGet(AMAZON_IPV4_DISCOVERY_ENDPOINT);
+                final HttpGet request = new HttpGet(url);
                 log.debug("Getting public address trough {}", request.getURI());
                 HttpResponse response = httpClient.execute(request);
                 if (response != null) {

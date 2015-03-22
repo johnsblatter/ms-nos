@@ -1,6 +1,7 @@
 package com.workshare.msnos.usvc;
 
 import com.workshare.msnos.core.RemoteAgent;
+import com.workshare.msnos.core.Ring;
 import com.workshare.msnos.core.geo.Location;
 import com.workshare.msnos.soup.time.SystemTime;
 import com.workshare.msnos.usvc.api.RestApi;
@@ -16,20 +17,27 @@ public class RemoteMicroservice implements IMicroService {
     private final RemoteAgent agent;
     private final String name;
     private final Set<RestApi> apis;
-    private final Location location;
     private final AtomicBoolean faulty;
     private final AtomicLong lastUpdated;
     private final AtomicLong lastChecked;
+
+    private Location location;
     
     public RemoteMicroservice(String name, RemoteAgent agent, Set<RestApi> apis) {
         this.name = name;
         this.agent = agent;
         this.apis = RestApi.ensureHostIsPresent(agent, apis);
-        this.location = Location.computeMostPreciseLocation(agent.getEndpoints());
         this.faulty = new AtomicBoolean(false);
         this.lastUpdated = new AtomicLong(SystemTime.asMillis());
         this.lastChecked = new AtomicLong(SystemTime.asMillis());
-    }
+        this.location = Location.computeMostPreciseLocation(agent.getEndpoints());
+        
+        final Ring ring = agent.getRing();
+        if (ring != null) {
+            ring.onMicroserviceJoin(this);
+            this.location = ring.location();
+        } 
+   }
 
     protected void setApis(Set<RestApi> restApis) {
         lastUpdated.set(SystemTime.asMillis());

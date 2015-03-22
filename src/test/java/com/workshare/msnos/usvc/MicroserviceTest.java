@@ -37,6 +37,7 @@ import com.workshare.msnos.core.MockMessageHelper;
 import com.workshare.msnos.core.Receipt;
 import com.workshare.msnos.core.RemoteAgent;
 import com.workshare.msnos.core.RemoteEntity;
+import com.workshare.msnos.core.Ring;
 import com.workshare.msnos.core.cloud.JoinSynchronizer;
 import com.workshare.msnos.core.payloads.FltPayload;
 import com.workshare.msnos.core.payloads.QnePayload;
@@ -67,6 +68,9 @@ public class MicroserviceTest {
     public void prepare() throws Exception {
         cloud = Mockito.mock(Cloud.class);
         when(cloud.getIden()).thenReturn(new Iden(Iden.Type.CLD, new UUID(111, 111)));
+        Ring ring = mock(Ring.class);
+        when(cloud.getRing()).thenReturn(ring);
+        
         microcloud = newMicrocloud(cloud);
         
         localMicroservice = new Microservice("fluffy");
@@ -189,6 +193,12 @@ public class MicroserviceTest {
         Mockito.reset(cloud);
         localMicroservice.leave();
         verifyZeroInteractions(cloud);
+    }
+
+    
+    @Test
+    public void shouldNotifyRing() {
+        verify(localMicroservice.getAgent().getRing()).onMicroserviceJoin(localMicroservice);
     }
 
     private RestApi getLastPublishedRestApi() throws IOException {

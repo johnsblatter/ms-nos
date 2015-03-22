@@ -1,14 +1,15 @@
 package com.workshare.msnos.usvc.api;
 
-import com.workshare.msnos.core.Agent;
-import com.workshare.msnos.core.protocols.ip.Endpoint;
-import com.workshare.msnos.core.protocols.ip.Network;
-import com.workshare.msnos.soup.json.Json;
-
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+
+import com.google.gson.JsonObject;
+import com.workshare.msnos.core.Agent;
+import com.workshare.msnos.core.protocols.ip.Endpoint;
+import com.workshare.msnos.core.protocols.ip.Network;
+import com.workshare.msnos.soup.json.Json;
 
 public class RestApi {
 
@@ -90,8 +91,9 @@ public class RestApi {
         return faulty;
     }
 
-    public void markFaulty() {
+    public RestApi markFaulty() {
         faulty = true;
+        return this;
     }
 
     public void markWorking() {
@@ -99,8 +101,9 @@ public class RestApi {
         faulty = false;
     }
 
-    public void markTempFault() {
+    public RestApi markTempFault() {
         tempFaults.incrementAndGet();
+        return this;
     }
 
     public int getTempFaults() {
@@ -180,7 +183,14 @@ public class RestApi {
 
     @Override
     public String toString() {
-        return Json.toJsonString(this);
+        try {
+            JsonObject obj = (JsonObject)Json.toJsonTree(this);
+            obj.addProperty("faulty",this.isFaulty());
+            obj.addProperty("tempfaults",this.getTempFaults());
+            return obj.toString();
+        } catch (Exception any) {
+            return super.toString();
+        }
     }
 
     public static Set<RestApi> ensureHostIsPresent(Agent agent, Set<RestApi> apis) {

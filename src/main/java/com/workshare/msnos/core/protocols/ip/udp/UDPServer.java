@@ -9,7 +9,6 @@ import java.util.logging.Logger;
 
 import com.workshare.msnos.core.Gateway.Listener;
 import com.workshare.msnos.core.Message;
-import com.workshare.msnos.core.protocols.ip.Endpoint;
 import com.workshare.msnos.core.serializers.WireJsonSerializer;
 import com.workshare.msnos.core.serializers.WireSerializer;
 import com.workshare.msnos.soup.threading.Multicaster;

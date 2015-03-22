@@ -27,7 +27,7 @@ public class ApiRepository {
         return remoteApis;
     }
 
-    public RestApi searchApiById(long id) throws Exception {
+    public RestApi searchApiById(long id) {
         Collection<ApiList> apiListCol = getRemoteApis().values();
         for (ApiList apiList : apiListCol) {
             for (RestApi rest : apiList.getApis()) {
@@ -42,6 +42,11 @@ public class ApiRepository {
     public RestApi searchApi(Microservice from, String path) {
         ApiList apiList = getRemoteApis().get(path);
         return apiList == null ? null : apiList.get(from);
+    }
+
+
+    public boolean canServe(String path) {
+        return getRemoteApis().get(path) != null;
     }
 
     public void register(RemoteMicroservice remote) {
@@ -68,5 +73,4 @@ public class ApiRepository {
             }
         }
     }
-
 }

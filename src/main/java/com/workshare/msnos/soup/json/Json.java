@@ -11,6 +11,10 @@ public class Json {
         return gson.toJson(anyObject);
     }
 
+    public static final JsonElement toJsonTree(Object anyObject) {
+        return gson.toJsonTree(anyObject, anyObject.getClass());
+    }
+
     public static final <T> T fromJsonString(String json, Class<T> clazz) {
         return gson.fromJson(json, clazz);
     }

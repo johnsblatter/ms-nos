@@ -9,6 +9,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 
+import org.apache.http.client.HttpClient;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -21,15 +22,24 @@ import com.workshare.msnos.core.Gateways;
 import com.workshare.msnos.core.Iden;
 import com.workshare.msnos.core.LocalAgent;
 import com.workshare.msnos.core.RemoteAgent;
+import com.workshare.msnos.core.Ring;
 import com.workshare.msnos.core.geo.Location;
 import com.workshare.msnos.core.geo.LocationFactory;
 import com.workshare.msnos.core.protocols.ip.BaseEndpoint;
 import com.workshare.msnos.core.protocols.ip.Endpoint;
+import com.workshare.msnos.core.protocols.ip.HttpClientFactory;
 import com.workshare.msnos.core.protocols.ip.Network;
 import com.workshare.msnos.usvc.api.RestApi;
 
+
+/**
+ * The mocking of the HttpClientFactory is built this way because of the 
+ * crappy implementation of the Powemock cglib :( [bb]
+ * (I knew I should not have used it)
+ * @see HttpClientFactory
+ */
 @RunWith(PowerMockRunner.class)
-@PrepareForTest({Gateways.class})
+@PrepareForTest({Gateways.class, HttpClientFactory.class})
 public class MicroserviceLocationTest {
 
     private static final String SYRACUSE = "24.24.24.24";
@@ -39,10 +49,16 @@ public class MicroserviceLocationTest {
     @Before
     public void prepare() throws Exception {
         cloud = mock(Cloud.class);
+        when(cloud.getRing()).thenReturn(Ring.random());
         when(cloud.getIden()).thenReturn(new Iden(Iden.Type.CLD, UUID.randomUUID()));
         
         PowerMockito.mockStatic(Gateways.class);
         when(Gateways.allEndpoints()).thenReturn(Collections.<Endpoint>emptySet());
+        
+        PowerMockito.mockStatic(HttpClientFactory.class);
+        HttpClient client = mock(HttpClient.class);
+        when(HttpClientFactory.sharedHttpClient()).thenReturn(client );
+        when(HttpClientFactory.newHttpClient()).thenReturn(client);
     }
 
     @Test

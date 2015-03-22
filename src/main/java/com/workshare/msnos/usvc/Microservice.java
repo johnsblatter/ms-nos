@@ -20,13 +20,19 @@ import com.workshare.msnos.core.MessageBuilder;
 import com.workshare.msnos.core.MsnosException;
 import com.workshare.msnos.core.geo.Location;
 import com.workshare.msnos.core.payloads.QnePayload;
+import com.workshare.msnos.core.protocols.ip.AddressResolver;
+import com.workshare.msnos.core.protocols.ip.BaseEndpoint;
 import com.workshare.msnos.core.protocols.ip.Endpoint;
+import com.workshare.msnos.core.protocols.ip.Endpoint.Type;
+import com.workshare.msnos.core.protocols.ip.Network;
 import com.workshare.msnos.soup.json.Json;
 import com.workshare.msnos.soup.threading.ExecutorServices;
 import com.workshare.msnos.usvc.api.RestApi;
 import com.workshare.msnos.usvc.api.routing.strategies.PriorityRoutingStrategy;
 
 public class Microservice implements IMicroService {
+
+    private static final AddressResolver ADDRESS_RESOLVER = new AddressResolver();
 
     private static final Logger log = LoggerFactory.getLogger("STANDARD");
 
@@ -49,7 +55,7 @@ public class Microservice implements IMicroService {
     public Microservice(String name, LocalAgent agent, ScheduledExecutorService executor) {
         this.name = name;
         this.agent = agent;
-        this.location = Location.computeMostPreciseLocation(endpoints(agent));
+        this.location = computeLocation(agent);
         this.localApis = new CopyOnWriteArrayList<RestApi>();
 
         this.listener = new Cloud.Listener() {
@@ -62,6 +68,21 @@ public class Microservice implements IMicroService {
                 }
             }
         };
+    }
+
+    private Location computeLocation(LocalAgent agent) {
+        final Set<Endpoint> points = endpoints(agent);
+
+        try {
+            Network externalIP = ADDRESS_RESOLVER.findExternalIP();
+            if (externalIP != null) {
+                points.add(new BaseEndpoint(Type.HTTP, externalIP));
+            }
+        } catch (Throwable ex) {
+            log.warn("Unable to compute external IP", ex);
+        }
+
+        return Location.computeMostPreciseLocation(points);
     }
 
     public Set<Endpoint> endpoints(LocalAgent agent) {
@@ -94,7 +115,7 @@ public class Microservice implements IMicroService {
         return location;
     }
 
-    public RestApi searchApi(String name, String path) {
+    public RestApi searchApi(String path) {
         return cloud.searchApi(this, path);
     }
 
@@ -107,7 +128,7 @@ public class Microservice implements IMicroService {
         localApis.addAll(Arrays.asList(all));
         cloud.publish(this, all);
     }
-  
+
     public void join(final Microcloud cumulus) throws MsnosException {
         if (this.cloud != null)
             throw new IllegalArgumentException("The same instance of a microservice cannot join different clouds!");
@@ -115,12 +136,14 @@ public class Microservice implements IMicroService {
         cloud = cumulus;
         cloud.onJoin(this);
         cloud.addListener(listener);
+        
+        cloud.getCloud().getRing().onMicroserviceJoin(this);
     }
 
     public void leave() throws MsnosException {
         if (cloud == null)
             return;
-        
+
         log.debug("Leaving cloud {}", cloud);
         cloud.removeListener(listener);
         cloud.onLeave(this);
@@ -172,9 +195,9 @@ public class Microservice implements IMicroService {
         Integer priority = PriorityRoutingStrategy.getDefaultLevel();
         if (priority != null) {
             for (int i = 0; i < apis.length; i++) {
-                apis[i] = apis[i].withPriority(priority);                
+                apis[i] = apis[i].withPriority(priority);
             }
-        } 
+        }
 
         return apis;
     }

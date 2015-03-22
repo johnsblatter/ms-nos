@@ -99,11 +99,15 @@ public class Microcloud {
         return passiveServices.get(search);
     }
 
+    public boolean canServe(String path) {
+        return getApis().canServe(path);
+    }
+
     public RestApi searchApi(Microservice microservice, String path) {
         return getApis().searchApi(microservice, path);
     }
 
-    public RestApi searchApiById(long id) throws Exception {
+    public RestApi searchApiById(long id)  {
         return getApis().searchApiById(id);
     }
 
@@ -277,4 +281,5 @@ public class Microcloud {
 
         cloud.send(message);
     }
+
 }

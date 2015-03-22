@@ -46,6 +46,7 @@ import com.workshare.msnos.core.Message;
 import com.workshare.msnos.core.MsnosException;
 import com.workshare.msnos.core.RemoteAgent;
 import com.workshare.msnos.core.RemoteEntity;
+import com.workshare.msnos.core.Ring;
 import com.workshare.msnos.core.payloads.QnePayload;
 import com.workshare.msnos.core.protocols.ip.BaseEndpoint;
 import com.workshare.msnos.core.protocols.ip.Endpoint;
@@ -77,6 +78,7 @@ public class MicrocloudTest {
     public void prepare() throws MsnosException {
         cloud = Mockito.mock(Cloud.class);
         when(cloud.getIden()).thenReturn(new Iden(Iden.Type.CLD, new UUID(111, 111)));
+        when(cloud.getRing()).thenReturn(Ring.random());
         microcloud = new Microcloud(cloud, Mockito.mock(ScheduledExecutorService.class));
 
         LocalAgent agent = mock(LocalAgent.class);
@@ -199,7 +201,7 @@ public class MicrocloudTest {
         RemoteMicroservice remote = setupRemoteMicroservice("10.10.10.10", "test", "alfa");
         RestApi expected = getFirstRestApi(remote);
         
-        assertEquals(expected, local.searchApi("test", "alfa"));
+        assertEquals(expected, local.searchApi("alfa"));
         assertEquals(expected, microcloud.searchApi(local, "alfa"));
     }
 
@@ -332,6 +334,17 @@ public class MicrocloudTest {
         
         assertEquals(0, sentMessages().size());
     }
+    
+    @Test
+    public void shouldBeAbleToCheckRestApiEvenWhenFaulty() throws Exception {
+        RemoteMicroservice ms = setupRemoteMicroservice("10.10.10.10", "content", "/foo");
+        RestApi api = getFirstRestApi(ms);
+
+        assertTrue(microcloud.canServe("/foo"));        
+        api.markFaulty();
+        assertTrue(microcloud.canServe("/foo"));
+    }
+
     
     private Message assertMesageSent(final Message.Type type, final Iden iden) throws MsnosException {
         for (Message message : sentMessages()) {

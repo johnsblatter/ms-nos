@@ -3,6 +3,7 @@ package com.workshare.msnos.usvc;
 import static com.workshare.msnos.core.CoreHelper.fakeSystemTime;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
@@ -11,9 +12,12 @@ import java.util.HashSet;
 import java.util.Set;
 
 import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 import com.workshare.msnos.core.RemoteAgent;
+import com.workshare.msnos.core.Ring;
+import com.workshare.msnos.core.geo.Location;
 import com.workshare.msnos.core.protocols.ip.BaseEndpoint;
 import com.workshare.msnos.core.protocols.ip.Endpoint;
 import com.workshare.msnos.core.protocols.ip.Endpoint.Type;
@@ -22,6 +26,15 @@ import com.workshare.msnos.soup.time.SystemTime;
 import com.workshare.msnos.usvc.api.RestApi;
 
 public class RemoteMicroserviceTest {
+
+    private Ring ring;
+
+    @Before
+    public void before() {
+        ring = mock(Ring.class);
+        Location location = mock(Location.class);
+        when(ring.location()).thenReturn(location );
+    }
 
     @After
     public void afterTest() {
@@ -60,6 +73,19 @@ public class RemoteMicroserviceTest {
         assertEquals(22222, micro.getLastChecked());
     }
     
+    @Test
+    public void shouldNotifyRing() {
+        RemoteMicroservice micro = createRemoteMicroservice();
+        verify(ring).onMicroserviceJoin(micro);
+    }
+
+    @Test
+    public void shouldUseRingLocationIfAvailable() {
+        RemoteMicroservice micro = createRemoteMicroservice();
+        assertEquals(ring.location(), micro.getLocation());
+    }
+
+
     private <T> Set<T> asSet(T... elements) {
         return new HashSet<T>(Arrays.asList(elements));
     }
@@ -72,6 +98,7 @@ public class RemoteMicroserviceTest {
         RemoteAgent agent = mock(RemoteAgent.class);
         final Endpoint endpoint = new BaseEndpoint(Type.UDP, new Network(new byte[]{25,25,25,25}, (short)15));
         when(agent.getEndpoints()).thenReturn(asSet(endpoint));
+        when(agent.getRing()).thenReturn(ring);
 
         RemoteMicroservice micro = new RemoteMicroservice("foo" , agent, asSet(new RestApi("api", "path", 1234)));
         return micro;

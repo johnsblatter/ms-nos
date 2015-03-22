@@ -1,13 +1,14 @@
 package com.workshare.msnos.usvc.api.routing;
 
-import com.workshare.msnos.core.geo.Location;
-import com.workshare.msnos.core.geo.LocationFactory;
-import com.workshare.msnos.core.geo.OfflineLocationFactory;
-import com.workshare.msnos.usvc.Microservice;
-import com.workshare.msnos.usvc.RemoteMicroservice;
-import com.workshare.msnos.usvc.api.RestApi;
-import com.workshare.msnos.usvc.api.routing.strategies.CachingRoutingStrategy;
-import com.workshare.msnos.usvc.api.routing.strategies.PriorityRoutingStrategy;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.util.List;
+import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Before;
@@ -16,12 +17,12 @@ import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
-import java.util.List;
-import java.util.UUID;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.mockito.Mockito.*;
+import com.workshare.msnos.core.geo.Location;
+import com.workshare.msnos.usvc.Microservice;
+import com.workshare.msnos.usvc.RemoteMicroservice;
+import com.workshare.msnos.usvc.api.RestApi;
+import com.workshare.msnos.usvc.api.routing.strategies.CachingRoutingStrategy;
+import com.workshare.msnos.usvc.api.routing.strategies.PriorityRoutingStrategy;
 
 @SuppressWarnings({"unchecked", "rawtypes"})
 public class ApiListTest {
@@ -29,7 +30,6 @@ public class ApiListTest {
     private ApiList apiList;
     private Microservice svc;
 
-    private LocationFactory locations = LocationFactory.DEFAULT;
     private RoutingStrategy routing = ApiList.defaultRoutingStrategy();
 
     @BeforeClass
@@ -42,7 +42,6 @@ public class ApiListTest {
         disablePriorityStrategy();
         
         this.apiList = null;
-        this.locations = mock(OfflineLocationFactory.class);
         this.svc = Mockito.mock(Microservice.class);
         when(svc.getLocation()).thenReturn(Location.UNKNOWN);
     }
@@ -61,7 +60,7 @@ public class ApiListTest {
     @Test
     public void shouldStoreOneApi() {
         RestApi rest = newRestApi("alfa");
-        RemoteMicroservice remote = newtRemoteMicroservice();
+        RemoteMicroservice remote = newRemoteMicroservice();
 
         apiList().add(remote, rest);
 
@@ -72,7 +71,7 @@ public class ApiListTest {
     @Test
     public void shouldNotReturnFaultyApis() {
         RestApi rest = newRestApi("alfa");
-        RemoteMicroservice remote = newtRemoteMicroservice();
+        RemoteMicroservice remote = newRemoteMicroservice();
         apiList().add(remote, rest);
 
         markAsFaulty(rest);
@@ -85,7 +84,7 @@ public class ApiListTest {
         RestApi alfa = newRestApi("alfa");
         RestApi beta = newRestApi("beta");
 
-        RemoteMicroservice remote = newtRemoteMicroservice();
+        RemoteMicroservice remote = newRemoteMicroservice();
         apiList().add(remote, alfa);
         apiList().add(remote, beta);
 
@@ -100,8 +99,8 @@ public class ApiListTest {
         RestApi oneBeta = newRestApi("one,beta");
         RestApi twoAlfa = newRestApi("two.alfa");
 
-        RemoteMicroservice one = newtRemoteMicroservice();
-        RemoteMicroservice two = newtRemoteMicroservice();
+        RemoteMicroservice one = newRemoteMicroservice();
+        RemoteMicroservice two = newRemoteMicroservice();
         apiList().add(one, oneAlfa);
         apiList().add(one, oneBeta);
         apiList().add(two, twoAlfa);
@@ -116,7 +115,7 @@ public class ApiListTest {
         RestApi alfa = newRestApi("alfa");
         RestApi beta = newRestApiWithAffinity("beta");
 
-        RemoteMicroservice remote = newtRemoteMicroservice();
+        RemoteMicroservice remote = newRemoteMicroservice();
         apiList().add(remote, alfa);
         apiList().add(remote, beta);
 
@@ -131,9 +130,9 @@ public class ApiListTest {
         RestApi beta = newRestApiWithAffinity("beta");
         RestApi thre = newRestApi("thre");
 
-        apiList().add(newtRemoteMicroservice(), alfa);
-        apiList().add(newtRemoteMicroservice(), beta);
-        apiList().add(newtRemoteMicroservice(), thre);
+        apiList().add(newRemoteMicroservice(), alfa);
+        apiList().add(newRemoteMicroservice(), beta);
+        apiList().add(newRemoteMicroservice(), thre);
 
         markAsFaulty(beta);
 
@@ -148,9 +147,9 @@ public class ApiListTest {
         RestApi beta = newRestApiWithAffinity("beta");
         RestApi thre = newRestApi("thre");
 
-        apiList().add(newtRemoteMicroservice(), alfa);
-        apiList().add(newtRemoteMicroservice(), beta);
-        apiList().add(newtRemoteMicroservice(), thre);
+        apiList().add(newRemoteMicroservice(), alfa);
+        apiList().add(newRemoteMicroservice(), beta);
+        apiList().add(newRemoteMicroservice(), thre);
 
         markAsFaulty(alfa);
 
@@ -165,9 +164,9 @@ public class ApiListTest {
         RestApi beta = newRestApiWithAffinity("beta");
         RestApi thre = newRestApi("thre");
 
-        apiList().add(newtRemoteMicroservice(), alfa);
-        apiList().add(newtRemoteMicroservice(), beta);
-        apiList().add(newtRemoteMicroservice(), thre);
+        apiList().add(newRemoteMicroservice(), alfa);
+        apiList().add(newRemoteMicroservice(), beta);
+        apiList().add(newRemoteMicroservice(), thre);
 
         markAsFaulty(alfa);
 
@@ -182,11 +181,11 @@ public class ApiListTest {
 
     @Test
     public void shouldAddLocationToApiEndpoint() {
-        locations = mock(OfflineLocationFactory.class);
         Location location = mock(Location.class);
-        when(locations.make("1.1.1.1")).thenReturn(location);
+        final RemoteMicroservice micro = newRemoteMicroservice();
+        when(micro.getLocation()).thenReturn(location);
 
-        apiList().add(newtRemoteMicroservice(), newRestApiWithHost("alfa", "1.1.1.1"));
+        apiList().add(micro, newRestApiWithHost("alfa", "1.1.1.1"));
 
         ApiEndpoint ep = apiList().getEndpoints().get(0);
         assertEquals(location, ep.location());
@@ -196,7 +195,7 @@ public class ApiListTest {
     public void shouldInvokeUnderlyingStrategy() {
         routing = mock(RoutingStrategy.class);
         final RestApi alfa = newRestApi("alfa");
-        apiList().add(newtRemoteMicroservice(), alfa);
+        apiList().add(newRemoteMicroservice(), alfa);
 
         when(routing.select(svc, apiList.getEndpoints())).thenReturn(apiList.getEndpoints());
         apiList().get(svc);
@@ -214,8 +213,8 @@ public class ApiListTest {
 
         final RestApi alfa = newRestApiWithHighPriority("alfa");
         final RestApi beta = newRestApi("beta");
-        apiList().add(newtRemoteMicroservice(), alfa);
-        apiList().add(newtRemoteMicroservice(), beta);
+        apiList().add(newRemoteMicroservice(), alfa);
+        apiList().add(newRemoteMicroservice(), beta);
 
         assertEquals(alfa, apiList().get(svc));
         assertEquals(alfa, apiList().get(svc));
@@ -226,15 +225,15 @@ public class ApiListTest {
     public void shouldNOTInvokePriorityStrategyWhenHighPriorityNOTEngaged() throws Exception {
         final RestApi alfa = newRestApiWithHighPriority("alfa");
         final RestApi beta = newRestApi("beta");
-        apiList().add(newtRemoteMicroservice(), alfa);
-        apiList().add(newtRemoteMicroservice(), beta);
+        apiList().add(newRemoteMicroservice(), alfa);
+        apiList().add(newRemoteMicroservice(), beta);
 
         assertEquals(alfa, apiList().get(svc));
         assertEquals(beta, apiList().get(svc));
         assertEquals(alfa, apiList().get(svc));
     }
 
-    private RemoteMicroservice newtRemoteMicroservice() {
+    private RemoteMicroservice newRemoteMicroservice() {
         final RemoteMicroservice micro = Mockito.mock(RemoteMicroservice.class);
         Mockito.when(micro.getName()).thenReturn("usvc");
         Mockito.when(micro.getLocation()).thenReturn(Location.UNKNOWN);
@@ -278,7 +277,7 @@ public class ApiListTest {
 
     private ApiList apiList() {
         if (apiList == null)
-            apiList = new ApiList(routing, locations);
+            apiList = new ApiList(routing);
 
         return apiList;
     }

@@ -1,7 +1,5 @@
 package com.workshare.msnos.usvc.api.routing;
 
-import java.util.UUID;
-
 import com.workshare.msnos.core.geo.Location;
 import com.workshare.msnos.usvc.RemoteMicroservice;
 import com.workshare.msnos.usvc.api.RestApi;
@@ -10,9 +8,8 @@ public class ApiEndpoint {
 
     private final RemoteMicroservice remote;
     private final RestApi api;
-    private final Location location;
 
-    public ApiEndpoint(RemoteMicroservice remote, RestApi api, Location location) {
+    public ApiEndpoint(RemoteMicroservice remote, RestApi api) {
         if (remote == null)
             throw new IllegalArgumentException("Cannot create an API endpoint with null remote!");
         if (api == null)
@@ -20,7 +17,6 @@ public class ApiEndpoint {
         
         this.remote = remote;
         this.api = api;
-        this.location = (location == null ? Location.UNKNOWN : location);
     }
 
     public boolean belongsTo(RemoteMicroservice remote) {
@@ -36,7 +32,7 @@ public class ApiEndpoint {
     }
 
     public Location location() {
-        return location;
+        return remote.getLocation();
     }
 
     public boolean isFaulty() {
@@ -72,6 +68,6 @@ public class ApiEndpoint {
 
     @Override
     public String toString() {
-        return remote.getName() + "::" + api.getUrl() + "@" + location;
+        return remote.getName() + "::" + api.getUrl() + "@" + location();
     }
 }

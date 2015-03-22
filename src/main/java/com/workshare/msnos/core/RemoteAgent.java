@@ -63,6 +63,6 @@ public class RemoteAgent extends RemoteEntity implements Agent {
     }
 
     public RemoteAgent with(Set<Endpoint> newEndpoints) {
-        return new RemoteAgent(getIden().getUUID(), getCloud(), newEndpoints);
+        return new RemoteAgent(getIden().getUUID(), getCloud(), newEndpoints, getRing());
     }
 }

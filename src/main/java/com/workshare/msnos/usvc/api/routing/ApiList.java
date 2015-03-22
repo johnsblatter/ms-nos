@@ -1,14 +1,5 @@
 package com.workshare.msnos.usvc.api.routing;
 
-import com.workshare.msnos.core.geo.LocationFactory;
-import com.workshare.msnos.soup.json.Json;
-import com.workshare.msnos.usvc.Microservice;
-import com.workshare.msnos.usvc.RemoteMicroservice;
-import com.workshare.msnos.usvc.api.RestApi;
-import com.workshare.msnos.usvc.api.routing.strategies.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -16,6 +7,20 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.workshare.msnos.soup.json.Json;
+import com.workshare.msnos.usvc.Microservice;
+import com.workshare.msnos.usvc.RemoteMicroservice;
+import com.workshare.msnos.usvc.api.RestApi;
+import com.workshare.msnos.usvc.api.routing.strategies.CachingRoutingStrategy;
+import com.workshare.msnos.usvc.api.routing.strategies.CompositeStrategy;
+import com.workshare.msnos.usvc.api.routing.strategies.LocationBasedStrategy;
+import com.workshare.msnos.usvc.api.routing.strategies.PriorityRoutingStrategy;
+import com.workshare.msnos.usvc.api.routing.strategies.RoundRobinRoutingStrategy;
+import com.workshare.msnos.usvc.api.routing.strategies.SkipFaultiesRoutingStrategy;
 
 public class ApiList {
 
@@ -25,25 +30,23 @@ public class ApiList {
     private volatile RestApi affinite;
 
     transient private final RoutingStrategy routing;
-    transient private final LocationFactory locations;
 
     transient private final Lock addRemoveLock = new ReentrantLock();
 
     public ApiList() {
-        this(defaultRoutingStrategy(), LocationFactory.DEFAULT);
+        this(defaultRoutingStrategy());
     }
 
-    public ApiList(RoutingStrategy routingStrategy, LocationFactory locations) {
+    public ApiList(RoutingStrategy routingStrategy) {
         this.endpointsList = new ArrayList<ApiEndpoint>();
         this.routing = routingStrategy;
-        this.locations = locations;
     }
 
     public void add(RemoteMicroservice remote, RestApi rest) {
         addRemoveLock.lock();
         try {
             LinkedHashSet<ApiEndpoint> newEndpoints = new LinkedHashSet<ApiEndpoint>(endpointsList);
-            newEndpoints.add(new ApiEndpoint(remote, rest, locations.make(rest.getHost())));
+            newEndpoints.add(new ApiEndpoint(remote, rest));
             endpointsList = new ArrayList<ApiEndpoint>(newEndpoints);
         } finally {
             addRemoveLock.unlock();
@@ -64,6 +67,10 @@ public class ApiList {
         } finally {
             addRemoveLock.unlock();
         }
+    }
+
+    public int size() {
+        return endpointsList.size();
     }
 
     // TODO FIXME this need to be changed for performance reason 

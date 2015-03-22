@@ -6,14 +6,18 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.workshare.msnos.core.geo.Location;
 import com.workshare.msnos.core.protocols.ip.Endpoint;
 import com.workshare.msnos.core.protocols.ip.Endpoint.Type;
+import com.workshare.msnos.soup.json.Json;
+import com.workshare.msnos.usvc.IMicroService;
 
 public class Ring {
 
     private static Logger log = LoggerFactory.getLogger(Ring.class);
 
     private final UUID uuid;
+    private Location location = Location.UNKNOWN;
 
     private Ring(UUID uuid) {
         this.uuid = uuid;
@@ -23,10 +27,21 @@ public class Ring {
         return uuid;
     }
     
+    public Location location() {
+        return location;
+    }
+    
+    public void onMicroserviceJoin(IMicroService uservice) {
+        Location loc = uservice.getLocation();
+        if (loc.getPrecision() > location.getPrecision()) {
+            location = loc;
+            log.debug("Location of the ring udated: {}", location);
+        }
+    }
     
     @Override
     public String toString() {
-        return "ring-"+uuid.toString();
+        return Json.toJsonString(this);
     }
 
     @Override
@@ -54,12 +69,17 @@ public class Ring {
                     break;
             }
         
-        UUID uid;
+        UUID uid = null;
         if (point != null) {
-            final long most = toLong(point.getNetwork().getAddress());
-            final long least = point.getNetwork().getPrefix();
-            uid = new UUID(most, least);
-        } else {
+            final byte[] address = point.getNetwork().getAddress();
+            if (address != null) {
+                final long most = toLong(address);
+                final long least = point.getNetwork().getPrefix();
+                uid = new UUID(most, least);
+            }
+        } 
+        
+        if (uid == null) {
             uid = UUID.randomUUID();
             log.warn("Random ring is being generated as no endpoints are available: {}", endpoints);
         }
