@@ -1,13 +1,15 @@
 package com.workshare.msnos.core;
 
-
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.Executor;
 
 import com.workshare.msnos.core.Gateway.Listener;
+import java.util.concurrent.Executor;
+import com.workshare.msnos.core.MsnosException.Code;
+import com.workshare.msnos.core.protocols.ip.Endpoint;
+import com.workshare.msnos.core.protocols.ip.Endpoints;
 import com.workshare.msnos.core.protocols.ip.Network;
 import com.workshare.msnos.soup.threading.Multicaster;
 import com.workshare.msnos.soup.time.SystemTime;
@@ -71,5 +73,35 @@ public class CoreHelper {
                 return time;
             }
         });
+    }
+
+    public static Endpoints makeEndpoints(final Set<Endpoint> endpointsSet) {
+        Endpoints endpoints = new Endpoints() {
+            @Override
+            public Set<? extends Endpoint> all() {
+                return endpointsSet;
+            }
+    
+            @Override
+            public Set<? extends Endpoint> publics() {
+                return asSet();
+            }
+    
+            @Override
+            public Set<? extends Endpoint> of(Agent agent) {
+                return asSet();
+            }
+    
+            @Override
+            public Endpoint install(Endpoint endpoint) throws MsnosException {
+                throw new MsnosException("I am a test :)", Code.UNRECOVERABLE_FAILURE);
+            }
+    
+            @Override
+            public Endpoint remove(Endpoint endpoint) throws MsnosException {
+                throw new MsnosException("I am a test :)", Code.UNRECOVERABLE_FAILURE);
+            }
+        };
+        return endpoints;
     }
 }

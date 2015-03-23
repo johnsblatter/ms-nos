@@ -40,9 +40,9 @@ public class MessagesHelper {
         return new MessageBuilder(Message.Type.FLT, cloud, cloud).with(new FltPayload(agent.getIden())).make();
     }
 
-    public static Message newLeaveMessage(RemoteAgent from) throws MsnosException {
+    public static Message newPresenceMessage(Agent from, final boolean present) throws MsnosException {
         Cloud cloud = from.getCloud();
-        return new MessageBuilder(Message.Type.PRS, from, cloud).with(new Presence(false, from)).make();
+        return new MessageBuilder(Message.Type.PRS, from, cloud).with(new Presence(present, from)).make();
     }
 
 

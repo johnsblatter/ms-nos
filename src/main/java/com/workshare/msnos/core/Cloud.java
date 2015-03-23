@@ -157,7 +157,11 @@ public class Cloud implements Identifiable {
 
     @Override
     public String toString() {
-        return Json.toJsonString(this);
+        try {
+            return Json.toJsonString(this);
+        } catch (Throwable any) {
+            return super.toString();
+        }
     }
 
     @Override
@@ -166,7 +170,11 @@ public class Cloud implements Identifiable {
     }
 
     public boolean containsAgent(Iden iden) {
-        return remoteAgents.containsKey(iden) || localAgents.containsKey(iden);
+        return remoteAgents.containsKey(iden) || containsLocalAgent(iden);
+    }
+
+    public boolean containsLocalAgent(Iden iden) {
+        return localAgents.containsKey(iden);
     }
 
     public Long getNextSequence() {

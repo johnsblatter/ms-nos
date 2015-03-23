@@ -9,7 +9,7 @@ import com.workshare.msnos.soup.json.Json;
 
 public class RemoteAgent extends RemoteEntity implements Agent {
 
-    private static final Set<Endpoint> NO_ENDPOINTS = Collections.emptySet();
+    public static final Set<Endpoint> NO_ENDPOINTS = Collections.emptySet();
     
     private final Set<Endpoint> endpoints;
     private final Ring ring;

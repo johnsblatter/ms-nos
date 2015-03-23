@@ -25,7 +25,7 @@ public class Presence implements Message.Payload {
     private final boolean present;
     private final Set<Endpoint> endpoints;
 
-    Presence(boolean present, Set<Endpoint> endpoints) {
+    public Presence(boolean present, Set<Endpoint> endpoints) {
         this.present = present;
         this.endpoints = endpoints;
         log.trace(present ? "Presence message created: {}" : "Absence message created: {}", this);

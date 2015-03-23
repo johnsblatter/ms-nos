@@ -8,7 +8,7 @@ import static com.workshare.msnos.core.CoreHelper.randomUUID;
 import static com.workshare.msnos.core.MessagesHelper.newAPPMessage;
 import static com.workshare.msnos.core.MessagesHelper.newFaultMessage;
 import static com.workshare.msnos.core.MessagesHelper.newHCKMessage;
-import static com.workshare.msnos.core.MessagesHelper.newLeaveMessage;
+import static com.workshare.msnos.core.MessagesHelper.newPresenceMessage;
 import static com.workshare.msnos.core.MessagesHelper.newQNEMessage;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -165,7 +165,7 @@ public class MicrocloudTest {
     public void shouldRemoveMicroserviceOnAgentLeave() throws Exception {
         RemoteMicroservice remoteMicroservice = setupRemoteMicroservice("10.10.10.10", "remote", "/endpoint");
 
-        simulateMessageFromCloud(newLeaveMessage(remoteMicroservice.getAgent()));
+        simulateMessageFromCloud(newPresenceMessage(remoteMicroservice.getAgent(), false));
 
         assertFalse(microcloud.getMicroServices().contains(remoteMicroservice));
     }
@@ -330,7 +330,7 @@ public class MicrocloudTest {
     public void shouldNOTEnquiryUponReceivingLeavingPresenceFromAgent() throws Exception {
         RemoteAgent agent = new RemoteAgent(randomUUID(), cloud, Collections.<Endpoint>emptySet() );
 
-        simulateMessageFromCloud(newLeaveMessage(agent));
+        simulateMessageFromCloud(newPresenceMessage(agent, false));
         
         assertEquals(0, sentMessages().size());
     }

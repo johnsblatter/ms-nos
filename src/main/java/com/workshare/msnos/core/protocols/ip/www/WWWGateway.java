@@ -35,6 +35,7 @@ import com.workshare.msnos.core.Receipt;
 import com.workshare.msnos.core.SingleReceipt;
 import com.workshare.msnos.core.protocols.ip.BaseEndpoint;
 import com.workshare.msnos.core.protocols.ip.Endpoints;
+import com.workshare.msnos.core.protocols.ip.www.WWWSynchronizer.Processor;
 import com.workshare.msnos.core.serializers.WireSerializer;
 import com.workshare.msnos.soup.threading.ConcurrentBuildingMap;
 import com.workshare.msnos.soup.threading.ConcurrentBuildingMap.Factory;
@@ -45,7 +46,8 @@ public class WWWGateway implements Gateway {
     public static final String SYSP_SYNC_PERIOD = "com.ws.nsnos.www.sync.period.millis";
     public static final String SYSP_ADDRESS = "com.ws.nsnos.www.address";
 
-    private static final UUID NULL = new UUID(0000,000);
+    private static final UUID NULL = new UUID(0,0);
+    private static final UUID VOID = new UUID(0,1);
 
     private static Logger log = LoggerFactory.getLogger(WWWGateway.class);
 
@@ -55,15 +57,21 @@ public class WWWGateway implements Gateway {
     private final Map<Cloud, UUID> cloudListeners;
     private final Map<Cloud, Queue<Message>> cloudMessages;
     private final Multicaster<Listener, Message> caster;
+    private final WWWSynchronizer synchro;
 
     private final String urlRoot;
     private final String urlMsgs;
 
-    private AtomicInteger syncing = new AtomicInteger(0);
-
+    private final AtomicInteger syncing = new AtomicInteger(0);
+ 
     public WWWGateway(HttpClient client, ScheduledExecutorService scheduler, WireSerializer serializer,
             Multicaster<Listener, Message> caster) throws IOException {
-        
+        this(client, new WWWSynchronizer(caster), scheduler, serializer, caster);
+    }
+    
+    WWWGateway(HttpClient client, WWWSynchronizer processor, ScheduledExecutorService scheduler, WireSerializer serializer,
+            Multicaster<Listener, Message> caster) throws IOException {
+        this.synchro = processor;
         this.client = client;
         this.caster = caster;
         this.scheduler = scheduler;
@@ -161,11 +169,14 @@ public class WWWGateway implements Gateway {
     private void syncRx() throws IOException {
         Set<Cloud> clouds = new HashSet<Cloud>(cloudListeners.keySet());
         for (Cloud cloud : clouds) {
+            final UUID uuid = cloudListeners.get(cloud);
             String url = urlMsgs+"?cloud=" + cloud.getIden().getUUID();
-            UUID message = cloudListeners.get(cloud);
-            if (message != NULL)
-                url += "&message=" + message;
-                
+            if (uuid != NULL && uuid != VOID)
+                url += "&message=" + uuid;
+
+            Processor processor = (uuid == NULL) ? synchro.init(cloud) : null;            
+
+            int total = 0;
             HttpGet request = new HttpGet(url);
             HttpResponse res = client.execute(request);
             try {
@@ -176,19 +187,31 @@ public class WWWGateway implements Gateway {
                     while((line=in.readLine())!=null) {
                         Message msg = serializer.fromText(line, Message.class);
                         if (msg != null) {
-                            caster.dispatch(msg);
+                            ++total;
+                            if (processor != null)
+                                processor.accept(msg);
+                            else
+                                caster.dispatch(msg);
                             last = msg;
                         }
                     }
                     
+                    log.debug("last message read: {}", last);
                     if (last != null)
                         cloudListeners.put(cloud, last.getUuid());
+                    else if (uuid == NULL)
+                        cloudListeners.put(cloud, VOID);
+                        
                 } finally {
                     in.close();
                 }
             } finally {
                 EntityUtils.consume(res.getEntity());
             }
+            
+            log.debug("Processed a total of {} messages", total);
+            if (processor != null)
+                processor.commit();
         }
     }
 

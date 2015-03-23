@@ -10,6 +10,7 @@ import static org.mockito.Matchers.anyObject;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
@@ -34,6 +35,7 @@ import org.apache.http.util.EntityUtils;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
@@ -65,9 +67,13 @@ public class WWWGatewayTest {
     private List<Message> rxMessages;
     private Cloud cloud;
     private HttpClientHelper http;
+
+    private WWWSynchronizer synchro;
+    private WWWSynchronizer.Processor processor;
     
     @Before
     public void setup() throws Exception {
+        
         cloud = new Cloud(CLOUD_UUID, " ", Collections.<Gateway>emptySet(), mock(JoinSynchronizer.class),null);
 
         System.setProperty(WWWGateway.SYSP_ADDRESS, WWW_ROOT);
@@ -78,7 +84,12 @@ public class WWWGatewayTest {
         serializer = mockWireSerializer();
 
         rxMessages = new ArrayList<Message>();
-        gate = new WWWGateway(client(), scheduler, serializer, synchronousGatewayMulticaster());
+
+        synchro = mock(WWWSynchronizer.class);
+        processor = mock(WWWSynchronizer.Processor.class);
+        when(synchro.init(any(Cloud.class))).thenReturn(processor);
+        
+        gate = new WWWGateway(client(), synchro , scheduler, serializer, synchronousGatewayMulticaster());
         gate.addListener(cloud, new Listener() {
             @Override
             public void onMessage(Message message) {
@@ -173,12 +184,30 @@ public class WWWGatewayTest {
     }
 
     @Test
-    public void shouldInvokeListenerOnReceivedMessages() throws Exception {
+    public void shouldInvokeProcessorOnReceivedMessagesTheVeryFirstTime() throws Exception {
+        final Message ping = new MessageBuilder(Message.Type.PIN, cloud, cloud).make();
+        final Message pong = new MessageBuilder(Message.Type.PON, cloud, cloud).make();
+        mockGetResponse(ping, pong);
+
+        scheduledTask().run();
+
+        assertEquals(0, rxMessages.size());
+        verify(synchro).init(cloud);
+        verify(processor).accept(ping);
+        verify(processor).accept(pong);
+        verify(processor).commit();
+    }
+
+    @Test
+    public void shouldInvokeListenerOnReceivedMessagesTheSecondTime() throws Exception {
+        scheduledTask().run();
+        Mockito.reset(synchro);
         mockGetResponse(new MessageBuilder(Message.Type.PIN, cloud, cloud).make());
 
         scheduledTask().run();
 
         assertEquals(1, rxMessages.size());
+        verifyZeroInteractions(synchro);
     }
 
     @Test
@@ -208,6 +237,7 @@ public class WWWGatewayTest {
         StringBuilder input = new StringBuilder();
         for (Message message : messages) {
             input.append(toWireJson(message));
+            input.append("\n");
         }
 
         when(response().getEntity()).thenReturn(new StringEntity(input.toString()));

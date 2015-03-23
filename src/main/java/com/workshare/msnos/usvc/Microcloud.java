@@ -32,6 +32,7 @@ import com.workshare.msnos.core.payloads.Presence;
 import com.workshare.msnos.core.payloads.QnePayload;
 import com.workshare.msnos.core.protocols.ip.Endpoint;
 import com.workshare.msnos.core.protocols.ip.HttpEndpoint;
+import com.workshare.msnos.soup.json.Json;
 import com.workshare.msnos.soup.threading.ExecutorServices;
 import com.workshare.msnos.usvc.api.RestApi;
 import com.workshare.msnos.usvc.api.RestApi.Type;
@@ -282,4 +283,13 @@ public class Microcloud {
         cloud.send(message);
     }
 
+
+    @Override
+    public String toString() {
+        try {
+            return Json.toJsonString(this);
+        } catch (Throwable any) {
+            return super.toString();
+        }
+    }
 }

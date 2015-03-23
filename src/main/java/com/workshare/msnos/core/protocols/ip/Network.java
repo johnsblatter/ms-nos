@@ -205,4 +205,18 @@ public class Network {
             return false;
         }
     }
+    
+    
+    public static boolean isValidDottedIpv4Address(String address) {
+        String[] nibbles = address.trim().split("\\.");
+        if (nibbles.length == 4) {
+            for (int i=0; i<4; i++) {
+                int ival = Integer.valueOf(nibbles[i]);
+                if (ival < 0 && ival > 255)
+                    return false;
+            }
+        }
+        
+        return true;
+    }
 }

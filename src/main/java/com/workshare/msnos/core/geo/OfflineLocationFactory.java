@@ -5,6 +5,7 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 
 import com.maxmind.geoip2.DatabaseReader;
+import com.workshare.msnos.core.protocols.ip.Network;
 
 public class OfflineLocationFactory implements LocationFactory {
 
@@ -34,9 +35,13 @@ public class OfflineLocationFactory implements LocationFactory {
     }
 
     private String asValidatedAddress(String host) throws UnknownHostException {
-        final InetAddress inet = InetAddress.getByName(host);
-        final String addr = inet.getHostAddress();
-        return addr;
+        if (Network.isValidDottedIpv4Address(host))
+            return host;
+        else  {
+            final InetAddress inet = InetAddress.getByName(host);
+            final String addr = inet.getHostAddress();
+            return addr;
+        }
     }
 
     public static LocationFactory build() {

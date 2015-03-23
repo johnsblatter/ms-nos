@@ -47,7 +47,6 @@ import org.mockito.InOrder;
 
 import com.workshare.msnos.core.Message.Status;
 import com.workshare.msnos.core.Message.Type;
-import com.workshare.msnos.core.MsnosException.Code;
 import com.workshare.msnos.core.cloud.JoinSynchronizer;
 import com.workshare.msnos.core.cloud.Multicaster;
 import com.workshare.msnos.core.payloads.FltPayload;
@@ -597,15 +596,6 @@ public class CloudTest {
     }
 
     @Test
-    public void shouldNOTEnquiryUponReceivingPresenceLeaveFromAgent() throws Exception {
-        RemoteAgent smith = newRemoteAgent(thisCloud);
-
-        simulateMessageFromNetwork(MessagesHelper.newLeaveMessage(smith));
-
-        assertEquals(0, getAllMessagesSent().size());
-    }
-
-    @Test
     public void shouldSendMessagesTroughSender() throws Exception {
         Message message = newPingMessage(thisCloud);
         thisCloud.send(message);
@@ -625,7 +615,7 @@ public class CloudTest {
         final Endpoint udp = new BaseEndpoint(Endpoint.Type.UDP, asNetwork("192.168.0.199", (short) 16));
         final Set<Endpoint> endpoints = asSet(htp, udp);
         final Gateway gate = mock(Gateway.class);
-        when(gate.endpoints()).thenReturn(makeEndpoints(endpoints));
+        when(gate.endpoints()).thenReturn(CoreHelper.makeEndpoints(endpoints));
 
         Cloud cloud = new Cloud(randomUUID(), KEY_ID, signer, sender, asSet(gate), synchro, synchronousMulticaster(), scheduler, null);
 
@@ -811,35 +801,5 @@ public class CloudTest {
 
     private RemoteAgent newRemoteAgent(Cloud cloud) {
         return new RemoteAgent(UUID.randomUUID(), cloud, Collections.<Endpoint> emptySet());
-    }
-
-    private Endpoints makeEndpoints(final Set<Endpoint> endpointsSet) {
-        Endpoints endpoints = new Endpoints() {
-            @Override
-            public Set<? extends Endpoint> all() {
-                return endpointsSet;
-            }
-
-            @Override
-            public Set<? extends Endpoint> publics() {
-                return asSet();
-            }
-
-            @Override
-            public Set<? extends Endpoint> of(Agent agent) {
-                return asSet();
-            }
-
-            @Override
-            public Endpoint install(Endpoint endpoint) throws MsnosException {
-                throw new MsnosException("I am a test :)", Code.UNRECOVERABLE_FAILURE);
-            }
-
-            @Override
-            public Endpoint remove(Endpoint endpoint) throws MsnosException {
-                throw new MsnosException("I am a test :)", Code.UNRECOVERABLE_FAILURE);
-            }
-        };
-        return endpoints;
     }
 }

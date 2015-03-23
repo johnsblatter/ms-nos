@@ -2,6 +2,8 @@ package com.workshare.msnos.core.protocols.ip;
 
 import java.io.IOException;
 import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.util.Arrays;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
@@ -95,6 +97,27 @@ public class AddressResolver {
     }
 
     private byte[] createAddressFromString(String address) throws IOException {
-        return InetAddress.getByName(address).getAddress();
+        try {
+            return InetAddress.getByName(address).getAddress();
+        } catch(UnknownHostException ex) {
+            log.debug("Failed to resolve host {} (DNS problem?) let's check if it's a x.y.z.k address", address);
+            if (Network.isValidDottedIpv4Address(address)) {
+                String[] nibbles = address.trim().split("\\.");
+                byte[] bytes = new byte[nibbles.length];
+                for (int i=0; i<nibbles.length; i++) {
+                    int ival = Integer.valueOf(nibbles[i]);
+                    bytes[i] = (byte)(ival&0xff);
+                }
+
+                if (log.isDebugEnabled())
+                    log.debug("Address resolved to {}", Arrays.asList(bytes));
+
+                return bytes;
+            } else {
+                log.debug("Address {} NOT resolved :(", address);
+                return null;
+            }
+            
+        }
     }
 }
