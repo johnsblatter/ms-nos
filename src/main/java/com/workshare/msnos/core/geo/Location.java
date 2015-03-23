@@ -11,6 +11,7 @@ import com.maxmind.geoip2.record.City;
 import com.maxmind.geoip2.record.Continent;
 import com.maxmind.geoip2.record.Country;
 import com.maxmind.geoip2.record.Subdivision;
+import com.workshare.msnos.core.geo.Location.Place.Type;
 import com.workshare.msnos.core.protocols.ip.Endpoint;
 import com.workshare.msnos.soup.json.Json;
 
@@ -272,11 +273,26 @@ public class Location {
     }
 
     private static Place makeRegion(final Subdivision where) {
-        return isValid(where) ? new Place(Place.Type.REGION, where.getName(), where.getIsoCode()) : null;
+        if (!isValid(where))
+            return null;
+        
+        String code = where.getIsoCode();
+        if (code == null)
+            code = where.getGeoNameId().toString();
+            
+        return newPlace(Place.Type.REGION, where.getName(), code);
     }
 
     private static Place makeCity(final City where) {
         return isValid(where) ? new Place(Place.Type.CITY, where.getName(), where.getGeoNameId().toString()) : null;
+    }
+
+    private static Place newPlace(Type aRegion, String aName, String aIsoCode) {
+        try {
+            return new Place(aRegion, aName, aIsoCode);
+        } catch (Throwable any) {
+            return null;
+        }
     }
 
 

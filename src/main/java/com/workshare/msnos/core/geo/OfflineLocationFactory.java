@@ -46,4 +46,10 @@ public class OfflineLocationFactory implements LocationFactory {
             return new NoopLocationFactory();
         }
     }
+
+    public static void main(String[] args) throws IOException {
+        System.out.println(new OfflineLocationFactory().make("54.195.196.98"));
+    }
+//    public static void main(String[] args) throws IOException {
+    // }
 }
