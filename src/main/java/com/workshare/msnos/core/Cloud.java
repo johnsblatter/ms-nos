@@ -124,12 +124,13 @@ public class Cloud implements Identifiable {
             }
 
             private void ensureLeft(LocalAgent agent) {
-                try {
-                    log.info("- agent {} is leaving...", agent.getIden().getUUID());
-                    agent.leave();
-                } catch (Throwable ex) {
-                    log.warn("Unexpected exception while enforcing agent to leave the cloud", ex);
-                }
+                if (agent.getCloud() != null)                    
+                    try {
+                        log.info("- agent {} is leaving...", agent.getIden().getUUID());
+                        agent.leave();
+                    } catch (Throwable ex) {
+                        log.warn("Unexpected exception while enforcing agent to leave the cloud", ex);
+                    }
             }
 
             @Override

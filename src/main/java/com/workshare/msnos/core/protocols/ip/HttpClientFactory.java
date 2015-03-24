@@ -52,6 +52,7 @@ public class HttpClientFactory {
             @Override
             public void run() {
                 try {
+                    log.info("Shutting down HTTP client...");
                     httpClient.close();
                 } catch (IOException ex) {
                     log.debug("Error closing HTTP client", ex);

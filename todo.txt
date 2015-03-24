@@ -1,3 +1,12 @@
+- APIs are not removed on microservice disconnect
+- APIs are not removed on microservice disconnect
+
+- prefer NON FAULTY apis over GEOLOCATION (5 redirects over the same failing API, then 502???)
+
+- should enquiry if agent without microservice (HealthChecker)
+
+- ignore messages too old! (this will come with the new messaging protocol)
+
 - command line parsing in proy DOES NOT WORK!!!
 
 - connection timeout on the proxy!!! (when I proxy an API behind a firewall) It gets a 502 but it takes 40+40seconds
