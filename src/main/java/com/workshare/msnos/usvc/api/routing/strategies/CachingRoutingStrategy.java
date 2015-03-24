@@ -4,11 +4,15 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.workshare.msnos.usvc.Microservice;
 import com.workshare.msnos.usvc.api.routing.ApiEndpoint;
 import com.workshare.msnos.usvc.api.routing.RoutingStrategy;
 
 public class CachingRoutingStrategy implements RoutingStrategy {
+    private static final Logger log = LoggerFactory.getLogger(CachingRoutingStrategy.class);
 
     public static final String SYSP_TIMEOUT = "com.ws.nsnos.usvc.api.routing.strategy.caching.timeout";
 
@@ -44,7 +48,7 @@ public class CachingRoutingStrategy implements RoutingStrategy {
             return delegate.select(from, apis);
         }
 
-        if (System.currentTimeMillis() > lastend) {
+        if (System.currentTimeMillis() > lastend || isFaulty(result)) {
             reset();
             result = delegate.select(from, apis);
         }
@@ -55,5 +59,16 @@ public class CachingRoutingStrategy implements RoutingStrategy {
     public CachingRoutingStrategy withTimeout(int duration, TimeUnit unit) {
         this.timeout = TimeUnit.MILLISECONDS.convert(duration, unit);
         return this;
+    }
+
+    private boolean isFaulty(List<ApiEndpoint> eps) {
+        for (ApiEndpoint ep : eps) {
+            if (ep.isFaulty()) {
+                log.debug("Current endpoints list is faulty on endpoint {}", ep);
+                return true;
+            }
+        }
+        
+        return false;
     }
 }

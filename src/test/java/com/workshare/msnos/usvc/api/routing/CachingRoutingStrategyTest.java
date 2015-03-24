@@ -4,8 +4,9 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.when;
 
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -25,14 +26,20 @@ public class CachingRoutingStrategyTest {
 
     private RoutingStrategy delegateStrategy;
 
+    private ApiEndpoint api;
+
     @Before
     public void setup() {
         from = mock(Microservice.class);
         delegateStrategy = mock(RoutingStrategy.class);
         
-        endpoints = new ArrayList<ApiEndpoint>();
+        api = mock(ApiEndpoint.class);
+        endpoints = Arrays.asList(api);
+        
         strategy = new CachingRoutingStrategy(delegateStrategy);
         strategy.withTimeout(200, TimeUnit.MILLISECONDS);
+        
+        reinitialize();
     }
     
     @Test
@@ -46,7 +53,8 @@ public class CachingRoutingStrategyTest {
     public void shouldNotInvokeUnderlyingStrategyIfExecutedWithinTimeout() throws Exception {
         strategy.select(from, endpoints);
         verify(delegateStrategy).select(from, endpoints);
-        
+        reinitialize();
+
         Thread.sleep(100L);
         
         strategy.select(from, endpoints);
@@ -58,12 +66,30 @@ public class CachingRoutingStrategyTest {
     public void shouldInvokeUnderlyingStrategyIfExecutedOutsideTimeout() throws Exception {
         strategy.select(from, endpoints);
         verify(delegateStrategy).select(from, endpoints);
+        reinitialize();
         
-        reset(delegateStrategy);
         Thread.sleep(255L);
         
         strategy.select(from, endpoints);
         verify(delegateStrategy).select(from, endpoints);
+    }
+
+    @Test
+    public void shouldInvokeUnderlyingStrategyIfSelectedApiFaulty() throws Exception {
+        strategy.select(from, endpoints);
+        verify(delegateStrategy).select(from, endpoints);
+        reinitialize();
+
+        when(api.isFaulty()).thenReturn(true);
+        Thread.sleep(100L);
+        
+        strategy.select(from, endpoints);
+        verify(delegateStrategy).select(from, endpoints);
+    }
+    
+    public void reinitialize() {
+        reset(delegateStrategy);
+        when(delegateStrategy.select(from, endpoints)).thenReturn(endpoints);
     }
     
 }
