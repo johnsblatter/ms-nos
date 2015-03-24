@@ -71,7 +71,10 @@ public class MultiReceipt implements Receipt {
         for (Receipt receipt : receipts) {
             if (receipt.getStatus() == Status.DELIVERED)
                 return receipt.getGate();
-            
+
+            if (receipt.getStatus() == Status.FAILED)
+                continue;
+
             if (buffer.length() > 0)
                 buffer.append("+");
             buffer.append(receipt.getGate());

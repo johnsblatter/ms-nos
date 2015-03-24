@@ -70,7 +70,7 @@ public class Sender {
     }
 
     void sendSync(final Cloud cloud, final Message message, final MultiReceipt multi) {
-        String gateName = "ANY";
+        String gateName = null;
         final Set<Gateway> allGates = cloud.getGateways();
         for (Gateway gate : allGates) {
             try {
@@ -92,8 +92,7 @@ public class Sender {
             logTX(message, "FAIL");
         }
         else
-            logTX(message, gateName);
-
+            logTX(message, (gateName == null ? multi.getGate() : gateName));
     }
 
     private static Integer getThreadNum() {
