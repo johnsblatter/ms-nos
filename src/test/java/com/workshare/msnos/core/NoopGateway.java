@@ -23,8 +23,8 @@ public class NoopGateway implements Gateway {
 	}
 
 	@Override
-	public Receipt send(Cloud cloud, Message message) throws IOException {
-		return new SingleReceipt(this, Status.UNKNOWN, message);
+	public Receipt send(Cloud cloud, Message message, Identifiable to) throws IOException {
+		return new SingleReceipt(this, Status.FAILED, message);
 	}
 
     @Override

@@ -110,7 +110,7 @@ public class UDPGatewayTest {
     @Test
     public void shouldSendAMessageTroughTheSocket() throws Exception {
         Message message = UDPGatewayTest.newSampleMessage();
-        gate().send(cloud, message);
+        gate().send(cloud, message, null);
 
         List<DatagramPacket> packets = getSentPackets();
         assertPacketValid(message, packets.get(0));
@@ -119,7 +119,7 @@ public class UDPGatewayTest {
     @Test
     public void shouldReturnAReceiptOnSend() throws Exception {
         Message message = UDPGatewayTest.newSampleMessage();
-        Receipt receipt = gate().send(cloud, message);
+        Receipt receipt = gate().send(cloud, message, null);
 
         assertNotNull(receipt);
         assertEquals(message.getUuid(), receipt.getMessageUuid());
@@ -134,7 +134,7 @@ public class UDPGatewayTest {
         System.setProperty(UDPGateway.SYSP_PORT_WIDTH, "3");
 
         Message message = UDPGatewayTest.newSampleMessage();
-        gate().send(cloud, message);
+        gate().send(cloud, message, null);
 
         List<DatagramPacket> packets = getSentPackets();
         assertEquals(3, packets.size());
@@ -179,7 +179,7 @@ public class UDPGatewayTest {
         System.setProperty(UDPGateway.SYSP_UDP_PACKET_SIZE, Integer.toString(333));
         Message message = getMessageWithPayload(new BigPayload(1000));
 
-        gate().send(cloud, message);
+        gate().send(cloud, message, null);
 
         List<DatagramPacket> packets = getSentPackets();
         for (DatagramPacket datagramPacket : packets) {
@@ -192,7 +192,7 @@ public class UDPGatewayTest {
         System.setProperty(UDPGateway.SYSP_UDP_PACKET_SIZE, Integer.toString(333));
         Message message = getMessageWithPayload(new BigPayload(1000).unsplittable());
 
-        gate().send(cloud, message);
+        gate().send(cloud, message, null);
     }
 
     @Test

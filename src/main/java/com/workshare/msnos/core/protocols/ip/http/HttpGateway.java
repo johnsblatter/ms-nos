@@ -19,6 +19,7 @@ import com.workshare.msnos.core.Cloud;
 import com.workshare.msnos.core.Gateway;
 import com.workshare.msnos.core.Iden;
 import com.workshare.msnos.core.Iden.Type;
+import com.workshare.msnos.core.Identifiable;
 import com.workshare.msnos.core.Message;
 import com.workshare.msnos.core.Message.Status;
 import com.workshare.msnos.core.MsnosException;
@@ -55,7 +56,7 @@ public class HttpGateway implements Gateway {
 
     // FIXME a test is missing here to check the FAILED / PENDING status when sending to the cloud
     @Override
-    public Receipt send(Cloud cloud, Message message) throws IOException {
+    public Receipt send(Cloud cloud, Message message, Identifiable to) throws IOException {
         if (message.getTo().getType() == Type.CLD) {
             Message.Status status = Status.FAILED;
             for (HttpEndpoint endpoint : endpoints.values()) {

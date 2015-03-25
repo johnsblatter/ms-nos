@@ -93,7 +93,7 @@ public class HttpGatewayTest {
     @Test
     public void shouldStampReceiptWithGatewayName() throws Exception {
         Message message = newSampleMessage(newIden(AGT), newIden(CLD));
-        Receipt receipt = gate.send(cloud, message);
+        Receipt receipt = gate.send(cloud, message, null);
 
         assertEquals("HTTP", receipt.getGate());
     }
@@ -103,7 +103,7 @@ public class HttpGatewayTest {
     public void shouldReturnFailedDeliveryReceiptWhenMessageDirectedToCloudAndNoMeansToDeliverIt() throws Exception {
         
         Message message = newSampleMessage(newIden(AGT), newIden(CLD));
-        Receipt receipt = gate.send(cloud, message);
+        Receipt receipt = gate.send(cloud, message, null);
 
         assertEquals(Message.Status.FAILED, receipt.getStatus());
     }
@@ -112,7 +112,7 @@ public class HttpGatewayTest {
     public void shouldReturnFailedDeliveryReceiptWhenNoRouteToTarget() throws Exception {
        
         Message message = newSampleMessage(newIden(AGT), newIden(AGT));
-        Receipt receipt = gate.send(cloud, message);
+        Receipt receipt = gate.send(cloud, message, null);
 
         assertEquals(Message.Status.FAILED, receipt.getStatus());
     }
@@ -121,7 +121,7 @@ public class HttpGatewayTest {
     public void shouldSendTheMessageUsingHttpClient() throws Exception {
 
         Message message = newSampleMessage(newIden(AGT), AGENT_SMITH);
-        Receipt receipt = gate.send(cloud, message);
+        Receipt receipt = gate.send(cloud, message, null);
 
         HttpPost request = http.getLastPostToWWW();
         assertNotNull(request);
@@ -135,7 +135,7 @@ public class HttpGatewayTest {
 
         when(http.client().execute(any(HttpUriRequest.class))).thenThrow(new IOException("boom!"));
 
-        Receipt receipt = gate.send(cloud, newSampleMessage(newIden(AGT), AGENT_SMITH));
+        Receipt receipt = gate.send(cloud, newSampleMessage(newIden(AGT), AGENT_SMITH), null);
 
         assertEquals(Message.Status.FAILED, receipt.getStatus());
     }

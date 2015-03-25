@@ -103,9 +103,10 @@ public class CloudTest {
         synchro = mock(JoinSynchronizer.class);
 
         httpGate = mock(HttpGateway.class);
+        when(httpGate.name()).thenReturn("HTTP");
         Endpoints endpoints = mock(Endpoints.class);
         when(httpGate.endpoints()).thenReturn(endpoints);
-        when(httpGate.send(any(Cloud.class), any(Message.class))).thenReturn(unknownReceipt);
+        when(httpGate.send(any(Cloud.class), any(Message.class), any(Identifiable.class))).thenReturn(unknownReceipt);
 
         keystore = mock(KeysStore.class);
         signer = new Signer(keystore);
@@ -442,7 +443,7 @@ public class CloudTest {
         assertEquals(message, receivedMessages.get(0));
     }
 
-   @Test
+    @Test
     public void shouldRegisterMsnosEndpointsOnHttpGateway() throws Exception {
         HttpEndpoint endpoint = mock(HttpEndpoint.class);
         when(endpoint.getTarget()).thenReturn(new Iden(Iden.Type.AGT, UUID.randomUUID()));
@@ -546,7 +547,7 @@ public class CloudTest {
         final Endpoint udp = new BaseEndpoint(Endpoint.Type.UDP, asNetwork("192.168.0.199", (short) 16));
         final Set<Endpoint> endpoints = asSet(htp, udp);
         final Gateway gate = mock(Gateway.class);
-        when(gate.endpoints()).thenReturn(CoreHelper.makeEndpoints(endpoints));
+        when(gate.endpoints()).thenReturn(CoreHelper.makeImmutableEndpoints(endpoints));
 
         Cloud cloud = new Cloud(randomUUID(), KEY_ID, signer, sender, asSet(gate), synchro, CoreHelper.synchronousCloudMulticaster(), scheduler, null);
 

@@ -5,10 +5,11 @@ import static com.workshare.msnos.core.MessagesHelper.newPingMessage;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -39,9 +40,9 @@ public class SenderTest {
        when(unknownReceipt.getStatus()).thenReturn(Status.UNKNOWN);
 
        gate1 = mock(Gateway.class);
-       when(gate1.send(any(Cloud.class), any(Message.class))).thenReturn(unknownReceipt);
+       when(gate1.send(any(Cloud.class), any(Message.class), any(Identifiable.class))).thenReturn(unknownReceipt);
        gate2 = mock(Gateway.class);
-       when(gate2.send(any(Cloud.class), any(Message.class))).thenReturn(unknownReceipt);
+       when(gate2.send(any(Cloud.class), any(Message.class), any(Identifiable.class))).thenReturn(unknownReceipt);
        gates = new LinkedHashSet<Gateway>(Arrays.asList(gate1, gate2));
 
        cloud = mock(Cloud.class); 
@@ -79,8 +80,8 @@ public class SenderTest {
         Message message = new MessageBuilder(Message.Type.PIN, cloud.getIden(), cloud.getIden()).withHops(0).make();
         Receipt receipt = sender.send(cloud, message);
         
-        verify(gate1, never()).send(eq(cloud), any(Message.class));
-        verify(gate2, never()).send(eq(cloud), any(Message.class));
+        verify(gate1, never()).send(eq(cloud), any(Message.class), any(Identifiable.class));
+        verify(gate2, never()).send(eq(cloud), any(Message.class), any(Identifiable.class));
         assertEquals(Message.Status.FAILED, receipt.getStatus());
     }
 
@@ -88,20 +89,20 @@ public class SenderTest {
     public void shouldSendMessagesTroughAllGatewaysUnlessDelivered() throws Exception {
         Receipt okayReceipt = mock(Receipt.class);
         when(okayReceipt.getStatus()).thenReturn(Status.DELIVERED);
-        when(gate1.send(any(Cloud.class), any(Message.class))).thenReturn(okayReceipt);
+        when(gate1.send(any(Cloud.class), any(Message.class), any(Identifiable.class))).thenReturn(okayReceipt);
         
         Message message = newPingMessage(cloud);
         sendAndWait(message);
 
         verifyMessageSent(message, gate1);
-        verify(gate2, never()).send(cloud, message);
+        verify(gate2, never()).send(eq(cloud), eq(message), any(Identifiable.class));
     }
 
     @Test
     public void shouldNotThrowExceptionWhenSendFailedOnSomeGateways() throws Exception {
         Receipt value1 = createMockReceipt(Status.UNKNOWN);
-        when(gate1.send(any(Cloud.class), any(Message.class))).thenReturn(value1);
-        when(gate2.send(any(Cloud.class), any(Message.class))).thenThrow(new IOException("boom"));
+        when(gate1.send(any(Cloud.class), any(Message.class), any(Identifiable.class))).thenReturn(value1);
+        when(gate2.send(any(Cloud.class), any(Message.class), any(Identifiable.class))).thenThrow(new IOException("boom"));
 
         Message message = newPingMessage(cloud);
         Receipt receipt = sendAndWait(message);
@@ -114,8 +115,8 @@ public class SenderTest {
 
     @Test
     public void shouldReturnFailureIfAllGatewaysBombs() throws Exception {
-        when(gate1.send(any(Cloud.class), any(Message.class))).thenThrow(new RuntimeException("boom!"));
-        when(gate2.send(any(Cloud.class), any(Message.class))).thenThrow(new RuntimeException("boom!"));
+        when(gate1.send(any(Cloud.class), any(Message.class), any(Identifiable.class))).thenThrow(new RuntimeException("boom!"));
+        when(gate2.send(any(Cloud.class), any(Message.class), any(Identifiable.class))).thenThrow(new RuntimeException("boom!"));
         
         Message message = newPingMessage(cloud);
         Receipt receipt = sendAndWait(message);
@@ -126,10 +127,10 @@ public class SenderTest {
     @Test
     public void shouldSendReturnMultipleStatusWhenUsingMultipleGateways() throws Exception {
         Receipt value1 = createMockReceipt(Status.UNKNOWN);
-        when(gate1.send(any(Cloud.class), any(Message.class))).thenReturn(value1);
+        when(gate1.send(any(Cloud.class), any(Message.class), any(Identifiable.class))).thenReturn(value1);
 
         Receipt value2 = createMockReceipt(Status.UNKNOWN);
-        when(gate2.send(any(Cloud.class), any(Message.class))).thenReturn(value2);
+        when(gate2.send(any(Cloud.class), any(Message.class), any(Identifiable.class))).thenReturn(value2);
 
         Message message = newPingMessage(cloud);
         Receipt receipt = sendAndWait(message);
@@ -149,7 +150,7 @@ public class SenderTest {
 
     private Message verifyMessageSent(final Message message, final Gateway gate) throws IOException {
         ArgumentCaptor<Message> runnableCaptor = ArgumentCaptor.forClass(Message.class);
-        verify(gate).send(eq(cloud), runnableCaptor.capture());
+        verify(gate).send(eq(cloud), runnableCaptor.capture(), any(Identifiable.class));
         Message captured = runnableCaptor.getValue();
         assertEquals(message.getUuid(), captured.getUuid());
         return captured;

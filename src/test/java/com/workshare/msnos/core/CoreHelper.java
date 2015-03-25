@@ -1,6 +1,7 @@
 package com.workshare.msnos.core;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
@@ -94,8 +95,17 @@ public class CoreHelper {
             }
         });
     }
+    
+    public static Endpoints makeImmutableEndpoints(final Set<Endpoint> all) {
+        return makeEndpoints(Collections.unmodifiableSet(all));
+    }
 
-    public static Endpoints makeEndpoints(final Set<Endpoint> all) {
+    public static Endpoints makeMutableEndpoints() {
+        final Set<Endpoint> all = new HashSet<Endpoint>();
+        return makeEndpoints(Collections.unmodifiableSet(all));
+    }
+
+    private static Endpoints makeEndpoints(final Set<Endpoint> all) {
         Endpoints endpoints = new Endpoints() {
             @Override
             public Set<? extends Endpoint> all() {
@@ -132,5 +142,13 @@ public class CoreHelper {
                 command.run();
             }
         });
+    }
+
+    public static MessageBuilder newAPPMesage(Agent from, Identifiable to) {
+        return new MessageBuilder(Message.Type.APP, from, to);
+    }
+
+    public static MessageBuilder newAPPMesage(Iden from, Iden to) {
+        return new MessageBuilder(Message.Type.APP, from, to);
     }
 }

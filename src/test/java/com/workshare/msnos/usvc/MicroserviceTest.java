@@ -347,7 +347,7 @@ public class MicroserviceTest {
         Gateway gate = mock(Gateway.class);
         when(gate.endpoints()).thenReturn(epoints);
         Receipt receipt = mock(Receipt.class);
-        when(gate.send(any(Cloud.class), any(Message.class))).thenReturn(receipt);
+        when(gate.send(any(Cloud.class), any(Message.class), any(Identifiable.class))).thenReturn(receipt);
         return new HashSet<Gateway>(Arrays.asList(new Gateway[]{gate}));
     }
 }

@@ -16,7 +16,7 @@ public interface Gateway {
 
     public Endpoints endpoints();
 
-    public Receipt send(Cloud cloud, Message message) throws IOException;
+    public Receipt send(Cloud cloud, Message message, Identifiable to) throws IOException;
 
     public void close() throws IOException;
 }

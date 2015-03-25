@@ -31,6 +31,7 @@ import org.slf4j.LoggerFactory;
 
 import com.workshare.msnos.core.Cloud;
 import com.workshare.msnos.core.Gateway;
+import com.workshare.msnos.core.Identifiable;
 import com.workshare.msnos.core.Message;
 import com.workshare.msnos.core.Message.Status;
 import com.workshare.msnos.core.Receipt;
@@ -144,7 +145,7 @@ public class WWWGateway implements Gateway {
     }
 
     @Override
-    public Receipt send(Cloud cloud, Message message) throws IOException {
+    public Receipt send(Cloud cloud, Message message, Identifiable to) throws IOException {
         cloudMessages.get(cloud).add(message);
         return new SingleReceipt(this, Status.PENDING, message);
     }

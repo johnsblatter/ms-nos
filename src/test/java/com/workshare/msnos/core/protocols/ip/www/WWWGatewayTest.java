@@ -101,13 +101,13 @@ public class WWWGatewayTest {
 
     @Test
     public void shouldNotSendMessagesStraightAway() throws Exception {
-        gate.send(cloud, message(uuid1));
+        gate.send(cloud, message(uuid1), null);
         assertNull(http.getLastPostToWWW());
     }
 
     @Test
     public void shouldReturnAReceiptOnSend() throws Exception {
-        Receipt receipt = gate.send(cloud, message(uuid1));
+        Receipt receipt = gate.send(cloud, message(uuid1), null);
         assertNotNull(receipt);
         assertEquals(uuid1, receipt.getMessageUuid());
         assertEquals(Status.PENDING, receipt.getStatus());
@@ -122,7 +122,7 @@ public class WWWGatewayTest {
 
     @Test
     public void shouldSendOneMessageOnSync() throws Exception {
-        gate.send(cloud, message(uuid1));
+        gate.send(cloud, message(uuid1), null);
 
         scheduledTask().run();
 
@@ -133,9 +133,9 @@ public class WWWGatewayTest {
 
     @Test
     public void shouldSendMultipleMessageOnSync() throws Exception {
-        gate.send(cloud, message(uuid1));
-        gate.send(cloud, message(uuid2));
-        gate.send(cloud, message(uuid3));
+        gate.send(cloud, message(uuid1), null);
+        gate.send(cloud, message(uuid2), null);
+        gate.send(cloud, message(uuid3), null);
 
         scheduledTask().run();
 
@@ -151,8 +151,8 @@ public class WWWGatewayTest {
         Cloud otherCloud = mock(Cloud.class);
         when(otherCloud.getIden()).thenReturn(new Iden(Iden.Type.CLD, UUID.randomUUID()));
 
-        gate.send(cloud, message(uuid1));
-        gate.send(otherCloud, message(uuid2));
+        gate.send(cloud, message(uuid1), null);
+        gate.send(otherCloud, message(uuid2), null);
 
         scheduledTask().run();
 

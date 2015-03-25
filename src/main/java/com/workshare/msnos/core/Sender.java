@@ -75,7 +75,7 @@ public class Sender {
         for (Gateway gate : allGates) {
             try {
                 log.debug("Sending {} message {} to {} via gate {}", message.getType(), message.getUuid(), message.getTo(), gate.name());
-                final Receipt receipt = gate.send(cloud, message);
+                final Receipt receipt = gate.send(cloud, message, null);
                 multi.add(receipt);
                 log.debug("Status: {}", receipt.getStatus());
                 if (receipt.getStatus() == Message.Status.DELIVERED) {

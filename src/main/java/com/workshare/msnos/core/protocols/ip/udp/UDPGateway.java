@@ -16,6 +16,7 @@ import org.slf4j.LoggerFactory;
 
 import com.workshare.msnos.core.Cloud;
 import com.workshare.msnos.core.Gateway;
+import com.workshare.msnos.core.Identifiable;
 import com.workshare.msnos.core.Message;
 import com.workshare.msnos.core.Message.Payload;
 import com.workshare.msnos.core.Message.Status;
@@ -120,7 +121,7 @@ public class UDPGateway implements Gateway {
     }
 
     @Override
-    public Receipt send(Cloud cloud, Message message) throws IOException {
+    public Receipt send(Cloud cloud, Message message, Identifiable to) throws IOException {
 
         logger.debug("send message {} ", message);
 

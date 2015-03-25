@@ -1,6 +1,6 @@
 package com.workshare.msnos.core.protocols.ip.www;
 
-import static com.workshare.msnos.core.CoreHelper.makeEndpoints;
+import static com.workshare.msnos.core.CoreHelper.makeImmutableEndpoints;
 import static com.workshare.msnos.core.CoreHelper.newCloudIden;
 import static com.workshare.msnos.core.CoreHelper.randomUUID;
 import static com.workshare.msnos.core.MessagesHelper.newFaultMessage;
@@ -51,7 +51,7 @@ public class WWWSynchronizerTest {
     @Before
     public void setup() throws Exception {
         Gateway gate = mock(Gateway.class);
-        when(gate.endpoints()).thenReturn(makeEndpoints(CoreHelper.<Endpoint>asSet()));
+        when(gate.endpoints()).thenReturn(makeImmutableEndpoints(CoreHelper.<Endpoint>asSet()));
 
         messagesSent = new ArrayList<Message>();
 

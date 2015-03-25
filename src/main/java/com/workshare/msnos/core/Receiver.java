@@ -2,6 +2,7 @@ package com.workshare.msnos.core;
 
 import static com.workshare.msnos.soup.Shorteners.shorten;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.Set;
 
@@ -13,6 +14,9 @@ import com.workshare.msnos.core.Cloud.Listener;
 import com.workshare.msnos.core.cloud.MessagePreProcessors;
 import com.workshare.msnos.core.cloud.MessagePreProcessors.Result;
 import com.workshare.msnos.core.cloud.Multicaster;
+import com.workshare.msnos.core.protocols.ip.http.HttpGateway;
+import com.workshare.msnos.core.protocols.ip.udp.UDPGateway;
+import com.workshare.msnos.core.routing.Router;
 import com.workshare.msnos.soup.json.Json;
 
 public class Receiver {
@@ -25,14 +29,20 @@ public class Receiver {
     private final Multicaster caster;
     private final MessagePreProcessors validators;
     private final Internal internal;
-
+    private final Router router;
     
     Receiver(Cloud cloud, Set<Gateway> gates, Multicaster multicaster) {
+        this(cloud, gates, multicaster, new Router(cloud, getGate(gates, UDPGateway.class), getGate(gates, HttpGateway.class)));
+    }
+
+
+    Receiver(Cloud cloud, Set<Gateway> gates, Multicaster multicaster, Router router) {
         this.cloud = cloud;
         this.caster = multicaster;
         this.gates = Collections.unmodifiableSet(gates);
         this.internal = cloud.internal();
         this.validators = new MessagePreProcessors(internal);
+        this.router = router;
 
         for (final Gateway gate : gates) {
             gate.addListener(this.cloud, new Gateway.Listener() {
@@ -44,6 +54,23 @@ public class Receiver {
         }
     }
 
+    Receiver(Cloud cloud, Set<Gateway> gates, Multicaster multicaster, MessagePreProcessors validators, Router router) {
+        this.cloud = cloud;
+        this.caster = multicaster;
+        this.gates = Collections.unmodifiableSet(gates);
+        this.internal = cloud.internal();
+        this.validators = validators;
+        this.router = router;
+
+        for (final Gateway gate : gates) {
+            gate.addListener(this.cloud, new Gateway.Listener() {
+                @Override
+                public void onMessage(Message message) {
+                    process(message, gate.name());
+                }
+            });
+        }
+    }
     public Set<Gateway> gateways() {
         return gates;
     }
@@ -71,6 +98,13 @@ public class Receiver {
 
             caster.dispatch(message);
             cloud.postProcess(message);
+            
+            try {
+                router.process(message);
+            } catch (IOException e) {
+                // FIXME please handle this correctly
+                log.warn("Unable to process route message "+message, e);
+            }
         } else {
             logNN(message, gateName, result.reason());
         }
@@ -98,4 +132,15 @@ public class Receiver {
         final String payload = Json.toJsonString(msg.getData());
         proto.info("RX({}): {} {} {} {} {} {}", shorten(gateName,3), msg.getType(), muid, msg.getWhen(), msg.getFrom(), msg.getTo(), payload);
     }
+    
+    @SuppressWarnings("unchecked")
+    private static <T> T getGate(Set<? super T> gates, Class<T> clazz) {
+        for (Object gate : gates) {
+            if (gate.getClass() == clazz)
+                return (T)gate;
+        }
+        
+        return null;
+    }
+
 }

@@ -193,6 +193,10 @@ public class Cloud implements Identifiable {
         return seq.incrementAndGet();
     }
 
+    public RemoteAgent getRemoteAgent(final Iden iden) {
+        return remoteAgents.get(iden);
+    }
+
     public Collection<RemoteAgent> getRemoteAgents() {
         return remoteAgents.list();
     }
@@ -327,7 +331,7 @@ public class Cloud implements Identifiable {
     }
 
     private void updateRemoteAgent(HttpEndpoint endpoint) {
-        RemoteAgent agent = remoteAgents.get(endpoint.getTarget());
+        RemoteAgent agent = getRemoteAgent(endpoint.getTarget());
         if (agent == null) {
             log.warn("Weird... a remote agent registered an httpendpoint, but I do not know him");
             return;
