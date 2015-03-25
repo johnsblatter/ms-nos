@@ -56,6 +56,8 @@ public class HttpClientFactory {
                     httpClient.close();
                 } catch (IOException ex) {
                     log.debug("Error closing HTTP client", ex);
+                } finally {
+                    log.info("done!");
                 }
             }
 

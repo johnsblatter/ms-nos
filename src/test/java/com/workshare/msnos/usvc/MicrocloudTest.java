@@ -43,6 +43,7 @@ import com.workshare.msnos.core.Cloud.Listener;
 import com.workshare.msnos.core.Iden;
 import com.workshare.msnos.core.LocalAgent;
 import com.workshare.msnos.core.Message;
+import com.workshare.msnos.core.MessageBuilder;
 import com.workshare.msnos.core.MsnosException;
 import com.workshare.msnos.core.RemoteAgent;
 import com.workshare.msnos.core.RemoteEntity;
@@ -314,6 +315,29 @@ public class MicrocloudTest {
         Message message = sentMessages().get(0);
         assertEquals(Message.Type.ENQ, message.getType());
         assertEquals(agent.getIden(), message.getTo());
+    }
+    
+    
+    @Test
+    public void shouldNOTEnquiryUnknownMicroserviceMultipleTimes() throws Exception {
+        RestApi restApi = createRestApi("name", "/foo");
+        Endpoint ep = new BaseEndpoint(Type.UDP, asPublicNetwork("24.24.24.24"));
+        RemoteAgent agent = new RemoteAgent(randomUUID(), cloud, asSet(ep));
+        RemoteMicroservice remote = new RemoteMicroservice("name", agent, toSet(restApi));
+
+        simulateMessageFromCloud(newAPPMessage(remote, cloud));
+        simulateMessageFromCloud(newAPPMessage(remote, cloud));
+
+        List<Message> messageList = sentMessages();
+        boolean enquired = false;
+        for (Message message: messageList) {
+            if (Message.Type.ENQ == message.getType() && agent.getIden() == message.getTo()) {
+                if (!enquired)
+                    enquired = true;
+                else
+                    fail("Multiple subsequent enquiries were sent!");
+            }
+        }
     }
     
     @Test 

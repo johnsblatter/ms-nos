@@ -27,7 +27,7 @@ public class Healthchecker {
     public static final String SYSP_ENQ_PERIOD = "msnos.usvc.health.enq.period";
 
     public static final long CHECK_PERIOD = Long.getLong(SYSP_CHECK_PERIOD, 60000L);
-    public static final long ENQ_PERIOD = Long.getLong(SYSP_ENQ_PERIOD, 5 * CHECK_PERIOD);
+    public static final long ENQ_PERIOD = Long.getLong(SYSP_ENQ_PERIOD, 3 * CHECK_PERIOD);
     public static final int TIMEOUT_CONN = HttpClientFactory.getHttpConnectTimeout();
     public static final int TIMEOUT_READ = HttpClientFactory.getHttpSocketTimeout();
 

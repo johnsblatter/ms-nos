@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Queue;
@@ -42,6 +43,8 @@ import com.workshare.msnos.soup.threading.ConcurrentBuildingMap.Factory;
 import com.workshare.msnos.soup.threading.Multicaster;
 
 public class WWWGateway implements Gateway {
+    
+    private enum Sync {TX, RX};
 
     public static final String SYSP_SYNC_PERIOD = "com.ws.nsnos.www.sync.period.millis";
     public static final String SYSP_ADDRESS = "com.ws.nsnos.www.address";
@@ -88,7 +91,7 @@ public class WWWGateway implements Gateway {
         this.scheduler.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {
-                sync();
+                sync(EnumSet.of(Sync.TX, Sync.RX));
             }
         }, period, period, TimeUnit.MILLISECONDS);
 
@@ -118,7 +121,7 @@ public class WWWGateway implements Gateway {
 
     @Override
     public void close() throws IOException {
-        // TODO please fixme, I am unimplemented :)
+        sync(EnumSet.of(Sync.TX));
     }
 
     @Override
@@ -138,32 +141,34 @@ public class WWWGateway implements Gateway {
         return new SingleReceipt(this, Status.PENDING, message);
     }
 
-    private void sync() {
+    private void sync(Set<Sync> syncs) {
         int value = syncing.incrementAndGet();
         try {
             if (value > 1) {
                 log.warn("Request to sync while syncing was in progress");
                 return;
             } else {
-                doSync();
+                doSync(syncs);
             }
         } finally {
             syncing.decrementAndGet();
         }
     }
 
-    private void doSync() {
-        try {
-            syncTx();
-        } catch (Exception ex) {
-            log.warn("Unexpected exception during sync (TX)", ex);
-        }
+    private void doSync(Set<Sync> syncs) {
+        if (syncs.contains(Sync.TX))
+            try {
+                syncTx();
+            } catch (Exception ex) {
+                log.warn("Unexpected exception during sync (TX)", ex);
+            }
 
-        try {
-            syncRx();
-        } catch (Exception ex) {
-            log.warn("Unexpected exception during sync (RX)", ex);
-        }
+        if (syncs.contains(Sync.RX))
+            try {
+                syncRx();
+            } catch (Exception ex) {
+                log.warn("Unexpected exception during sync (RX)", ex);
+            }
     }
 
     private void syncRx() throws IOException {

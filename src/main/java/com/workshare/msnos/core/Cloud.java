@@ -7,10 +7,14 @@ import java.security.SecureRandom;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+
+import net.jodah.expiringmap.ExpiringMap;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,6 +37,8 @@ import com.workshare.msnos.soup.threading.ExecutorServices;
 import com.workshare.msnos.soup.time.SystemTime;
 
 public class Cloud implements Identifiable {
+
+    private static final Long ENQUIRY_EXPIRE = Long.getLong("com.ws.msnos.agent.enquiry.timeout", 30);
 
     private static final ScheduledExecutorService DEFAULT_SCHEDULER = ExecutorServices.newSingleThreadScheduledExecutor();
 
@@ -58,6 +64,7 @@ public class Cloud implements Identifiable {
     transient private final Internal internal;
     transient private final Sender sender;
     transient private final Receiver receiver;
+    transient private final Map<UUID, Iden> enquiries;
 
     public class Internal {
         public IdentifiablesList<LocalAgent> localAgents() {
@@ -96,6 +103,8 @@ public class Cloud implements Identifiable {
     Cloud(final UUID uuid, String signid, Signer signer, Sender sender, Set<Gateway> gates, JoinSynchronizer synchronizer, Multicaster multicaster, ScheduledExecutorService executor, Long instanceId) {
         this.iden = new Iden(Iden.Type.CLD, uuid, instanceId);
 
+        this.enquiries = ExpiringMap.builder().expiration(ENQUIRY_EXPIRE, TimeUnit.SECONDS).build();
+
         this.localAgents = new IdentifiablesList<LocalAgent>();
         this.remoteAgents = new IdentifiablesList<RemoteAgent>();
         this.remoteClouds = new IdentifiablesList<RemoteEntity>();
@@ -108,25 +117,29 @@ public class Cloud implements Identifiable {
         this.signid = signid;
         this.synchronizer = synchronizer;
         this.ring = calculateRing(gates);
-                
+
         this.sender = sender;
         this.receiver = new Receiver(this, gates, multicaster);
-        
+
         new AgentWatchdog(this, executor).start();
-        
+
         ShutdownHooks.addHook(new Hook() {
             @Override
             public void run() {
                 log.info("Asking all agents to leave...");
-                for(LocalAgent agent : localAgents.list()) {
-                    ensureLeft(agent);
+                try {
+                    for (LocalAgent agent : localAgents.list()) {
+                        ensureLeft(agent);
+                    }
+                } finally {
+                    log.info("done!");
                 }
             }
 
             private void ensureLeft(LocalAgent agent) {
-                if (agent.getCloud() != null)                    
+                if (agent.getCloud() != null)
                     try {
-                        log.info("- agent {} is leaving...", agent.getIden().getUUID());
+                        log.debug("- agent {} is leaving...", agent.getIden().getUUID());
                         agent.leave();
                     } catch (Throwable ex) {
                         log.warn("Unexpected exception while enforcing agent to leave the cloud", ex);
@@ -135,7 +148,7 @@ public class Cloud implements Identifiable {
 
             @Override
             public String name() {
-                return "Ensure all agents left the cloud "+uuid;
+                return "Ensure all agents left the cloud " + uuid;
             }
 
             @Override
@@ -152,7 +165,7 @@ public class Cloud implements Identifiable {
             if (points != null)
                 endpoints.addAll(points);
         }
-        
+
         return Ring.make(endpoints);
     }
 
@@ -201,7 +214,7 @@ public class Cloud implements Identifiable {
 
     public Receipt sendSync(Message message) throws MsnosException {
         checkCloudAlive();
-        
+
         final MultiReceipt receipt = new MultiReceipt(message);
         sender.sendSync(this, sign(message), receipt);
         return receipt;
@@ -248,12 +261,15 @@ public class Cloud implements Identifiable {
         final Iden from = message.getFrom();
         if (from.getType() == Iden.Type.AGT && message.getType() != PRS) {
             if (!remoteAgents.containsKey(from))
-                try {
-                    log.warn("Enquiring unknown agent {}", from);
-                    final Cloud cloud = internal.cloud();
-                    cloud.send(new MessageBuilder(Message.Type.DSC, cloud, from).make());
-                } catch (IOException e) {
-                    log.error("Unexpected exception sending message " + message, e);
+                if (enquiries.get(from.getUUID()) == null) {
+                    enquiries.put(from.getUUID(), from);
+                    try {
+                        log.warn("Enquiring unknown agent {}", from);
+                        final Cloud cloud = internal.cloud();
+                        cloud.send(new MessageBuilder(Message.Type.DSC, cloud, from).make());
+                    } catch (IOException e) {
+                        log.error("Unexpected exception sending message " + message, e);
+                    }
                 }
         }
     }
@@ -274,7 +290,7 @@ public class Cloud implements Identifiable {
     }
 
     public void removeFaultyAgent(RemoteEntity agent) {
-        log.warn("Removing faulty agent "+agent);
+        log.warn("Removing faulty agent " + agent);
         RemoteEntity result = remoteAgents.remove(agent.getIden());
         if (result != null)
             receiver.caster().dispatch(new MessageBuilder(Message.Type.FLT, this, this).with(new FltPayload(agent.getIden())).make());

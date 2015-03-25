@@ -3,6 +3,7 @@ package com.workshare.msnos.core;
 import static com.workshare.msnos.core.CoreHelper.asNetwork;
 import static com.workshare.msnos.core.CoreHelper.asPublicNetwork;
 import static com.workshare.msnos.core.CoreHelper.asSet;
+import static com.workshare.msnos.core.CoreHelper.fakeSystemTime;
 import static com.workshare.msnos.core.CoreHelper.randomUUID;
 import static com.workshare.msnos.core.Message.Type.APP;
 import static com.workshare.msnos.core.Message.Type.FLT;
@@ -14,6 +15,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.eq;
@@ -34,7 +36,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -48,7 +49,6 @@ import org.mockito.InOrder;
 import com.workshare.msnos.core.Message.Status;
 import com.workshare.msnos.core.Message.Type;
 import com.workshare.msnos.core.cloud.JoinSynchronizer;
-import com.workshare.msnos.core.cloud.Multicaster;
 import com.workshare.msnos.core.payloads.FltPayload;
 import com.workshare.msnos.core.payloads.Presence;
 import com.workshare.msnos.core.protocols.ip.BaseEndpoint;
@@ -114,7 +114,7 @@ public class CloudTest {
         when(timeClient.getTime()).thenReturn(1234L);
 
         gates = new LinkedHashSet<Gateway>(Arrays.asList(httpGate));
-        thisCloud = new Cloud(MY_CLOUD.getUUID(), KEY_ID, signer, sender, gates, synchro, synchronousMulticaster(), scheduler, null);
+        thisCloud = new Cloud(MY_CLOUD.getUUID(), KEY_ID, signer, sender, gates, synchro, CoreHelper.synchronousCloudMulticaster(), scheduler, null);
         thisCloud.addListener(new Cloud.Listener() {
             @Override
             public void onMessage(Message message) {
@@ -124,7 +124,7 @@ public class CloudTest {
 
         receivedMessages = new ArrayList<Message>();
 
-        otherCloud = new Cloud(UUID.randomUUID(), KEY_ID, signer, sender, Collections.<Gateway> emptySet(), synchro, synchronousMulticaster(), Executors.newSingleThreadScheduledExecutor(), null);
+        otherCloud = new Cloud(UUID.randomUUID(), KEY_ID, signer, sender, Collections.<Gateway> emptySet(), synchro, CoreHelper.synchronousCloudMulticaster(), Executors.newSingleThreadScheduledExecutor(), null);
         thisCloudRemoteIden = new Iden(Iden.Type.CLD, thisCloud.getIden().getUUID(), 99l);
     }
 
@@ -596,6 +596,26 @@ public class CloudTest {
     }
 
     @Test
+    public void shouldNOTEnquiryUnknownAgentsMultipleTimes() throws Exception {
+        RemoteAgent smith = newRemoteAgent(thisCloud);
+
+        simulateMessageFromNetwork(new MessageBuilder(Message.Type.PIN, smith, thisCloud).make());
+        simulateMessageFromNetwork(new MessageBuilder(Message.Type.PIN, smith, thisCloud).make());
+        List<Message> messageList = getAllMessagesSent();
+
+        boolean enquired = false;
+        for (Message message: messageList) {
+            if (Message.Type.DSC == message.getType() && smith.getIden() == message.getTo()) {
+                if (!enquired)
+                    enquired = true;
+                else
+                    fail("Multiple subsequent enquiries were sent!");
+            }
+        }
+    }
+
+
+    @Test
     public void shouldSendMessagesTroughSender() throws Exception {
         Message message = newPingMessage(thisCloud);
         thisCloud.send(message);
@@ -617,7 +637,7 @@ public class CloudTest {
         final Gateway gate = mock(Gateway.class);
         when(gate.endpoints()).thenReturn(CoreHelper.makeEndpoints(endpoints));
 
-        Cloud cloud = new Cloud(randomUUID(), KEY_ID, signer, sender, asSet(gate), synchro, synchronousMulticaster(), scheduler, null);
+        Cloud cloud = new Cloud(randomUUID(), KEY_ID, signer, sender, asSet(gate), synchro, CoreHelper.synchronousCloudMulticaster(), scheduler, null);
 
         assertEquals(Ring.make(endpoints), cloud.getRing());
     }
@@ -780,23 +800,6 @@ public class CloudTest {
 
         if (data != null)
             assertEquals(Json.toJsonString(data), Json.toJsonString(message.getData()));
-    }
-
-    private Multicaster synchronousMulticaster() {
-        return new Multicaster(new Executor() {
-            @Override
-            public void execute(Runnable command) {
-                command.run();
-            }
-        });
-    }
-
-    private void fakeSystemTime(final long time) {
-        SystemTime.setTimeSource(new SystemTime.TimeSource() {
-            public long millis() {
-                return time;
-            }
-        });
     }
 
     private RemoteAgent newRemoteAgent(Cloud cloud) {

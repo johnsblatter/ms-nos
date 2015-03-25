@@ -27,6 +27,10 @@ public class MessagesHelper {
 
     public static Message newAPPMessage(RemoteMicroservice remote, Identifiable to) {
         RemoteAgent from = remote.getAgent();
+        return newAPPMesage(from, to);
+    }
+
+    public static Message newAPPMesage(Agent from, Identifiable to) {
         return new MessageBuilder(Message.Type.APP, from, to).make();
     }
 

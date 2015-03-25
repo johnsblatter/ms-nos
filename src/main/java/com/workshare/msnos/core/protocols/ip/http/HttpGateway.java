@@ -57,6 +57,10 @@ public class HttpGateway implements Gateway {
         if (endpoint == null)
             return new SingleReceipt(this, Status.FAILED, message);
 
+        return sendTo(message, endpoint);
+    }
+
+    private Receipt sendTo(Message message, HttpEndpoint endpoint) {
         try {
             HttpPost request = new HttpPost(endpoint.getUrl());
             request.setEntity(new StringEntity(serializer.toText(message)));

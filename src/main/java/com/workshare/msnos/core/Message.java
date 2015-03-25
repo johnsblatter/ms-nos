@@ -139,6 +139,10 @@ public class Message {
         return new Message(type, from, to, hops-1, reliable, data, uuid, sig, rnd, seq);
     }
 
+    public Message withHops(int hops) {
+        return new Message(type, from, to, hops, reliable, data, uuid, sig, rnd, seq);
+    }
+
     public Message signed(String keyId, String signature) {
         String sign = keyId + ":" + signature;
         return new Message(type, from, to, hops, reliable, data, uuid, sign, rnd, seq);

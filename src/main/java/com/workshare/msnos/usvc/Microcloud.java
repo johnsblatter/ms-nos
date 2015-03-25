@@ -12,6 +12,9 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
+import net.jodah.expiringmap.ExpiringMap;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,13 +43,16 @@ import com.workshare.msnos.usvc.api.routing.ApiRepository;
 
 public class Microcloud {
 
+    private static final Long ENQUIRY_EXPIRE = Long.getLong("com.ws.msnos.microservice.enquiry.timeout", 60);
+
     private static final Logger log = LoggerFactory.getLogger("STANDARD");
 
     private final Map<Iden, RemoteMicroservice> remoteServices;
     private final Map<UUID, PassiveService> passiveServices;
     private final ApiRepository apis;
     private final Cloud cloud;
-    
+    private final Map<UUID, Iden> enquiries;
+
     public Microcloud(Cloud cloud) {
         this(cloud, ExecutorServices.newSingleThreadScheduledExecutor());
     }
@@ -67,6 +73,8 @@ public class Microcloud {
         remoteServices = new ConcurrentHashMap<Iden, RemoteMicroservice>();
         passiveServices = new ConcurrentHashMap<UUID, PassiveService>();
         apis = new ApiRepository();
+
+        this.enquiries = ExpiringMap.builder().expiration(ENQUIRY_EXPIRE, TimeUnit.SECONDS).build();
 
         Healthchecker healthcheck = new Healthchecker(this, executor);
         healthcheck.start();
@@ -108,7 +116,7 @@ public class Microcloud {
         return getApis().searchApi(microservice, path);
     }
 
-    public RestApi searchApiById(long id)  {
+    public RestApi searchApiById(long id) {
         return getApis().searchApiById(id);
     }
 
@@ -133,7 +141,7 @@ public class Microcloud {
         agent.leave();
     }
 
-    private void doProcess(Message message) throws MsnosException {        
+    private void doProcess(Message message) throws MsnosException {
         log.debug("Handling message {}", message);
         switch (message.getType()) {
             case QNE:
@@ -151,18 +159,21 @@ public class Microcloud {
             default:
                 break;
         }
-        
+
         enquiryMicroserviceIfUnknown(message);
     }
 
     private void enquiryMicroserviceIfUnknown(Message message) throws MsnosException {
         final Iden from = message.getFrom();
-        if (from.getType() == Iden.Type.AGT && message.getType() != PRS)
-            if (!remoteServices.containsKey(from)) {
-                log.warn("Enquiring unknown microservice {} on message {} received", from, message.getType());
-                send(new MessageBuilder(Message.Type.ENQ, cloud, from).make());
-            }
-   }
+        if (!remoteServices.containsKey(from)) {
+            if (from.getType() == Iden.Type.AGT && message.getType() != PRS)
+                if (enquiries.get(from.getUUID()) == null) {
+                    enquiries.put(from.getUUID(), from);
+                    log.warn("Enquiring unknown microservice {} on message {} received", from, message.getType());
+                    send(new MessageBuilder(Message.Type.ENQ, cloud, from).make());
+                }
+        }
+    }
 
     private void processHealthcheck(Message message) {
         final HealthcheckPayload payload = ((HealthcheckPayload) message.getData());
@@ -257,9 +268,9 @@ public class Microcloud {
         final LocalAgent agent = microservice.getAgent();
         msnosApis = RestApi.ensureHostIsPresent(agent, msnosApis);
         log.debug("Registering msnos apis {} for agent {}", msnosApis, agent.getIden().getUUID());
-        
+
         for (RestApi api : msnosApis) {
-           cloud.registerLocalMsnosEndpoint(new HttpEndpoint(microservice, api));
+            cloud.registerLocalMsnosEndpoint(new HttpEndpoint(microservice, api));
         }
 
         cloud.send(new MessageBuilder(PRS, agent, cloud).with(new Presence(true, agent)).make());
@@ -282,7 +293,6 @@ public class Microcloud {
 
         cloud.send(message);
     }
-
 
     @Override
     public String toString() {

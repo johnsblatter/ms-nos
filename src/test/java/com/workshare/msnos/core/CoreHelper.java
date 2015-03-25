@@ -4,9 +4,10 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.Executor;
+import java.util.concurrent.TimeUnit;
 
 import com.workshare.msnos.core.Gateway.Listener;
-import java.util.concurrent.Executor;
 import com.workshare.msnos.core.MsnosException.Code;
 import com.workshare.msnos.core.protocols.ip.Endpoint;
 import com.workshare.msnos.core.protocols.ip.Endpoints;
@@ -16,8 +17,18 @@ import com.workshare.msnos.soup.time.SystemTime;
 
 public class CoreHelper {
 
-    private CoreHelper() {}
-    
+    private CoreHelper() {
+    }
+
+    public static void sleep(long duration, TimeUnit unit) {
+        try {
+            Thread.sleep(TimeUnit.MILLISECONDS.convert(duration, unit));
+        } catch (InterruptedException e) {
+            Thread.interrupted();
+            throw new RuntimeException("wtf?");
+        }
+    }
+
     public static UUID randomUUID() {
         return UUID.randomUUID();
     }
@@ -35,7 +46,7 @@ public class CoreHelper {
     }
 
     public static Network asPublicNetwork(String host) {
-        return asNetwork(host, (short)1);
+        return asNetwork(host, (short) 1);
     }
 
     public static Network asNetwork(String host, short prefix) {
@@ -46,7 +57,7 @@ public class CoreHelper {
         String[] tokens = host.split("\\.");
         byte[] addr = new byte[4];
         for (int i = 0; i < addr.length; i++) {
-            addr[i] = (byte)(Integer.valueOf(tokens[i])&0xff);            
+            addr[i] = (byte) (Integer.valueOf(tokens[i]) & 0xff);
         }
         return addr;
     }
@@ -75,33 +86,42 @@ public class CoreHelper {
         });
     }
 
-    public static Endpoints makeEndpoints(final Set<Endpoint> endpointsSet) {
+    public static Endpoints makeEndpoints(final Set<Endpoint> all) {
         Endpoints endpoints = new Endpoints() {
             @Override
             public Set<? extends Endpoint> all() {
-                return endpointsSet;
+                return all;
             }
-    
+
             @Override
             public Set<? extends Endpoint> publics() {
                 return asSet();
             }
-    
+
             @Override
             public Set<? extends Endpoint> of(Agent agent) {
                 return asSet();
             }
-    
+
             @Override
             public Endpoint install(Endpoint endpoint) throws MsnosException {
                 throw new MsnosException("I am a test :)", Code.UNRECOVERABLE_FAILURE);
             }
-    
+
             @Override
             public Endpoint remove(Endpoint endpoint) throws MsnosException {
                 throw new MsnosException("I am a test :)", Code.UNRECOVERABLE_FAILURE);
             }
         };
         return endpoints;
+    }
+
+    public static com.workshare.msnos.core.cloud.Multicaster synchronousCloudMulticaster() {
+        return new com.workshare.msnos.core.cloud.Multicaster(new Executor() {
+            @Override
+            public void execute(Runnable command) {
+                command.run();
+            }
+        });
     }
 }
