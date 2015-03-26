@@ -22,6 +22,7 @@ import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.conn.HttpHostConnectException;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.InputStreamEntity;
 import org.apache.http.util.EntityUtils;
@@ -98,7 +99,10 @@ public class WWWGateway implements Gateway {
         this.urlRoot = System.getProperty(SYSP_ADDRESS, "https://www.zapnos.org/");
         this.urlMsgs = composeUrl("api/1.0/messages");
 
-        ping(client);
+        try {ping(client);}
+        catch (HttpHostConnectException ex) {
+            log.warn("Unable to ping WWW endpoint - {}", ex.getMessage());
+        }
     }
 
     @Override
@@ -159,6 +163,9 @@ public class WWWGateway implements Gateway {
         if (syncs.contains(Sync.TX))
             try {
                 syncTx();
+            } catch (HttpHostConnectException ex) {
+                warnIfNecessary(ex);
+                return;
             } catch (Exception ex) {
                 log.warn("Unexpected exception during sync (TX)", ex);
             }
@@ -166,6 +173,8 @@ public class WWWGateway implements Gateway {
         if (syncs.contains(Sync.RX))
             try {
                 syncRx();
+            } catch (HttpHostConnectException ex) {
+                warnIfNecessary(ex);
             } catch (Exception ex) {
                 log.warn("Unexpected exception during sync (RX)", ex);
             }
@@ -245,5 +254,13 @@ public class WWWGateway implements Gateway {
 
     private static Long loadSyncPeriod() {
         return Long.getLong(SYSP_SYNC_PERIOD, 5000L);
+    }
+
+    private short warn = 0;
+    public void warnIfNecessary(HttpHostConnectException ex) {
+        if (warn-- == 0) {
+            warn = 10;
+            log.warn(ex.getMessage());
+        }
     }
 }

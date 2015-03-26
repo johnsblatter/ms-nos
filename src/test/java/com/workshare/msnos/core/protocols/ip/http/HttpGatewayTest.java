@@ -24,6 +24,7 @@ import com.workshare.msnos.core.Cloud;
 import com.workshare.msnos.core.CoreHelper;
 import com.workshare.msnos.core.Iden;
 import com.workshare.msnos.core.Message;
+import com.workshare.msnos.core.Ring;
 import com.workshare.msnos.core.Message.Type;
 import com.workshare.msnos.core.MessageBuilder;
 import com.workshare.msnos.core.MessageBuilder.Mode;
@@ -57,6 +58,7 @@ public class HttpGatewayTest {
 
         cloud = mock(Cloud.class);
         when(cloud.getIden()).thenReturn(newIden(CLD));
+        when(cloud.getRing()).thenReturn(Ring.random());
         
         sz = new WireJsonSerializer();
 
@@ -97,13 +99,14 @@ public class HttpGatewayTest {
         assertEquals("HTTP", receipt.getGate());
     }
 
+    // FIXME the test about sending the message to all agents outside my ring it's missing :(
     @Test
-    public void shouldReturnFailedDeliveryReceiptWhenMessageDirectedToCloud() throws Exception {
+    public void shouldReturnPendingDeliveryReceiptWhenMessageDirectedToCloud() throws Exception {
         
         Message message = newSampleMessage(newIden(AGT), newIden(CLD));
         Receipt receipt = gate.send(cloud, message);
 
-        assertEquals(Message.Status.FAILED, receipt.getStatus());
+        assertEquals(Message.Status.PENDING, receipt.getStatus());
     }
 
     @Test

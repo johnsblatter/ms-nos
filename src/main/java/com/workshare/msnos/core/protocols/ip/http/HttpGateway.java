@@ -18,10 +18,12 @@ import com.workshare.msnos.core.Agent;
 import com.workshare.msnos.core.Cloud;
 import com.workshare.msnos.core.Gateway;
 import com.workshare.msnos.core.Iden;
+import com.workshare.msnos.core.Iden.Type;
 import com.workshare.msnos.core.Message;
 import com.workshare.msnos.core.Message.Status;
 import com.workshare.msnos.core.MsnosException;
 import com.workshare.msnos.core.Receipt;
+import com.workshare.msnos.core.RemoteAgent;
 import com.workshare.msnos.core.SingleReceipt;
 import com.workshare.msnos.core.protocols.ip.Endpoint;
 import com.workshare.msnos.core.protocols.ip.Endpoints;
@@ -53,11 +55,22 @@ public class HttpGateway implements Gateway {
 
     @Override
     public Receipt send(Cloud cloud, Message message) throws IOException {
-        HttpEndpoint endpoint = endpoints.get(message.getTo());
-        if (endpoint == null)
-            return new SingleReceipt(this, Status.FAILED, message);
-
-        return sendTo(message, endpoint);
+        if (message.getTo().getType() == Type.CLD) {
+            for (HttpEndpoint endpoint : endpoints.values()) {
+                RemoteAgent remote = cloud.find(endpoint.getTarget());
+                if (remote != null && !cloud.getRing().equals(remote.getRing()))
+                    sendTo(message, endpoint);
+            }
+            
+            return new SingleReceipt(this, Status.PENDING, message);
+        }
+        else {
+            HttpEndpoint endpoint = endpoints.get(message.getTo());
+            if (endpoint == null)
+                return new SingleReceipt(this, Status.FAILED, message);
+    
+            return sendTo(message, endpoint);
+        }
     }
 
     private Receipt sendTo(Message message, HttpEndpoint endpoint) {

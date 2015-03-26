@@ -1,8 +1,12 @@
 package com.workshare.msnos.core;
 
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.workshare.msnos.core.protocols.ip.Endpoint;
 import com.workshare.msnos.soup.json.Json;
@@ -10,9 +14,10 @@ import com.workshare.msnos.soup.json.Json;
 public class RemoteAgent extends RemoteEntity implements Agent {
 
     public static final Set<Endpoint> NO_ENDPOINTS = Collections.emptySet();
+    private static final Logger log = LoggerFactory.getLogger(RemoteAgent.class);
     
-    private final Set<Endpoint> endpoints;
     private final Ring ring;
+    private volatile Set<Endpoint> endpoints;
 
     public RemoteAgent(UUID uuid, Cloud cloud, Set<Endpoint> endpoints) {
         this(uuid, cloud, endpoints, Ring.make(endpoints));
@@ -30,7 +35,7 @@ public class RemoteAgent extends RemoteEntity implements Agent {
         if (endpoints == null)
             return NO_ENDPOINTS;
         else
-            return Collections.unmodifiableSet(endpoints);
+            return Collections.unmodifiableSet(new HashSet<Endpoint>(endpoints));
     }
 
     @Override
@@ -62,7 +67,11 @@ public class RemoteAgent extends RemoteEntity implements Agent {
         return getIden().hashCode();
     }
 
-    public RemoteAgent with(Set<Endpoint> newEndpoints) {
-        return new RemoteAgent(getIden().getUUID(), getCloud(), newEndpoints, getRing());
+    public void update(Set<Endpoint> newEndpoints) {
+        if (newEndpoints.size() == 0) 
+            log.error("Zero endpoints received! Wtf?");
+        
+        this.endpoints = toUnmodifiable(newEndpoints);
+        touch();
     }
 }

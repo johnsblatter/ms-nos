@@ -102,18 +102,6 @@ public class WWWSynchronizerTest {
         assertEquals(0, messagesRouted().size());
     }
 
-
-    @Test
-    public void shouldRoutePresenceMessageWhenAgentSomehowActed() throws Exception {
-        Processor proc = synchro.init(cloud);
-        proc.accept(newQNEMessage(smith, "foo"));
-        
-        proc.commit();
-        
-        assertEquals(1, messagesRouted().size());
-        assertPresenceRouted(smith);
-    }
-
     @Test
     public void shouldRoutePresenceMessageWithoutOverridingExistingPresence() throws Exception {
         final Message presence = newPresenceMessage(smith, true);

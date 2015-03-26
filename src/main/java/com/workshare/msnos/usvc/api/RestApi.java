@@ -5,6 +5,9 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.gson.JsonObject;
 import com.workshare.msnos.core.Agent;
 import com.workshare.msnos.core.protocols.ip.Endpoint;
@@ -12,6 +15,8 @@ import com.workshare.msnos.core.protocols.ip.Network;
 import com.workshare.msnos.soup.json.Json;
 
 public class RestApi {
+
+    private static final Logger log = LoggerFactory.getLogger(RestApi.class);
 
     public enum Type {PUBLIC, INTERNAL, HEALTHCHECK, MSNOS_HTTP}
 
@@ -189,7 +194,11 @@ public class RestApi {
             obj.addProperty("tempfaults",this.getTempFaults());
             return obj.toString();
         } catch (Exception any) {
-            return super.toString();
+            try {
+                return getUrl();
+            } catch (Exception e) {
+                return super.toString();
+            }
         }
     }
 
@@ -197,9 +206,14 @@ public class RestApi {
         Set<RestApi> result = new HashSet<RestApi>();
         for (RestApi api : apis) {
             if (api.getHost() == null || api.getHost().isEmpty()) {
+                boolean found = false;
                 for (Endpoint endpoint : agent.getEndpoints()) {
                     Network network = endpoint.getNetwork();
                     result.add(api.onHost(network.getHostString()));
+                    found = true;
+                }
+                if (!found) {
+                    log.error("{} API received but agent with no endpoints!!! {}", api, agent);
                 }
             } else {
                 result.add(api);

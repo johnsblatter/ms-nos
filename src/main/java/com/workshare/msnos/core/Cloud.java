@@ -330,7 +330,7 @@ public class Cloud implements Identifiable {
             return;
         }
 
-        remoteAgents.add(agent.with(newEndpoints(endpoint, agent)));
+        agent.update(newEndpoints(endpoint, agent));
         log.debug("Agent {} updated, new endpoints are {}", agent, newEndpoints(endpoint, agent));
     }
 

@@ -75,8 +75,6 @@ public class WWWSynchronizer {
         
         public void commit() {
             for (Message message : messages.values()) {
-                caster.dispatch(message);
-
                 if (message.getType() == Type.PRS) {
                     if (((Presence)message.getData()).getEndpoints() == RemoteAgent.NO_ENDPOINTS) {
                         try {
@@ -84,8 +82,12 @@ public class WWWSynchronizer {
                         } catch (MsnosException e) {
                             log.warn("Unexpected exception sending discovery message", e);
                         }
+                        
+                        continue;
                     }
                 }
+
+                caster.dispatch(message);
             }
         }
 
