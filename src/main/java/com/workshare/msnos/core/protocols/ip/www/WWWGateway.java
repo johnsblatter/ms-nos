@@ -44,14 +44,18 @@ import com.workshare.msnos.soup.threading.ConcurrentBuildingMap.Factory;
 import com.workshare.msnos.soup.threading.Multicaster;
 
 public class WWWGateway implements Gateway {
-    
-    private enum Sync {TX, RX};
+
+    private enum Sync {
+        TX, RX
+    };
+
+    public static final int MAX_TOTAL_CONSECUTIVE_ERRORS = Integer.getInteger("com.ws.nsnos.www.sync.max.consecutive.errors", 3);
 
     public static final String SYSP_SYNC_PERIOD = "com.ws.nsnos.www.sync.period.millis";
     public static final String SYSP_ADDRESS = "com.ws.nsnos.www.address";
 
-    private static final UUID NULL = new UUID(0,0);
-    private static final UUID VOID = new UUID(0,1);
+    private static final UUID NULL = new UUID(0, 0);
+    private static final UUID VOID = new UUID(0, 1);
 
     private static Logger log = LoggerFactory.getLogger(WWWGateway.class);
 
@@ -67,14 +71,13 @@ public class WWWGateway implements Gateway {
     private final String urlMsgs;
 
     private final AtomicInteger syncing = new AtomicInteger(0);
- 
-    public WWWGateway(HttpClient client, ScheduledExecutorService scheduler, WireSerializer serializer,
-            Multicaster<Listener, Message> caster) throws IOException {
+    private int consecutiveRxErrors;
+
+    public WWWGateway(HttpClient client, ScheduledExecutorService scheduler, WireSerializer serializer, Multicaster<Listener, Message> caster) throws IOException {
         this(client, new WWWSynchronizer(caster), scheduler, serializer, caster);
     }
-    
-    WWWGateway(HttpClient client, WWWSynchronizer processor, ScheduledExecutorService scheduler, WireSerializer serializer,
-            Multicaster<Listener, Message> caster) throws IOException {
+
+    WWWGateway(HttpClient client, WWWSynchronizer processor, ScheduledExecutorService scheduler, WireSerializer serializer, Multicaster<Listener, Message> caster) throws IOException {
         this.synchro = processor;
         this.client = client;
         this.caster = caster;
@@ -99,8 +102,9 @@ public class WWWGateway implements Gateway {
         this.urlRoot = System.getProperty(SYSP_ADDRESS, "https://www.zapnos.org/");
         this.urlMsgs = composeUrl("api/1.0/messages");
 
-        try {ping(client);}
-        catch (HttpHostConnectException ex) {
+        try {
+            ping(client);
+        } catch (HttpHostConnectException ex) {
             log.warn("Unable to ping WWW endpoint - {}", ex.getMessage());
         }
     }
@@ -113,7 +117,7 @@ public class WWWGateway implements Gateway {
     public String root() {
         return this.urlRoot;
     }
-    
+
     private void ping(HttpClient client) throws IOException, ClientProtocolException, MalformedURLException {
         HttpResponse response = client.execute(new HttpGet(composeUrl("ping")));
         EntityUtils.consume(response.getEntity());
@@ -173,22 +177,40 @@ public class WWWGateway implements Gateway {
         if (syncs.contains(Sync.RX))
             try {
                 syncRx();
+                noRxError();
             } catch (HttpHostConnectException ex) {
+                onRxError();
                 warnIfNecessary(ex);
             } catch (Exception ex) {
+                onRxError();
                 log.warn("Unexpected exception during sync (RX)", ex);
             }
+    }
+
+    private void noRxError() {
+        consecutiveRxErrors = 0;
+    }
+
+    private void onRxError() {
+        if (++consecutiveRxErrors >= MAX_TOTAL_CONSECUTIVE_ERRORS) {
+            log.warn("Too many consecutive errors: resetting all gates!");
+            consecutiveRxErrors = 0;
+            Set<Cloud> clouds = cloudListeners.keySet();
+            for (Cloud cloud : clouds) {
+                cloudListeners.put(cloud, NULL);
+            }
+        }
     }
 
     private void syncRx() throws IOException {
         Set<Cloud> clouds = new HashSet<Cloud>(cloudListeners.keySet());
         for (Cloud cloud : clouds) {
             final UUID uuid = cloudListeners.get(cloud);
-            String url = urlMsgs+"?cloud=" + cloud.getIden().getUUID();
+            String url = urlMsgs + "?cloud=" + cloud.getIden().getUUID();
             if (uuid != NULL && uuid != VOID)
                 url += "&message=" + uuid;
 
-            Processor processor = (uuid == NULL) ? synchro.init(cloud) : null;            
+            Processor processor = (uuid == NULL) ? synchro.init(cloud) : null;
 
             int total = 0;
             HttpGet request = new HttpGet(url);
@@ -198,7 +220,7 @@ public class WWWGateway implements Gateway {
                 try {
                     String line;
                     Message last = null;
-                    while((line=in.readLine())!=null) {
+                    while ((line = in.readLine()) != null) {
                         Message msg = serializer.fromText(line, Message.class);
                         if (msg != null) {
                             ++total;
@@ -209,20 +231,20 @@ public class WWWGateway implements Gateway {
                             last = msg;
                         }
                     }
-                    
+
                     log.debug("last message read: {}", last);
                     if (last != null)
                         cloudListeners.put(cloud, last.getUuid());
                     else if (uuid == NULL)
                         cloudListeners.put(cloud, VOID);
-                        
+
                 } finally {
                     in.close();
                 }
             } finally {
                 EntityUtils.consume(res.getEntity());
             }
-            
+
             log.debug("Processed a total of {} messages", total);
             if (processor != null)
                 processor.commit();
@@ -241,7 +263,7 @@ public class WWWGateway implements Gateway {
             if (messages.size() == 0)
                 continue;
 
-            HttpPost request = new HttpPost(urlMsgs+"?cloud=" + cloud.getIden().getUUID());
+            HttpPost request = new HttpPost(urlMsgs + "?cloud=" + cloud.getIden().getUUID());
             request.setEntity(toInputStreamEntity(messages));
             HttpResponse res = client.execute(request);
             EntityUtils.consume(res.getEntity());
@@ -257,6 +279,7 @@ public class WWWGateway implements Gateway {
     }
 
     private short warn = 0;
+
     public void warnIfNecessary(HttpHostConnectException ex) {
         if (warn-- == 0) {
             warn = 10;

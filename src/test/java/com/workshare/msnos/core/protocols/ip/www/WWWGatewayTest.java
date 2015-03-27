@@ -26,6 +26,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.ParseException;
+import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
@@ -229,8 +230,46 @@ public class WWWGatewayTest {
 
     @Test(expected = IOException.class)
     public void shouldBlowUpIfCannotContactTheServer() throws Exception {
-        when(client().execute(any(HttpUriRequest.class))).thenThrow(new IOException("boom!"));
+        mockExceptionResponse();
         gate = new WWWGateway(client(), scheduler, serializer, synchronousGatewayMulticaster());
+    }
+
+    @Test
+    public void shouldInvokeGetMessagesOnSyncRestartingAfterConsecutiveErrors() throws Exception {
+        final Message message = new MessageBuilder(Message.Type.PIN, cloud, cloud).make();
+        mockGetResponse(message);
+        scheduledTask().run();
+
+        mockExceptionResponse();
+        for (int i=0; i<WWWGateway.MAX_TOTAL_CONSECUTIVE_ERRORS; i++)
+            scheduledTask().run();
+        scheduledTask().run();
+
+        HttpGet request = http.getLastGetToWWW();
+        assertEquals(messagesRequestUrl(cloud), request.getURI().toString());
+    }
+
+    @Test
+    public void shouldInvokeGetMessagesOnSyncStartingFromTheLastOneIfNotEnoughConsecutiveErrors() throws Exception {
+        final Message message = new MessageBuilder(Message.Type.PIN, cloud, cloud).make();
+
+        for (int i=0; i<WWWGateway.MAX_TOTAL_CONSECUTIVE_ERRORS; i++) {
+            http.reset();
+            mockExceptionResponse();
+            scheduledTask().run();
+
+            http.reset();
+            mockGetResponse(message);
+            scheduledTask().run();
+        }
+
+        HttpGet request = http.getLastGetToWWW();
+        assertEquals(messagesRequestUrl(cloud, message), request.getURI().toString());
+    }
+
+
+    private void mockExceptionResponse() throws IOException, ClientProtocolException {
+        when(client().execute(any(HttpUriRequest.class))).thenThrow(new IOException("boom!"));
     }
 
     private void mockGetResponse(Message... messages) throws UnsupportedEncodingException {

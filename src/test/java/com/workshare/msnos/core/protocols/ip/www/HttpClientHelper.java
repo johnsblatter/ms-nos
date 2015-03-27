@@ -8,6 +8,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -20,6 +21,7 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.entity.StringEntity;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Mockito;
 
 public class HttpClientHelper {
 
@@ -30,6 +32,11 @@ public class HttpClientHelper {
         this.client = mock(HttpClient.class);
         this.response = mock(HttpResponse.class);
         
+        reset();
+    }
+
+    public void reset() throws UnsupportedEncodingException, IOException, ClientProtocolException {
+        Mockito.reset(client, response);
         when(response().getEntity()).thenReturn(new StringEntity(""));
         when(client().execute(any(HttpUriRequest.class))).thenReturn(response());
     }
