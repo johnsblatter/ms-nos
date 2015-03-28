@@ -3,12 +3,10 @@ ms-nos
 
 A simple network operating system for Microservices (java implementation). This is a work in progress, the first public stable release will be available soon!
 
-[![Build Status](https://travis-ci.org/workshare/ms-nos.svg?branch=master)](https://travis-ci.org/workshare/ms-nos)
+[![Built with Maven](http://maven.apache.org/images/logos/maven-feather.png)](http://maven.apache.org/)  [![Build Status](https://travis-ci.org/workshare/ms-nos.svg?branch=master)](https://travis-ci.org/workshare/ms-nos)
 <!--
 [![Coverage Status](https://coveralls.io/repos/bbossola/ms-nos/badge.png)](https://coveralls.io/r/workshare/ms-nos)
--->
-
-[![Built with Maven](http://maven.apache.org/images/logos/maven-feather.png)](http://maven.apache.org/)
+--> 
 
 ## Summary
 MSNOS is a library built in order to mantain and survive a microservice based architecture :) Every microservice will surface spontaneously in a cloud, without the need of any application configuration. An application level healtcheck is available to internal monitor the health on the services in the cloud.
@@ -19,8 +17,15 @@ MSNOS is a library built in order to mantain and survive a microservice based ar
 - each microservice provide different APIs
 - several instances of the same microservices are available
 
+#### What do we want to achieve?
+- new microservices capable to serve certain apis are automatically recognized and used by every other microservice
+- if any microservice become unhealthy it should stop receiving calls
+- no single point of failures 
+- should have strategies to distribute the load
+- adding and/or removal of new microservices should be fully transparent
+
 #### How do I publish a new microservice?
-The microservice will publish his own APIs to the cloud, and every other microservice will automatically discover them
+The microservice will "join" a cloud and then publish his own APIs to the cloud: every other microservice will automatically discover them. Sample code:
 ```
   // create a cloud and join it
   cloud = new Microcloud(new Cloud(params.uuid(), params.signature()));
@@ -38,7 +43,7 @@ The microservice will publish his own APIs to the cloud, and every other microse
 ```
 
 #### How do a microservice find the best API to use?
-Each node in an msnos powered system mantains a full list of all available APIs and it's capable to select the best one for your call using strategies based on location, load and availability
+Each node in an msnos powered system mantains a full list of all available APIs and it's capable to select the best one for your call using strategies based on location, load and availability. Sample code:
 ```
   api = cloud.find(self, '/hello')
 ```
@@ -47,7 +52,7 @@ Each node in an msnos powered system mantains a full list of all available APIs 
 A [fast http non-blocking i/o proxy](https://github.com/workshare/ms-nos-proxy) is available out of the box, and it will automatically expose any public API of the cloud to the external world
 
 #### How does all this work?
-An internal messaging system is used internally, basedon UDP and HTTP. An [http relay](https://github.com/workshare/ms-nos-www) needs to be installed in case your cloud is distribuited across different networks. Advanced microservices can expose an endpoint to accept MSNOS messages directly, as you can see in the [java example](https://github.com/workshare/ms-nos-usvc-client) provided:
+An internal messaging system is used internally, basedon UDP and HTTP. An [http relay](https://github.com/workshare/ms-nos-www) needs to be installed in case your cloud is distribuited across different networks. Advanced microservices can expose an endpoint to accept MSNOS messages directly, as you can see in the [java example](https://github.com/workshare/ms-nos-usvc-client) provided, and briefly in this sample code: 
 
 ```
   public void handle(HttpExchange exchange) throws IOException {
