@@ -17,12 +17,12 @@ MSNOS is a library built in order to mantain and survive a microservice based ar
 - each microservice provide different APIs
 - several instances of the same microservices are available
 
-#### What do we want to achieve?
-- new microservices capable to serve certain apis are automatically recognized and used by every other microservice
-- if any microservice become unhealthy it should stop receiving calls
+#### What do we achieve?
+- new microservices capable to serve certain APIs are automatically recognized and used by every other microservice
+- if any microservice become unhealthy it stops receiving calls
 - no single point of failures 
-- should have strategies to distribute the load
-- adding and/or removal of new microservices should be fully transparent
+- the load is distributed torugh advanced strategies (load, location, availability...)
+- add and/or remove of a new microservices is fully transparent
 
 #### How do I publish a new microservice?
 The microservice will "join" a cloud and then publish his own APIs to the cloud: every other microservice will automatically discover them. Sample code:
