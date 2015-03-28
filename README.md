@@ -20,7 +20,7 @@ MSNOS is a library built in order to mantain and survive a microservice based ar
 - several instances of the same microservices are available
 
 #### How do I publish a new microservice?
-The microservice will explicitly publish his own APIs to the cloud, and every other microservice will automatically discover it
+The microservice will publish his own APIs to the cloud, and every other microservice will automatically discover them
 ```
   // create a cloud and join it
   cloud = new Microcloud(new Cloud(params.uuid(), params.signature()));
@@ -46,8 +46,30 @@ Each node in an msnos powered system mantains a full list of all available APIs 
 #### How do I expose some APIs to the external world?
 A [fast http non-blocking i/o proxy](https://github.com/workshare/ms-nos-proxy) is available out of the box, and it will automatically expose any public API of the cloud to the external world
 
+#### How does all this work?
+An internal messaging system is used internally, basedon UDP and HTTP. An [http relay](https://github.com/workshare/ms-nos-www) needs to be installed in case your cloud is distribuited across different networks. Advanced microservices can expose an endpoint to accept MSNOS messages directly, as you can see in the [java example](https://github.com/workshare/ms-nos-usvc-client) provided:
+
+```
+  public void handle(HttpExchange exchange) throws IOException {
+    Reader reader = new BufferedReader(...);
+    try {
+      Message message = serializer.fromReader(reader, Message.class);
+      cloud.process(message, Endpoint.Type.HTTP);
+    } finally {
+      reader.close();
+    }
+    exchange.sendResponseHeaders(200, 0);
+    exchange.getResponseBody().close();
+  }
+```
+As set of pre-build endpoints, in the form of jar dependencies, will be provided for the most common Java implementation (JavaSE, JavaEE, Jetty, Netty) and languages (.NET, Ruby)
+
+#### Are there working examples?
+The [proxy](https://github.com/workshare/ms-nos-proxy) itself is a working example, but there's a also a [much simple client](https://github.com/workshare/ms-nos-usvc-client) that you can checkout and look at. Examples in other languages will be provided as soon as we will upgrade a microservice sin the same technology.
+
+#### Are other languages supported?
+The protocol is completely language agnostic (heck, it's json!) and we build microservices in a lot of different languages. A Ruby implementation is in the work, a .NET binary will be realeased (as soon as it clears QA) and a Javascript version will be available soon.
 
 ## License
-
 Released under the MIT License.  See the [LICENSE](LICENSE) file for further details.
 
