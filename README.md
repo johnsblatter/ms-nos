@@ -1,7 +1,7 @@
 ms-nos
 ======
 
-A simple network operating system for Microservices (java implementation). This is a work in progress, the first public stable release will be available soon!
+A simple network operating system for Microservices (java implementation). This is a work in progress, the first public stable release will be available on Apr 15, 2015!
 
 [![Built with Maven](http://maven.apache.org/images/logos/maven-feather.png)](http://maven.apache.org/)  [![Build Status](https://travis-ci.org/workshare/ms-nos.svg?branch=master)](https://travis-ci.org/workshare/ms-nos)
 <!--
