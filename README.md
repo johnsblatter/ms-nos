@@ -11,7 +11,7 @@ A simple network operating system for Microservices (java implementation). This 
 [![Built with Maven](http://maven.apache.org/images/logos/maven-feather.png)](http://maven.apache.org/)
 
 ## Summary
-MSNOS is a library built in order to mantain and survive a microservice based architecture :) Every microservice will surface spontaneously in a cloud, without the need of any application configuration 
+MSNOS is a library built in order to mantain and survive a microservice based architecture :) Every microservice will surface spontaneously in a cloud, without the need of any application configuration. An application level healtcheck is available to internal monitor the health on the services in the cloud.
 
 #### What is the context?
 - you use a microservice architecture
@@ -70,6 +70,9 @@ The [proxy](https://github.com/workshare/ms-nos-proxy) itself is a working examp
 #### Are other languages supported?
 The protocol is completely language agnostic (heck, it's json!) and we build microservices in a lot of different languages. A Ruby implementation is in the work, a .NET binary will be realeased (as soon as it clears QA) and a Javascript version will be available soon.
 
+## Commmon Q&A
+Those are most of the common question we are asked when presenting our solution to the public: it's quite possibile you will find the answer to your question here, but if you don't please feel free to [open an issue](https://github.com/workshare/ms-nos/issues)
+
 #### Why don't you simply use a dynamic DNS to manage discovery?
 Well, first of all a DNS entry does not provide us enough granularity, as we want to tall about API endpoints, not machines names. Even when this is acceptable, there are other very good reasons to avoid doing that, such as:
 We consider it a naive approach
@@ -78,6 +81,14 @@ We consider it a naive approach
 - the routing will be effectively random, as there's no way for a DNS to dynamically assess the status of an API endpoint 
 - aggressive DNS caching may take place by client libraries or even applications at startup (i.e. Nginx / HAProxy) thus making ineffective anything done at the DNS level 
 
+#### Why don't you use ${other-framework}?
+Well, there are different answer for each of them, and such frameworks are becoming more popular by the minute! Anyway, some common issues we found so far:
+- they do not have native API level granularity (i.e. Consul,  Zookeper)
+- they do not have a push model (i.e. Zookeper, dynamic DNS)
+- they have a single point of failre and are not fully distributed (Smartstack)
+- they are missing basic necessary routing mechanism (i.e. geolocation, session stickiness)
+- they are not language agnostic or very difficult to code against (i.e. Zookeper)
+- they are proprietary
 
 ## License
 Released under the MIT License.  See the [LICENSE](LICENSE) file for further details.
