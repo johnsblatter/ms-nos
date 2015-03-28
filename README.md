@@ -70,6 +70,15 @@ The [proxy](https://github.com/workshare/ms-nos-proxy) itself is a working examp
 #### Are other languages supported?
 The protocol is completely language agnostic (heck, it's json!) and we build microservices in a lot of different languages. A Ruby implementation is in the work, a .NET binary will be realeased (as soon as it clears QA) and a Javascript version will be available soon.
 
+#### Why don't you simply use a dynamic DNS to manage discovery?
+Well, first of all a DNS entry does not provide us enough granularity, as we want to tall about API endpoints, not machines names. Even when this is acceptable, there are other very good reasons to avoid doing that, such as:
+We consider it a naive approach
+- the clients will have poll forchanges as there’s no push protocol for DNS
+- any DNS suffer from propagation delays, which is also non deterministic
+- the routing will be effectively random, as there's no way for a DNS to dynamically assess the status of an API endpoint 
+- aggressive DNS caching may take place by client libraries or even applications at startup (i.e. Nginx / HAProxy) thus making ineffective anything done at the DNS level 
+
+
 ## License
 Released under the MIT License.  See the [LICENSE](LICENSE) file for further details.
 
