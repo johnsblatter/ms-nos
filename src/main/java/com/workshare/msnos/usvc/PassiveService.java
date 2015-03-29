@@ -11,7 +11,7 @@ import com.workshare.msnos.core.PassiveAgent;
 import com.workshare.msnos.core.geo.Location;
 import com.workshare.msnos.usvc.api.RestApi;
 
-public class PassiveService implements IMicroService {
+public class PassiveService implements IMicroservice {
     private final Microcloud cloud;
     private final String name;
     private final String host;

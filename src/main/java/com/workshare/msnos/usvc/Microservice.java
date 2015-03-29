@@ -30,7 +30,7 @@ import com.workshare.msnos.soup.threading.ExecutorServices;
 import com.workshare.msnos.usvc.api.RestApi;
 import com.workshare.msnos.usvc.api.routing.strategies.PriorityRoutingStrategy;
 
-public class Microservice implements IMicroService {
+public class Microservice implements IMicroservice {
 
     private static final AddressResolver ADDRESS_RESOLVER = new AddressResolver();
 

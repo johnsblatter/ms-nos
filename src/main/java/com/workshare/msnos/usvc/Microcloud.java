@@ -1,3 +1,4 @@
+
 package com.workshare.msnos.usvc;
 
 import static com.workshare.msnos.core.Message.Type.PRS;
@@ -112,7 +113,7 @@ public class Microcloud {
         return getApis().canServe(path);
     }
 
-    public RestApi searchApi(Microservice microservice, String path) {
+    public RestApi searchApi(IMicroservice microservice, String path) {
         return getApis().searchApi(microservice, path);
     }
 

@@ -5,7 +5,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import com.workshare.msnos.usvc.Microservice;
+import com.workshare.msnos.usvc.IMicroservice;
 import com.workshare.msnos.usvc.RemoteMicroservice;
 import com.workshare.msnos.usvc.api.routing.ApiEndpoint;
 import com.workshare.msnos.usvc.api.routing.RoutingStrategy;
@@ -13,7 +13,7 @@ import com.workshare.msnos.usvc.api.routing.RoutingStrategy;
 public class SkipFaultiesRoutingStrategy implements RoutingStrategy {
 
     @Override
-    public List<ApiEndpoint> select(Microservice from, List<ApiEndpoint> apis) {
+    public List<ApiEndpoint> select(IMicroservice from, List<ApiEndpoint> apis) {
         final Set<RemoteMicroservice> faulties = new HashSet<RemoteMicroservice>();
         for (ApiEndpoint api : apis) {
             if (api.isFaulty())

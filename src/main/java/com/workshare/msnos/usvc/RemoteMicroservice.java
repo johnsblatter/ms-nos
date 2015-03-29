@@ -12,7 +12,7 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
-public class RemoteMicroservice implements IMicroService {
+public class RemoteMicroservice implements IMicroservice {
 
     private final RemoteAgent agent;
     private final String name;

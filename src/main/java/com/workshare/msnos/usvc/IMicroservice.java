@@ -6,7 +6,7 @@ import com.workshare.msnos.core.Agent;
 import com.workshare.msnos.core.geo.Location;
 import com.workshare.msnos.usvc.api.RestApi;
 
-public interface IMicroService {
+public interface IMicroservice {
 
     public abstract String getName();
 

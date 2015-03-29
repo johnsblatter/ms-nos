@@ -7,7 +7,7 @@ import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.workshare.msnos.usvc.Microservice;
+import com.workshare.msnos.usvc.IMicroservice;
 import com.workshare.msnos.usvc.api.routing.ApiEndpoint;
 import com.workshare.msnos.usvc.api.routing.RoutingStrategy;
 
@@ -43,7 +43,7 @@ public class CachingRoutingStrategy implements RoutingStrategy {
     }
 
     @Override
-    public List<ApiEndpoint> select(Microservice from, List<ApiEndpoint> apis) {
+    public List<ApiEndpoint> select(IMicroservice from, List<ApiEndpoint> apis) {
         if (timeout == 0L) {
             return delegate.select(from, apis);
         }

@@ -2,7 +2,7 @@ package com.workshare.msnos.usvc.api.routing.strategies;
 
 import java.util.List;
 
-import com.workshare.msnos.usvc.Microservice;
+import com.workshare.msnos.usvc.IMicroservice;
 import com.workshare.msnos.usvc.api.routing.ApiEndpoint;
 import com.workshare.msnos.usvc.api.routing.RoutingStrategy;
 
@@ -15,7 +15,7 @@ public class CompositeStrategy implements RoutingStrategy {
     }
     
     @Override
-    public List<ApiEndpoint> select(Microservice from, List<ApiEndpoint> apis) {
+    public List<ApiEndpoint> select(IMicroservice from, List<ApiEndpoint> apis) {
         List<ApiEndpoint> result = apis;
         for (RoutingStrategy strategy : strategies) {
             result = strategy.select(from, result);

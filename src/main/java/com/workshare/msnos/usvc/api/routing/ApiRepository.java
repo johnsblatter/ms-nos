@@ -1,7 +1,7 @@
 package com.workshare.msnos.usvc.api.routing;
 
 import com.workshare.msnos.soup.threading.ConcurrentBuildingMap;
-import com.workshare.msnos.usvc.Microservice;
+import com.workshare.msnos.usvc.IMicroservice;
 import com.workshare.msnos.usvc.RemoteMicroservice;
 import com.workshare.msnos.usvc.api.RestApi;
 
@@ -39,7 +39,7 @@ public class ApiRepository {
         return null;
     }
 
-    public RestApi searchApi(Microservice from, String path) {
+    public RestApi searchApi(IMicroservice from, String path) {
         ApiList apiList = getRemoteApis().get(path);
         return apiList == null ? null : apiList.get(from);
     }

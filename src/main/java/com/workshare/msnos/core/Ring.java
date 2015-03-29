@@ -10,7 +10,7 @@ import com.workshare.msnos.core.geo.Location;
 import com.workshare.msnos.core.protocols.ip.Endpoint;
 import com.workshare.msnos.core.protocols.ip.Endpoint.Type;
 import com.workshare.msnos.soup.json.Json;
-import com.workshare.msnos.usvc.IMicroService;
+import com.workshare.msnos.usvc.IMicroservice;
 
 public class Ring {
 
@@ -31,7 +31,7 @@ public class Ring {
         return location;
     }
     
-    public void onMicroserviceJoin(IMicroService uservice) {
+    public void onMicroserviceJoin(IMicroservice uservice) {
         Location loc = uservice.getLocation();
         if (loc.getPrecision() > location.getPrecision()) {
             location = loc;

@@ -17,7 +17,7 @@ import com.workshare.msnos.core.protocols.ip.BaseEndpoint;
 import com.workshare.msnos.core.protocols.ip.Endpoint;
 import com.workshare.msnos.core.protocols.ip.Endpoint.Type;
 import com.workshare.msnos.core.protocols.ip.HttpEndpoint;
-import com.workshare.msnos.usvc.IMicroService;
+import com.workshare.msnos.usvc.IMicroservice;
 
 public class RingTest {
 
@@ -50,7 +50,7 @@ public class RingTest {
     public void shouldLocationBeUpdatedWhenMicroserviceJoin() {
         Location location = mock(Location.class);
         when(location.getPrecision()).thenReturn(100);
-        IMicroService uservice = mock(IMicroService.class);
+        IMicroservice uservice = mock(IMicroservice.class);
         when(uservice.getLocation()).thenReturn(location);
         
         Ring ring = Ring.random();

@@ -5,14 +5,14 @@ import java.util.List;
 
 import com.workshare.msnos.core.geo.Location;
 import com.workshare.msnos.core.geo.Location.Match;
-import com.workshare.msnos.usvc.Microservice;
+import com.workshare.msnos.usvc.IMicroservice;
 import com.workshare.msnos.usvc.api.routing.ApiEndpoint;
 import com.workshare.msnos.usvc.api.routing.RoutingStrategy;
 
 public class LocationBasedStrategy implements RoutingStrategy {
 
     @Override
-    public List<ApiEndpoint> select(Microservice from, List<ApiEndpoint> apis) {
+    public List<ApiEndpoint> select(IMicroservice from, List<ApiEndpoint> apis) {
         final Location target = from.getLocation();
         if (target == null || target == Location.UNKNOWN)
             return apis;

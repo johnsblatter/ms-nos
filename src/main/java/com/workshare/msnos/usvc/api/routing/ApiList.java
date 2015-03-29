@@ -12,7 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.workshare.msnos.soup.json.Json;
-import com.workshare.msnos.usvc.Microservice;
+import com.workshare.msnos.usvc.IMicroservice;
 import com.workshare.msnos.usvc.RemoteMicroservice;
 import com.workshare.msnos.usvc.api.RestApi;
 import com.workshare.msnos.usvc.api.routing.strategies.CachingRoutingStrategy;
@@ -87,7 +87,7 @@ public class ApiList {
         return Collections.unmodifiableList(endpointsList);
     }
 
-    public RestApi get(Microservice from) {
+    public RestApi get(IMicroservice from) {
         if (endpointsList.size() == 0)
             return null;
 
@@ -102,7 +102,7 @@ public class ApiList {
         return result;
     }
 
-    private RestApi getUsingStrategies(Microservice from) {
+    private RestApi getUsingStrategies(IMicroservice from) {
         ApiEndpoint res;
         try {
             res = routing.select(from, endpointsList).get(0);

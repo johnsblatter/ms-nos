@@ -8,7 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.workshare.msnos.core.Iden;
-import com.workshare.msnos.usvc.IMicroService;
+import com.workshare.msnos.usvc.IMicroservice;
 import com.workshare.msnos.usvc.api.RestApi;
 
 public class HttpEndpoint extends BaseEndpoint {
@@ -17,7 +17,7 @@ public class HttpEndpoint extends BaseEndpoint {
     private final String url;
     private final transient Iden target;
 
-    public HttpEndpoint(IMicroService remote, RestApi api) {
+    public HttpEndpoint(IMicroservice remote, RestApi api) {
         this(extractNetwork(remote, api), api.getUrl(), remote.getAgent().getIden());
     }
 
@@ -73,7 +73,7 @@ public class HttpEndpoint extends BaseEndpoint {
         }
     }
     
-    private static Network extractNetwork(IMicroService remote, RestApi api) {
+    private static Network extractNetwork(IMicroservice remote, RestApi api) {
         String host = api.getHost();
         Set<Endpoint> ends = remote.getAgent().getEndpoints();
         for (Endpoint ep : ends) {
