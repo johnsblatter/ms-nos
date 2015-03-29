@@ -22,7 +22,6 @@ public class RestApi {
 
     private static final AtomicLong NEXT_ID = new AtomicLong(0);
 
-    private final String name;
     private final String path;
     private final String host;
     private final int port;
@@ -35,26 +34,24 @@ public class RestApi {
 
     private transient boolean faulty;
 
-
-    public RestApi(String name, String path, int port) {
-        this(name, path, port, null);
+    public RestApi(String path, int port) {
+        this(path, port, null);
     }
 
-    public RestApi(String name, String path, int port, String host) {
-        this(name, path, port, host, Type.PUBLIC, false);
+    public RestApi(String path, int port, String host) {
+        this(path, port, host, Type.PUBLIC, false);
     }
 
-    public RestApi(String name, String path, int port, String host, Type type, boolean sessionAffinity) {
-        this(name, path, port, host, type, sessionAffinity, 0);
+    public RestApi(String path, int port, String host, Type type, boolean sessionAffinity) {
+        this(path, port, host, type, sessionAffinity, 0);
     }
 
-    public RestApi(String name, String path, int port, String host, Type type, boolean sessionAffinity, int priority) {
+    public RestApi(String path, int port, String host, Type type, boolean sessionAffinity, int priority) {
         if (path == null) {
             throw new IllegalArgumentException("path cannot be null");
         }
-        this.faulty = false;
-        this.name = name;
         this.path = path;
+        this.faulty = false;       
         this.port = port;
         this.host = host;
         this.sticky = sessionAffinity;
@@ -65,27 +62,31 @@ public class RestApi {
     }
 
     public RestApi asHealthCheck() {
-        return new RestApi(name, path, port, host, Type.HEALTHCHECK, sticky, priority);
+        return new RestApi(path, port, host, Type.HEALTHCHECK, sticky, priority);
     }
 
     public RestApi asInternal() {
-        return new RestApi(name, path, port, host, Type.INTERNAL, sticky, priority);
+        return new RestApi(path, port, host, Type.INTERNAL, sticky, priority);
+    }
+
+    public RestApi asMsnosEndpoint() {
+        return new RestApi(path, port, host, Type.MSNOS_HTTP, sticky, priority);
     }
 
     public RestApi withPriority(int priority) {
-        return new RestApi(name, path, port, host, type, sticky, priority);
+        return new RestApi(path, port, host, type, sticky, priority);
     }
 
     public RestApi onHost(String host) {
-        return new RestApi(name, path, port, host, type, sticky, priority);
+        return new RestApi(path, port, host, type, sticky, priority);
     }
 
     public RestApi onPort(int port) {
-        return new RestApi(name, path, port, host, type, sticky, priority);
+        return new RestApi(path, port, host, type, sticky, priority);
     }
 
     public RestApi withAffinity() {
-        return new RestApi(name, path, port, host, type, true, priority);
+        return new RestApi(path, port, host, type, true, priority);
     }
 
     public boolean hasAffinity() {
@@ -117,10 +118,6 @@ public class RestApi {
 
     public int getPriority() {
         return priority;
-    }
-
-    public String getName() {
-        return name;
     }
 
     public String getPath() {
@@ -158,9 +155,8 @@ public class RestApi {
 
     @Override
     public int hashCode() {
-        int result = name.hashCode();
+        int result = path.hashCode();
         int prime = 31;
-        result = prime * result + path.hashCode();
         result = prime * result + port;
         result = prime * result + (sticky ? 1231 : 1237);
         result = prime * result + type.hashCode();
@@ -178,7 +174,6 @@ public class RestApi {
 
         if (port != restApi.port) return false;
         if (sticky != restApi.sticky) return false;
-        if (!name.equals(restApi.name)) return false;
         if (!path.equals(restApi.path)) return false;
         if (type != restApi.type) return false;
         if (!host.equals(restApi.host)) return false;

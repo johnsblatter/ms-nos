@@ -22,7 +22,7 @@ public class HttpEndpointTest {
     @Test
     public void shouldAddNetworkFromRemoteService() {
         RemoteMicroservice remote = createRemoteMicroservice("25.25.25.25");
-        RestApi api = new RestApi("name", "path/to/api", 8888, "25.25.25.25");
+        RestApi api = new RestApi("path/to/api", 8888, "25.25.25.25");
     
         HttpEndpoint endpoint = new HttpEndpoint(remote, api);
         
@@ -35,7 +35,7 @@ public class HttpEndpointTest {
     @Test(expected = IllegalArgumentException.class)
     public void shouldFailIfNetworkNotFound() {
         RemoteMicroservice remote = createRemoteMicroservice("25.25.25.25");
-        RestApi api = new RestApi("name", "path/to/api", 8888, "99.99.99.99");
+        RestApi api = new RestApi("path/to/api", 8888, "99.99.99.99");
     
         new HttpEndpoint(remote, api);
     }
@@ -43,7 +43,7 @@ public class HttpEndpointTest {
     @Test
     public void shouldSupportEqualdAndHashcode() {
         RemoteMicroservice remote = createRemoteMicroservice("25.25.25.25");
-        RestApi api = new RestApi("name", "path/to/api", 8888, "25.25.25.25");
+        RestApi api = new RestApi("path/to/api", 8888, "25.25.25.25");
     
         HttpEndpoint ep1 = new HttpEndpoint(remote, api);
         HttpEndpoint ep2 = new HttpEndpoint(remote, api);

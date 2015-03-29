@@ -43,7 +43,6 @@ import com.workshare.msnos.core.Cloud.Listener;
 import com.workshare.msnos.core.Iden;
 import com.workshare.msnos.core.LocalAgent;
 import com.workshare.msnos.core.Message;
-import com.workshare.msnos.core.MessageBuilder;
 import com.workshare.msnos.core.MsnosException;
 import com.workshare.msnos.core.RemoteAgent;
 import com.workshare.msnos.core.RemoteEntity;
@@ -112,7 +111,7 @@ public class MicrocloudTest {
     public void shouldCreateBoundRestApisWhenRestApiNotBound() throws Exception {
         RemoteEntity remoteAgent = newRemoteAgentWithFakeHosts("10.10.10.10");
 
-        RestApi unboundApi = new RestApi("test", "/test", 9999);
+        RestApi unboundApi = new RestApi("/test", 9999);
         simulateMessageFromCloud(newQNEMessage(remoteAgent, "content", unboundApi));
  
         RemoteMicroservice remote = microcloud.getMicroServices().get(0);
@@ -197,7 +196,7 @@ public class MicrocloudTest {
 
     @Test
     public void shouldNOTSelectApisExposedBySelf() throws Exception {
-        local.publish(new RestApi("test", "alfa", 1234));
+        local.publish(new RestApi("alfa", 1234));
         
         RemoteMicroservice remote = setupRemoteMicroservice("10.10.10.10", "test", "alfa");
         RestApi expected = getFirstRestApi(remote);
@@ -398,7 +397,7 @@ public class MicrocloudTest {
 
     private RemoteMicroservice setupRemoteMicroservice(String host, String name, String apiPath) {
         short port = 9999;
-        RestApi restApi = new RestApi(name, apiPath, port).onHost(host);
+        RestApi restApi = new RestApi(apiPath, port).onHost(host);
         return simulateRemoteMicroserviceJoin(UUID.randomUUID(), host, name, restApi);
     }
 
@@ -428,11 +427,11 @@ public class MicrocloudTest {
     }
 
     private RestApi createRestApi(String name, String path) {
-        return new RestApi(name, path, 9999).onHost("24.24.24.24");
+        return new RestApi(path, 9999).onHost("24.24.24.24");
     }
 
     private RestApi createMsnosApi(String host) {
-        return new RestApi("foo", "/to/path", 9999, host, RestApi.Type.MSNOS_HTTP, false);
+        return new RestApi("/to/path", 9999, host, RestApi.Type.MSNOS_HTTP, false);
     }
 
     private RemoteEntity newRemoteAgentWithFakeHosts(String address) throws Exception {

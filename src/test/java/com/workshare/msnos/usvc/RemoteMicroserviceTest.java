@@ -56,7 +56,7 @@ public class RemoteMicroserviceTest {
         assertEquals(10000, micro.getLastUpdated());
 
         fakeSystemTime(99999);
-        micro.setApis(asSet(new RestApi("api", "path", 2222)));
+        micro.setApis(asSet(new RestApi("path", 2222)));
         assertEquals(99999, micro.getLastUpdated());
     }
     
@@ -100,7 +100,7 @@ public class RemoteMicroserviceTest {
         when(agent.getEndpoints()).thenReturn(asSet(endpoint));
         when(agent.getRing()).thenReturn(ring);
 
-        RemoteMicroservice micro = new RemoteMicroservice("foo" , agent, asSet(new RestApi("api", "path", 1234)));
+        RemoteMicroservice micro = new RemoteMicroservice("foo" , agent, asSet(new RestApi("path", 1234)));
         return micro;
     }
 }

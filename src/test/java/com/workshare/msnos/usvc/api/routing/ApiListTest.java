@@ -252,7 +252,6 @@ public class ApiListTest {
     private RestApi newRestApi(String name) {
         RestApi api = Mockito.mock(RestApi.class);
         Mockito.when(api.toString()).thenReturn(name);
-        Mockito.when(api.getName()).thenReturn(name);
         Mockito.when(api.getHost()).thenReturn("127.0.0.1");
         return api;
     }

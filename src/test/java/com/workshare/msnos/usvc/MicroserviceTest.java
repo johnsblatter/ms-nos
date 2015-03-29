@@ -109,7 +109,7 @@ public class MicroserviceTest {
 
     @Test
     public void shouldSendQNEwhenPublishApi() throws Exception {
-        RestApi api = new RestApi("test", "/foo", 8080);
+        RestApi api = new RestApi("/foo", 8080);
         localMicroservice.publish(api);
 
         Message msg = getLastMessageSent();
@@ -163,14 +163,14 @@ public class MicroserviceTest {
     public void shouldPublishRestApisWithHighPriorityWhenSet() throws Exception {
         System.setProperty(PriorityRoutingStrategy.SYSP_PRIORITY_DEFAULT_LEVEL, "5");
 
-        localMicroservice.publish(new RestApi("test", "path", 9999));
+        localMicroservice.publish(new RestApi("path", 9999));
 
         assertEquals(5, getLastPublishedRestApi().getPriority());
     }
 
     @Test
     public void shouldMantainCopyOfPublishedApis() throws Exception {
-        final RestApi api = new RestApi("test", "path", 9999);
+        final RestApi api = new RestApi("path", 9999);
 
         localMicroservice.publish(api);
 
@@ -206,7 +206,7 @@ public class MicroserviceTest {
     }
 
     private RestApi createRestApi(String name, String endpoint) {
-        return new RestApi(name, endpoint, 9999).onHost("24.24.24.24");
+        return new RestApi(endpoint, 9999).onHost("24.24.24.24");
     }
 
     private Set<RestApi> getApis(RemoteMicroservice remoteMicroservice) {
@@ -239,7 +239,7 @@ public class MicroserviceTest {
 
     private RemoteMicroservice setupRemoteMicroserviceWithSessionAffinity(String host, String name, String endpoint) throws Exception {
         RemoteAgent agent = newRemoteAgent();
-        RestApi restApi = new RestApi(name, endpoint, 9999).onHost(host).withAffinity();
+        RestApi restApi = new RestApi(endpoint, 9999).onHost(host).withAffinity();
         RemoteMicroservice remote = new RemoteMicroservice(name, agent, toSet(restApi));
         return addRemoteAgentToCloudListAndMicroserviceToLocalList(name, remote, restApi);
     }
@@ -250,7 +250,7 @@ public class MicroserviceTest {
 
     private RemoteMicroservice setupRemoteMicroservice(String host, String name, String endpoint, int port) {
         RemoteAgent agent = newRemoteAgent();
-        RestApi restApi = new RestApi(name, endpoint, port).onHost(host);
+        RestApi restApi = new RestApi(endpoint, port).onHost(host);
         RemoteMicroservice remote = new RemoteMicroservice(name, agent, toSet(restApi));
         return addRemoteAgentToCloudListAndMicroserviceToLocalList(name, remote, restApi);
 
@@ -265,8 +265,8 @@ public class MicroserviceTest {
 
     private RemoteMicroservice setupRemoteMicroserviceWithMultipleRestAPIs(String host1, String host2, String name, String endpoint) throws IOException {
         RemoteAgent agent = newRemoteAgent();
-        RestApi alfa = new RestApi(name, endpoint, 9999).onHost(host1);
-        RestApi beta = new RestApi(name, endpoint, 9999).onHost(host2);
+        RestApi alfa = new RestApi(endpoint, 9999).onHost(host1);
+        RestApi beta = new RestApi(endpoint, 9999).onHost(host2);
         RemoteMicroservice remote = new RemoteMicroservice(name, agent, toSet(alfa, beta));
         return addRemoteAgentToCloudListAndMicroserviceToLocalList(name, remote, alfa, beta);
     }

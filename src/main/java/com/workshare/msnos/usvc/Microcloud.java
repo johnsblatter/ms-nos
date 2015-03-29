@@ -279,7 +279,7 @@ public class Microcloud {
     void onJoin(PassiveService passive) throws MsnosException {
         passiveServices.put(passive.getUuid(), passive);
 
-        RestApi restApi = new RestApi(passive.getName(), passive.getHealthCheckUri(), passive.getPort(), passive.getHost(), RestApi.Type.HEALTHCHECK, false);
+        RestApi restApi = new RestApi(passive.getHealthCheckUri(), passive.getPort(), passive.getHost(), RestApi.Type.HEALTHCHECK, false);
 
         publish(passive, restApi);
     }

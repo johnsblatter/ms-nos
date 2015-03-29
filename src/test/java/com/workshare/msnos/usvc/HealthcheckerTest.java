@@ -182,8 +182,8 @@ public class HealthcheckerTest {
     
     @Test
     public void shouldOn200HealthCheckMarkAllApisWorkingWheMultipleChecksAndOneFailingO() throws Exception {
-        RestApi checkOk = new RestApi(NAME ,PATH, HTTP_PORT).onHost("127.0.0.1").asHealthCheck();
-        RestApi checkKO = new RestApi(NAME, PATH, HTTP_PORT).onHost("0.0.0.0").asHealthCheck();
+        RestApi checkOk = new RestApi(PATH ,HTTP_PORT).onHost("127.0.0.1").asHealthCheck();
+        RestApi checkKO = new RestApi(PATH, HTTP_PORT).onHost("0.0.0.0").asHealthCheck();
         RemoteMicroservice remote = setupRemoteMicroservice("name", checkOk, checkKO);
         setupHealthcheck(200);
 
@@ -194,8 +194,8 @@ public class HealthcheckerTest {
 
     @Test
     public void shouldBeHealhtIfNoHealchecks() throws IOException {
-        RestApi checkOk = new RestApi(NAME ,PATH, HTTP_PORT).onHost("127.0.0.1");
-        RestApi checkKO = new RestApi(NAME, PATH, HTTP_PORT).onHost("0.0.0.0");
+        RestApi checkOk = new RestApi(PATH ,HTTP_PORT).onHost("127.0.0.1");
+        RestApi checkKO = new RestApi(PATH, HTTP_PORT).onHost("0.0.0.0");
         RemoteMicroservice remote = setupRemoteMicroservice("name", checkOk, checkKO);
 
         startAndRunCheck();
@@ -292,10 +292,10 @@ public class HealthcheckerTest {
     }
 
     private RemoteMicroservice setupRemoteMicroserviceMultipleAPIsAndHealthCheck(String name, String endpoint, String host1, String host2, String host3, String host4) throws Exception {
-        RestApi alfa = new RestApi(name, endpoint, HTTP_PORT).onHost(host1).asHealthCheck();
-        RestApi beta = new RestApi(name, endpoint, HTTP_PORT).onHost(host2);
-        RestApi thre = new RestApi(name, endpoint, HTTP_PORT).onHost(host3);
-        RestApi four = new RestApi(name, endpoint, HTTP_PORT).onHost(host4);
+        RestApi alfa = new RestApi(endpoint, HTTP_PORT).onHost(host1).asHealthCheck();
+        RestApi beta = new RestApi(endpoint, HTTP_PORT).onHost(host2);
+        RestApi thre = new RestApi(endpoint, HTTP_PORT).onHost(host3);
+        RestApi four = new RestApi(endpoint, HTTP_PORT).onHost(host4);
 
         return setupRemoteMicroservice(name, alfa, beta, thre, four);
     }

@@ -77,7 +77,7 @@ public class WireJsonSerializerTest {
 
     @Test
     public void shouldBeAbleToEncodeAndDecodeQNE() throws Exception {
-        Message source = new MessageBuilder(Message.Type.QNE, localAgent, remoteAgent).with(new QnePayload("test", new RestApi("test", "/test", 7070))).make();
+        Message source = new MessageBuilder(Message.Type.QNE, localAgent, remoteAgent).with(new QnePayload("test", new RestApi("/test", 7070))).make();
 
         byte[] data = sz.toBytes(source);
         Message decoded = sz.fromBytes(data, Message.class);

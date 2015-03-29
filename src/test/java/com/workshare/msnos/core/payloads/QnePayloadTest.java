@@ -38,7 +38,7 @@ public class QnePayloadTest {
     }
 
     private RestApi newApi(final String path) {
-        return new RestApi("test", path, (int) Math.random() * 1000);
+        return new RestApi(path, (int) Math.random() * 1000);
     }
 
     private RestApi getApi(Payload payload) {
