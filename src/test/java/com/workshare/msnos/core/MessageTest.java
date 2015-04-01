@@ -15,24 +15,24 @@ public class MessageTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void shouldNotBeAbleToCreateAReliableMessageToTheCloud() {
-        new MessageBuilder(MessageBuilder.Mode.RELAXED, Message.Type.APP, AGENT_IDEN, CLOUD_IDEN).withHops(1).reliable(true).make();
+        new MessageBuilder(Message.Type.APP, AGENT_IDEN, CLOUD_IDEN).withHops(1).reliable(true).make();
     }
 
     @Test
     public void shouldGenerateRndWhenSigned() {
-        Message msg = new MessageBuilder(MessageBuilder.Mode.RELAXED, Message.Type.APP, CLOUD_IDEN, AGENT_IDEN).reliable(true).with(MSG_UUID).signed("12345", null).make();
+        Message msg = new MessageBuilder(Message.Type.APP, CLOUD_IDEN, AGENT_IDEN).reliable(true).with(MSG_UUID).signed("12345", null).make();
         assertNotNull(msg.getRnd());
     }
 
     @Test
     public void shouldUsePassedRndWhenSigned() {
-        Message msg = new MessageBuilder(MessageBuilder.Mode.RELAXED, Message.Type.APP, CLOUD_IDEN, AGENT_IDEN).reliable(true).with(MSG_UUID).signed("12345", "ABC").make();
+        Message msg = new MessageBuilder(Message.Type.APP, CLOUD_IDEN, AGENT_IDEN).reliable(true).with(MSG_UUID).signed("12345", "ABC").make();
         assertEquals("ABC", msg.getRnd());
     }
 
     @Test
     public void shouldGenerateUUIDIfUUIDEmpty() throws Exception {
-        Message msg = new MessageBuilder(MessageBuilder.Mode.RELAXED, Message.Type.APP, AGENT_IDEN, CLOUD_IDEN).make();
+        Message msg = new MessageBuilder(Message.Type.APP, AGENT_IDEN, CLOUD_IDEN).make();
         assertNotNull(msg.getUuid());
     }
 }

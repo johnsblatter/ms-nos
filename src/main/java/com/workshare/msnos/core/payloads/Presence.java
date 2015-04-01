@@ -97,8 +97,6 @@ public class Presence implements Message.Payload {
             else
                 agent = new RemoteAgent(from.getUUID(), internal.cloud(), getEndpoints());
                 
-            agent.accept(message);
-
             log.debug("Discovered new agent from network: {}", agent.toString());
             internal.remoteAgents().add(agent);
         } else {

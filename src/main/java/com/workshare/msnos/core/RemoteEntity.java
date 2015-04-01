@@ -30,15 +30,6 @@ public class RemoteEntity implements Identifiable {
         return sequencer.get();
     }
 
-    public boolean accept(Message message) {
-        long seq = message.getSequence();
-        if (seq < sequencer.get())
-            return false;
-
-        sequencer.set(seq);
-        return true;
-    }
-
     public long getAccessTime() {
         return accessTime.longValue();
     }

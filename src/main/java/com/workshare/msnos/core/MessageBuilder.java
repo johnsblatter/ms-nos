@@ -7,48 +7,38 @@ import java.util.UUID;
 
 public class MessageBuilder {
 
-    public enum Mode {RELAXED, STRICT}
-
     private final Type type;
     private final Iden from;
     private final Iden to;
 
-    private Mode mode;
-
     private UUID uuid = null;
     private int hops = 3;
-    private long seq;
     private boolean reliable = false;
     private Payload data = null;
 
     private String sig = null;
     private String rnd = null;
+    private long when;
 
     public MessageBuilder(Type type, Cloud from, Identifiable to) {
         this(type, from, to.getIden());
     }
 
     public MessageBuilder(Type type, Cloud from, Iden to) {
-        this(Mode.STRICT, type, from.getIden(), to);
-        this.seq = from.getNextSequence();
+        this(type, from.getIden(), to);
     }
 
     public MessageBuilder(Type type, Agent from, Identifiable to) {
-        this(Mode.STRICT, type, from.getIden(), to.getIden());
-        this.seq = from.getNextSequence();
+        this(type, from.getIden(), to.getIden());
     }
 
-    public MessageBuilder(Mode mode, Type type, Iden from, Iden to) {
-        this.mode = mode;
+    public MessageBuilder(Type type, Iden from, Iden to) {
         this.type = type;
         this.from = from;
         this.to = to;
     }
 
     public MessageBuilder with(UUID uuid) {
-        if (isStrict() && from.getType() == Iden.Type.AGT)
-            throw new IllegalArgumentException("Cannot accept a UUID if the message is sent from an agent!");
-
         this.uuid = uuid;
         return this;
     }
@@ -63,14 +53,6 @@ public class MessageBuilder {
         return this;
     }
 
-    public MessageBuilder sequence(long seqnum) {
-        if (isStrict())
-            throw new IllegalArgumentException("Cannot accept a sequence number, it's taken from the source!");
-
-        this.seq = seqnum;
-        return this;
-    }
-
     public MessageBuilder reliable(boolean reliable) {
         this.reliable = reliable;
         return this;
@@ -82,8 +64,9 @@ public class MessageBuilder {
         return this;
     }
 
-    private boolean isStrict() {
-        return mode == Mode.STRICT;
+    public MessageBuilder at(long when) {
+        this.when = when;
+        return this;
     }
 
     public Message make() {
@@ -92,7 +75,6 @@ public class MessageBuilder {
         if (to == null)
             throw new RuntimeException("Cannot build a message with no destination");
 
-        return new Message(type, from, to, hops, reliable, data, uuid, sig, rnd, seq);
+        return new Message(type, from, to, hops, reliable, data, uuid, sig, rnd, when);
     }
-
 }

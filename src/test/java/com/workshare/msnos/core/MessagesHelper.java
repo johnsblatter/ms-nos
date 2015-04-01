@@ -21,8 +21,12 @@ public class MessagesHelper {
                 .make();
     }
     
-    public static Message newPingMessage(Cloud from) {
-        return new MessageBuilder(MessageBuilder.Mode.RELAXED, Message.Type.PIN, from.getIden(), from.getIden()).make();
+    public static Message newPingMessage(Identifiable from) {
+        return newPingMessage(from, from);
+    }
+
+    public static Message newPingMessage(Identifiable from, Identifiable to) {
+        return new MessageBuilder(Message.Type.PIN, from.getIden(), to.getIden()).make();
     }
 
     public static Message newAPPMessage(RemoteMicroservice remote, Identifiable to) {
@@ -36,7 +40,7 @@ public class MessagesHelper {
 
     public static Message newQNEMessage(RemoteEntity from, String name, RestApi... apis) {
         final Cloud cloud = from.getCloud();
-        return new MessageBuilder(MessageBuilder.Mode.RELAXED, Message.Type.QNE, from.getIden(), cloud.getIden()).with(new QnePayload(name, apis)).make();
+        return new MessageBuilder(Message.Type.QNE, from.getIden(), cloud.getIden()).with(new QnePayload(name, apis)).make();
     }
 
     public static Message newFaultMessage(Agent agent) {

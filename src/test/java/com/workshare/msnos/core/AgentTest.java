@@ -141,7 +141,7 @@ public class AgentTest {
     public void shouldUpdateAccessTimeWhenMessageIsReceived() {
         fakeSystemTime(123456790L);
 
-        Message message = new MessageBuilder(MessageBuilder.Mode.RELAXED, Message.Type.PIN, cloud.getIden(), smith.getIden()).make();
+        Message message = new MessageBuilder(Message.Type.PIN, cloud.getIden(), smith.getIden()).make();
         simulateMessageFromCloud(message);
 
         assertEquals(123456790L, smith.getAccessTime());
@@ -164,10 +164,13 @@ public class AgentTest {
     }
 
     @Test
-    public void shouldCreateSequenceNumberOnCreation() throws Exception {
+    public void shouldCreateTimestampOnCreation() throws Exception {
+        fakeSystemTime(123456L);
         smith.send(new MessageBuilder(Message.Type.PIN, smith, cloud).make());
+
         Message toCloud = getLastMessageToCloud();
-        assertEquals(Long.valueOf(smith.getNextSequence() - 1), Long.valueOf(toCloud.getSequence()));
+        
+        assertEquals(123456L, toCloud.getWhen());
     }
 
     private Message getLastMessageToCloud() throws IOException {

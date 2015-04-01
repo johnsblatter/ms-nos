@@ -39,7 +39,7 @@ public class SignerTest {
 
         final Iden src = new Iden(Iden.Type.CLD, UUID.randomUUID());
         final Iden dst = new Iden(Iden.Type.AGT, UUID.randomUUID());
-        message = new MessageBuilder(MessageBuilder.Mode.RELAXED, Type.PIN, src, dst).with(UUID.randomUUID()).make();
+        message = new MessageBuilder(Type.PIN, src, dst).with(UUID.randomUUID()).make();
 
         signer = new Signer(serializer, keys);
     }

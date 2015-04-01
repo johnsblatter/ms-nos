@@ -120,7 +120,7 @@ public class UDPServerTest {
 
     private Message newSampleMessage() {
         final UUID uuid = new UUID(123, 456);
-        return new MessageBuilder(MessageBuilder.Mode.RELAXED, Message.Type.APP, new Iden(Iden.Type.AGT, uuid), new Iden(Iden.Type.CLD, uuid)).make();
+        return new MessageBuilder(Message.Type.APP, new Iden(Iden.Type.AGT, uuid), new Iden(Iden.Type.CLD, uuid)).make();
     }
 
 }

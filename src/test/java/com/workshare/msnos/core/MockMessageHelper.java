@@ -1,16 +1,14 @@
 package com.workshare.msnos.core;
 
-import com.workshare.msnos.core.payloads.NullPayload;
-import com.workshare.msnos.soup.time.SystemTime;
-
-import java.util.UUID;
-
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-/**
- * Created by rhys on 04/08/14.
- */
+import java.util.UUID;
+
+import com.workshare.msnos.core.payloads.NullPayload;
+import com.workshare.msnos.soup.time.SystemTime;
+
+// FIXME: kill me and replace 
 public class MockMessageHelper {
 
     private final Message message;
@@ -22,7 +20,7 @@ public class MockMessageHelper {
     private Message.Payload payload;
     private String sig;
     private String rnd;
-    private long seq=1;
+    private long when;
 
     public MockMessageHelper(Message.Type type, Iden from, Iden to) {
         this.type = type;
@@ -43,8 +41,8 @@ public class MockMessageHelper {
         return this;
     }
 
-    public MockMessageHelper sequence(long seq) {
-        this.seq = seq;
+    public MockMessageHelper at(long when) {
+        this.when = when;
         return this;
     }
 
@@ -52,7 +50,7 @@ public class MockMessageHelper {
         when(message.getSig()).thenReturn(sig);
         when(message.getUuid()).thenReturn(uuid);
         when(message.getRnd()).thenReturn(rnd);
-        when(message.getSequence()).thenReturn(seq);
+        when(message.getWhen()).thenReturn(when);
         when(message.getType()).thenReturn(type);
         when(message.getFrom()).thenReturn(from);
         when(message.getTo()).thenReturn(to);

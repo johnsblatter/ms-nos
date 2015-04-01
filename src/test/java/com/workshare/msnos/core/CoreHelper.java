@@ -78,10 +78,19 @@ public class CoreHelper {
         };
     }
 
-    public static void fakeSystemTime(final long time) {
+    public static void fakeSystemTime(final long timeInMillis) {
         SystemTime.setTimeSource(new SystemTime.TimeSource() {
             public long millis() {
-                return time;
+                return timeInMillis;
+            }
+        });
+    }
+
+    public static void fakeElapseTime(final long elapsedInMillis) {
+        final long current = SystemTime.asMillis();
+        SystemTime.setTimeSource(new SystemTime.TimeSource() {
+            public long millis() {
+                return current + elapsedInMillis;
             }
         });
     }

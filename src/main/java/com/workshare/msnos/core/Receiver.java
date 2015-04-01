@@ -82,13 +82,13 @@ public class Receiver {
 
         final String muid = shorten(msg.getUuid());
         final String payload = Json.toJsonString(msg.getData());
-        final String mseq = shorten(msg.getSequence());
+        final String when = shorten(msg.getWhen());
 
         Iden from = msg.getFrom();
         if (internal.localAgents().containsKey(from))
-            proto.trace("NN({}): ={}= {} {} {} {} {} {}", shorten(gateName,3), cause, msg.getType(), muid, mseq, msg.getFrom(), msg.getTo(), payload);
+            proto.trace("NN({}): ={}= {} {} {} {} {} {}", shorten(gateName,3), cause, msg.getType(), muid, when, msg.getFrom(), msg.getTo(), payload);
         else
-            proto.debug("NN({}): ={}= {} {} {} {} {} {}", shorten(gateName,3), cause, msg.getType(), muid, mseq, msg.getFrom(), msg.getTo(), payload);
+            proto.debug("NN({}): ={}= {} {} {} {} {} {}", shorten(gateName,3), cause, msg.getType(), muid, when, msg.getFrom(), msg.getTo(), payload);
     }
 
     private void logRX(Message msg, String gateName) {
@@ -97,7 +97,7 @@ public class Receiver {
 
         final String muid = shorten(msg.getUuid());
         final String payload = Json.toJsonString(msg.getData());
-        final String mseq = shorten(msg.getSequence());
+        final String mseq = shorten(msg.getWhen());
         proto.info("RX({}): {} {} {} {} {} {}", shorten(gateName,3), msg.getType(), muid, mseq, msg.getFrom(), msg.getTo(), payload);
     }
 }

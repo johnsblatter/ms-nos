@@ -76,7 +76,7 @@ public class SenderTest {
 
     @Test
     public void shouldNotSendMessageOnZeroHops() throws Exception {
-        Message message = new MessageBuilder(MessageBuilder.Mode.RELAXED, Message.Type.PIN, cloud.getIden(), cloud.getIden()).withHops(0).make();
+        Message message = new MessageBuilder(Message.Type.PIN, cloud.getIden(), cloud.getIden()).withHops(0).make();
         Receipt receipt = sender.send(cloud, message);
         
         verify(gate1, never()).send(eq(cloud), any(Message.class));

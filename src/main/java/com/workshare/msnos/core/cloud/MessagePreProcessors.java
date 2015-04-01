@@ -2,6 +2,10 @@ package com.workshare.msnos.core.cloud;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+
+import net.jodah.expiringmap.ExpiringMap;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -9,17 +13,19 @@ import org.slf4j.LoggerFactory;
 import com.workshare.msnos.core.Cloud;
 import com.workshare.msnos.core.Iden;
 import com.workshare.msnos.core.Message;
-import com.workshare.msnos.core.RemoteEntity;
+import com.workshare.msnos.soup.time.SystemTime;
 
 public class MessagePreProcessors {
+
+    private static final String SYSP_MESSAGE_LIFETIME = "msnos.core.message.lifetime";
 
     public enum Reason {
         FROM_LOCAL,     // coming from local agent
         FOR_REMOTE,     // addressed to a remote agent
         UNKNOWN_TO,     // addressed to unknown cloud or agent
         BAD_SIGNED,     // signature is not valid
-        OUT_OF_SEQ,     // out of sequence
-        TOO_OLD,     // out of sequence
+        DUPLICATE,      // duplicate
+        TOO_OLD,        // too old
     }
 
 
@@ -60,7 +66,8 @@ public class MessagePreProcessors {
         validators.add(shouldNotComeFromLocalAgent());
         validators.add(shouldNotBeAddressedToRemoteAgent());
         validators.add(shouldNotBeAddressedToAnotherCloud());
-        validators.add(shouldBeInSequence());
+        validators.add(shouldNeverSeenMessage());
+        validators.add(shouldNotBeTooOld());
         validators.add(shouldHaveValidSignature());
     }
 
@@ -76,6 +83,10 @@ public class MessagePreProcessors {
         return SUCCESS;
     }
 
+    private long getMessageLifetime() {
+        return Long.getLong(SYSP_MESSAGE_LIFETIME, 60);
+    }
+
     private MessagePreProcessor shouldHaveValidSignature() {
         return new AbstractMessageValidator(Reason.BAD_SIGNED) {
             @Override
@@ -89,39 +100,33 @@ public class MessagePreProcessors {
             }};
     }
 
-    private MessagePreProcessor shouldBeInSequence() {
-        return new AbstractMessageValidator(Reason.OUT_OF_SEQ) {
+    private MessagePreProcessor shouldNeverSeenMessage() {
+        return new AbstractMessageValidator(Reason.DUPLICATE) {
+            
+            private final ExpiringMap<UUID, Message> messages = ExpiringMap.builder()
+                        .expiration(getMessageLifetime(), TimeUnit.SECONDS)
+                        .build();            
+
             @Override
             public Result isValid(Message message) {
-                RemoteEntity remote = getRemote(message);
-                if (remote == null) 
-                    return SUCCESS;
-                else    
-                    return asResult(remote.accept(message));
-            }
-
-            private RemoteEntity getRemote(Message message) {
-                if (message.getFrom().getType() == Iden.Type.CLD)
-                    return getRemoteCloud(message);
-                else
-                    return cloud.remoteAgents().get(message.getFrom());
-            }
-
-            private RemoteEntity getRemoteCloud(final Message message) {
-                final Iden from = message.getFrom();
-                if (from.getSuid() == null)
-                    return null;
-                        
-                RemoteEntity remoteCloud;
-                if (!cloud.remoteClouds().containsKey(from)) {
-                    remoteCloud = new RemoteEntity(from, cloud.cloud());
-                    remoteCloud.accept(message);
-                    cloud.remoteClouds().add(remoteCloud);
-                } else {
-                    remoteCloud = cloud.remoteClouds().get(from);
-                }
+                if (messages.containsKey(message.getUuid()))
+                    return failure;
                 
-                return remoteCloud;
+                messages.put(message.getUuid(), message);
+                return SUCCESS;
+            }
+        };
+    }
+
+    private MessagePreProcessor shouldNotBeTooOld() {
+        return new AbstractMessageValidator(Reason.TOO_OLD) {
+            
+            private final long lifetime = getMessageLifetime();
+
+            @Override
+            public Result isValid(Message message) {
+                final long elapsed = System.currentTimeMillis() - message.getWhen();
+                return asResult(elapsed < lifetime);
             }
         };
     }
@@ -131,7 +136,7 @@ public class MessagePreProcessors {
             @Override
             public Result isValid(Message message) {
                 final Iden to = message.getTo();
-                boolean success = to.equalsAsIdens(cloud.cloud().getIden()) || cloud.localAgents().containsKey(to);
+                boolean success = to.equals(cloud.cloud().getIden()) || cloud.localAgents().containsKey(to);
                 return asResult(success);
             }};
     }
@@ -160,7 +165,7 @@ public class MessagePreProcessors {
             this.reason = message;
             this.failure = new Result(false, message);
         }
-        
+
         public Result asResult(boolean success) {
             return success ? SUCCESS : failure;
         }
@@ -169,6 +174,5 @@ public class MessagePreProcessors {
         public final String toString() {
             return reason.toString();
         }
-        
     }
 }

@@ -101,7 +101,7 @@ public class Cloud implements Identifiable {
     }
 
     Cloud(final UUID uuid, String signid, Signer signer, Sender sender, Set<Gateway> gates, JoinSynchronizer synchronizer, Multicaster multicaster, ScheduledExecutorService executor, Long instanceId) {
-        this.iden = new Iden(Iden.Type.CLD, uuid, instanceId);
+        this.iden = new Iden(Iden.Type.CLD, uuid);
 
         this.enquiries = ExpiringMap.builder().expiration(ENQUIRY_EXPIRE, TimeUnit.SECONDS).build();
 

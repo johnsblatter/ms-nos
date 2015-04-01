@@ -1,6 +1,6 @@
 package com.workshare.msnos.core;
 
-import static com.workshare.msnos.core.CoreHelper.asNetwork;
+import static com.workshare.msnos.core.CoreHelper.*;
 import static com.workshare.msnos.core.CoreHelper.asPublicNetwork;
 import static com.workshare.msnos.core.CoreHelper.asSet;
 import static com.workshare.msnos.core.CoreHelper.fakeSystemTime;
@@ -125,7 +125,7 @@ public class CloudTest {
         receivedMessages = new ArrayList<Message>();
 
         otherCloud = new Cloud(UUID.randomUUID(), KEY_ID, signer, sender, Collections.<Gateway> emptySet(), synchro, CoreHelper.synchronousCloudMulticaster(), Executors.newSingleThreadScheduledExecutor(), null);
-        thisCloudRemoteIden = new Iden(Iden.Type.CLD, thisCloud.getIden().getUUID(), 99l);
+        thisCloudRemoteIden = new Iden(Iden.Type.CLD, thisCloud.getIden().getUUID());
     }
 
     @After
@@ -254,7 +254,7 @@ public class CloudTest {
     @Test
     public void shouldForwardAnyMessageSentToSameCloudUsingSpecificIden() throws Exception {
         Iden iden = thisCloud.getIden();
-        Iden thisCloudSpecificIden = new Iden(iden.getType(), iden.getUUID(), 1234L);
+        Iden thisCloudSpecificIden = new Iden(iden.getType(), iden.getUUID());
 
         simulateMessageFromNetwork(newMessage(APP, SOMEONE, thisCloudSpecificIden));
 
@@ -296,11 +296,12 @@ public class CloudTest {
         RemoteAgent remoteAgent = newRemoteAgent(thisCloud);
         simulateAgentJoiningCloud(remoteAgent, thisCloud);
 
-        fakeSystemTime(12345L);
-        simulateMessageFromNetwork(new MockMessageHelper(Message.Type.PIN, remoteAgent.getIden(), thisCloud.getIden()).sequence(1000).make());
+        fakeSystemTime(99911L);
+        final Message message = newPingMessage(remoteAgent, thisCloud);
+        simulateMessageFromNetwork(message);
 
-        fakeSystemTime(99999L);
-        assertEquals(12345L, getRemoteAgentAccessTime(thisCloud, remoteAgent));
+        fakeElapseTime(100);
+        assertEquals(99911L, getRemoteAgentAccessTime(thisCloud, remoteAgent));
     }
 
     @Test
@@ -435,69 +436,32 @@ public class CloudTest {
     }
 
     @Test
-    public void shouldDiscardOldMessagesFromRemoteAgent() throws Exception {
+    public void shouldDiscardMessagesAlreadyReceived() throws Exception {
         RemoteAgent remoteAgent = mockRemoteWithIden(new Iden(Iden.Type.AGT, UUID.randomUUID()));
-        simulateAgentJoiningCloudWithSeq(remoteAgent, 42L);
+        simulateAgentJoiningCloud(remoteAgent, thisCloud);
         receivedMessages.clear();
 
-        Message msg = new MockMessageHelper(APP, remoteAgent.getIden(), thisCloud.getIden()).sequence(32L).make();
+        Message msg = newMessage(APP, remoteAgent.getIden(), thisCloud.getIden());
         simulateMessageFromNetwork(msg);
+        receivedMessages.clear();
 
+        simulateMessageFromNetwork(msg);
         assertEquals(0, receivedMessages.size());
     }
 
     @Test
-    public void shouldUpdateRemoteAgentsWhenNewProcessibleMessage() throws Exception {
+    public void shouldDiscardMessagesWithOldTimestamps() throws Exception {
         RemoteAgent remoteAgent = mockRemoteWithIden(new Iden(Iden.Type.AGT, UUID.randomUUID()));
-        simulateAgentJoiningCloudWithSeq(remoteAgent, 42L);
+        simulateAgentJoiningCloud(remoteAgent, thisCloud);
+        receivedMessages.clear();
 
-        Message msg = new MockMessageHelper(APP, remoteAgent.getIden(), thisCloud.getIden()).sequence(52L).make();
+        fakeSystemTime(100000);
+        Message msg = newMessage(APP, remoteAgent.getIden(), thisCloud.getIden());
+
+        fakeSystemTime(9900000);
         simulateMessageFromNetwork(msg);
 
-        assertEquals(Long.valueOf(52L), getRemoteAgent(thisCloud, remoteAgent.getIden()).getNextSequence());
-    }
-
-    @Test
-    public void shouldDiscardOldMessagesFromRemoteAgents() throws Exception {
-        RemoteAgent remoteAgent1 = newRemoteAgent(thisCloud);
-        simulateAgentJoiningCloudWithSeq(remoteAgent1, 2L);
-
-        RemoteAgent remoteAgent2 = newRemoteAgent(thisCloud);
-        simulateAgentJoiningCloudWithSeq(remoteAgent2, 102L);
-
-        simulateMessageFromNetwork(new MockMessageHelper(APP, remoteAgent1.getIden(), thisCloud.getIden()).sequence(1).make());
-        simulateMessageFromNetwork(new MockMessageHelper(APP, remoteAgent2.getIden(), thisCloud.getIden()).sequence(101).make());
-
-        assertEquals(Long.valueOf(2), getRemoteAgent(thisCloud, remoteAgent1.getIden()).getNextSequence());
-        assertEquals(Long.valueOf(102), getRemoteAgent(thisCloud, remoteAgent2.getIden()).getNextSequence());
-    }
-
-    @Test
-    public void shouldDiscardMessagesSentToRemoteAgent() throws Exception {
-        RemoteAgent remoteAgent1 = newRemoteAgent(thisCloud);
-        simulateAgentJoiningCloudWithSeq(remoteAgent1, 102L);
-
-        RemoteAgent remoteAgent2 = newRemoteAgent(thisCloud);
-        simulateAgentJoiningCloudWithSeq(remoteAgent2, 2L);
-
-        receivedMessages.clear();
-
-        simulateMessageFromNetwork(new MockMessageHelper(APP, remoteAgent1.getIden(), thisCloud.getIden()).sequence(101).make());
-        simulateMessageFromNetwork(new MockMessageHelper(APP, remoteAgent2.getIden(), thisCloud.getIden()).sequence(1).make());
-
         assertEquals(0, receivedMessages.size());
-    }
-
-    @Test
-    public void shouldNOTUpdateSeqOnNotProcessibleMessage() throws Exception {
-        RemoteAgent remoteAgent1 = newRemoteAgent(thisCloud);
-        simulateAgentJoiningCloudWithSeq(remoteAgent1, 102L);
-
-        receivedMessages.clear();
-
-        simulateMessageFromNetwork(new MockMessageHelper(APP, remoteAgent1.getIden(), thisCloud.getIden()).sequence(10).make());
-
-        assertEquals(getRemoteAgent(thisCloud, remoteAgent1.getIden()).getNextSequence(), Long.valueOf(102L));
     }
 
     @Test
@@ -677,15 +641,10 @@ public class CloudTest {
 
     
     private Message simulateMessageFromOtherCloud(String uuidString, int seq, long instance) {
-        final Message message = new MessageBuilder(MessageBuilder.Mode.RELAXED, APP, thisCloudRemoteIden, thisCloud.getIden()).with(UUID.randomUUID()).sequence(seq).make();
+        final Message message = new MessageBuilder(APP, thisCloudRemoteIden, thisCloud.getIden()).with(UUID.randomUUID()).make();
         simulateMessageFromNetwork(message);
 
         return message;
-    }
-
-    private void simulateAgentJoiningCloudWithSeq(Agent remoteAgent, long seq) throws MsnosException {
-        Message message = (new MockMessageHelper(Type.PRS, remoteAgent.getIden(), thisCloud.getIden()).data(new Presence(true, remoteAgent)).sequence(seq).make());
-        simulateMessageFromNetwork(message);
     }
 
     private RemoteAgent mockRemoteWithIden(Iden iden) {
@@ -730,7 +689,7 @@ public class CloudTest {
     }
 
     private void simulateAgentLeavingCloud(RemoteAgent agent, Cloud cloud) throws MsnosException {
-        simulateMessageFromNetwork(new MessageBuilder(MessageBuilder.Mode.RELAXED, PRS, agent.getIden(), cloud.getIden()).reliable(false).with(new Presence(false, agent)).make());
+        simulateMessageFromNetwork(new MessageBuilder(PRS, agent.getIden(), cloud.getIden()).reliable(false).with(new Presence(false, agent)).make());
     }
 
     private void simulateMessageFromNetwork(final Message message) {
@@ -773,11 +732,11 @@ public class CloudTest {
     }
 
     private Message newMessage(final Message.Type type, final Iden idenFrom, final Iden idenTo) {
-        return new MessageBuilder(MessageBuilder.Mode.RELAXED, type, idenFrom, idenTo).withHops(1).reliable(false).make();
+        return new MessageBuilder(type, idenFrom, idenTo).withHops(1).reliable(false).make();
     }
 
     private Message newReliableMessage(final Message.Type type, final Iden idenFrom, final Iden idenTo) {
-        return new MessageBuilder(MessageBuilder.Mode.RELAXED, type, idenFrom, idenTo).withHops(1).reliable(true).make();
+        return new MessageBuilder(type, idenFrom, idenTo).withHops(1).reliable(true).make();
     }
 
     private void assertNoMessagesSent() throws IOException {

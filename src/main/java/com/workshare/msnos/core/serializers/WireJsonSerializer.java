@@ -213,8 +213,8 @@ public class WireJsonSerializer implements WireSerializer {
             res.addProperty("ty", msg.getType().toString());
             res.addProperty("ss", msg.getSig());
             res.addProperty("rr", msg.getRnd());
-            res.addProperty("sq", msg.getSequence());
-            if (msg.getSequence() == 0) res.add("id", context.serialize(msg.getUuid()));
+            res.addProperty("ts", msg.getWhen());
+            res.add("id", context.serialize(msg.getUuid()));
             if (!(msg.getData() instanceof NullPayload))
                 res.add("dt", context.serialize(msg.getData()));
 
@@ -239,7 +239,7 @@ public class WireJsonSerializer implements WireSerializer {
             final Boolean reliable = context.deserialize(obj.get("rx"), Boolean.class);
             final String sig = getNullableString(obj, "ss");
             final String rnd = getNullableString(obj, "rr");
-            final long seq = obj.get("sq").getAsLong();
+            final long when = obj.get("ts").getAsLong();
 
             Payload data = null;
             JsonElement dataJson = obj.get("dt");
@@ -263,11 +263,11 @@ public class WireJsonSerializer implements WireSerializer {
                 }
             }
 
-            return new MessageBuilder(MessageBuilder.Mode.RELAXED, type, from, to)
+            return new MessageBuilder(type, from, to)
                     .withHops(hops)
                     .with(data)
                     .with(uuid)
-                    .sequence(seq)
+                    .at(when)
                     .reliable(reliable)
                     .signed(sig, rnd)
                     .make();
@@ -312,9 +312,6 @@ public class WireJsonSerializer implements WireSerializer {
 
     private static final JsonPrimitive serializeIden(Iden iden, boolean includeSuid) {
         String text = iden.getType() + ":" + serializeUUIDToShortString(iden.getUUID());
-        if (includeSuid && iden.getSuid() != null)
-            text = text + ":" + Long.toString(iden.getSuid(), 32);
-
         return new JsonPrimitive(text);
     }
 
@@ -328,12 +325,7 @@ public class WireJsonSerializer implements WireSerializer {
         Iden.Type type = Iden.Type.valueOf(text.substring(0, idx1));
         UUID uuid = deserializeUUIDFromShortString(text.substring(idx1 + 1, idx2));
 
-        Long suid = null;
-        if (idx2 != text.length()) {
-            suid = Long.parseLong(text.substring(idx2 + 1), 32);
-        }
-
-        return new Iden(type, uuid, suid);
+        return new Iden(type, uuid);
     }
 
     private static String serializeUUIDToShortString(UUID uuid) {

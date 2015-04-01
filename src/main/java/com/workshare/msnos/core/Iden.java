@@ -12,16 +12,10 @@ public class Iden {
 
     private final Type type;
     private final UUID uuid;
-    private final Long suid;
 
     public Iden(Type type, UUID uuid) {
-        this(type, uuid, null);
-    }
-
-    public Iden(Type type, UUID uuid, Long suid) {
         this.type = type;
-        this.uuid = uuid;
-        this.suid = suid;
+        this.uuid = uuid;       
     }
 
     public Type getType() {
@@ -30,10 +24,6 @@ public class Iden {
 
     public UUID getUUID() {
         return uuid;
-    }
-
-    public Long getSuid() {
-        return suid;
     }
 
     @Override
@@ -45,7 +35,6 @@ public class Iden {
     public int hashCode() {
         final int prime = 31;
         int result = 1;
-        result = prime * result + ((suid == null) ? 0 : suid.hashCode());
         result = prime * result + ((type == null) ? 0 : type.hashCode());
         result = prime * result + ((uuid == null) ? 0 : uuid.hashCode());
         return result;
@@ -53,15 +42,6 @@ public class Iden {
 
     @Override
     public boolean equals(Object o) {
-        try {
-            Iden other = (Iden) o;
-            return this.type == other.type && areEquals(this.uuid, other.uuid) && areEquals(this.suid, other.suid);
-        } catch (Exception ignore) {
-            return false;
-        }
-    }
-    
-    public boolean equalsAsIdens(Object o) {
         try {
             Iden other = (Iden) o;
             return this.type == other.type && areEquals(this.uuid, other.uuid);

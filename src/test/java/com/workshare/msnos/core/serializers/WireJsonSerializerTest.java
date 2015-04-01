@@ -126,7 +126,7 @@ public class WireJsonSerializerTest {
 
     @Test
     public void shouldCorrectlyDeserializeFLTMessage() throws Exception {
-        Message source = new MessageBuilder(MessageBuilder.Mode.RELAXED, Message.Type.FLT, A_CLOUD_IDEN, A_CLOUD_IDEN).with(new FltPayload(localAgent.getIden())).with(UUID.randomUUID()).make();
+        Message source = new MessageBuilder(Message.Type.FLT, A_CLOUD_IDEN, A_CLOUD_IDEN).with(new FltPayload(localAgent.getIden())).with(UUID.randomUUID()).make();
 
         byte[] data = sz.toBytes(source);
         Message decoded = sz.fromBytes(data, Message.class);
@@ -144,16 +144,6 @@ public class WireJsonSerializerTest {
     public void shouldDeserializeBooleanCompact() throws Exception {
         assertEquals(Boolean.TRUE, sz.fromText("1", Boolean.class));
         assertEquals(Boolean.FALSE, sz.fromText("0", Boolean.class));
-    }
-
-    @Test
-    public void shouldMessageFromCloudContainExtendedIden() throws Exception {
-        Message source = new MessageBuilder(Message.Type.PIN, cloud, localAgent).with(UUID.randomUUID()).make();
-
-        String expected = "\"fr\":\"CLD:" + toShortString(CLOUD_UUID) + ":" + Long.toString(CLOUD_INSTANCE_ID, 32) + "\"";
-        String current = sz.toText(source);
-
-        assertTrue(current.contains(expected));
     }
 
     @Test
@@ -183,7 +173,7 @@ public class WireJsonSerializerTest {
     @Test
     public void shouldCorrectlyDeserializeHCKMessage() throws Exception {
         Payload payload = new HealthcheckPayload(localAgent, true);
-        Message source = new MessageBuilder(MessageBuilder.Mode.RELAXED, Message.Type.HCK, A_CLOUD_IDEN, A_CLOUD_IDEN).with(payload).with(UUID.randomUUID()).make();
+        Message source = new MessageBuilder(Message.Type.HCK, A_CLOUD_IDEN, A_CLOUD_IDEN).with(payload).with(UUID.randomUUID()).make();
 
         byte[] data = sz.toBytes(source);
         Message decoded = sz.fromBytes(data, Message.class);

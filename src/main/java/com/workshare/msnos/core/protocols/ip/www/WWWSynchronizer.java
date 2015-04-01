@@ -92,15 +92,13 @@ public class WWWSynchronizer {
         }
 
         private Message newPresence(Iden from) {
-            return new MessageBuilder(MessageBuilder.Mode.RELAXED, 
-                    Message.Type.PRS, 
+            return new MessageBuilder(Message.Type.PRS, 
                     from, 
                     cloud.getIden()).with(new Presence(true, RemoteAgent.NO_ENDPOINTS)).make();
         }
 
         private Message newDiscovery(Iden to) {
-            return new MessageBuilder(MessageBuilder.Mode.RELAXED, 
-                    Message.Type.DSC, 
+            return new MessageBuilder(Message.Type.DSC, 
                     cloud.getIden(), 
                     to).make();
         }

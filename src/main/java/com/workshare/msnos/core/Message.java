@@ -8,6 +8,7 @@ import com.workshare.msnos.core.payloads.NullPayload;
 import com.workshare.msnos.core.payloads.PongPayload;
 import com.workshare.msnos.core.protocols.ip.Endpoint;
 import com.workshare.msnos.soup.json.Json;
+import com.workshare.msnos.soup.time.SystemTime;
 
 public class Message {
 
@@ -27,8 +28,8 @@ public class Message {
     private final Iden from;
     private final Iden to;
     private final int hops;
-    private final long seq;
     private final boolean reliable;
+    private final long when;
     private final Payload data;
 
     private final String sig;
@@ -38,30 +39,26 @@ public class Message {
 
     private static final SecureRandom random = new SecureRandom();
 
-    Message(Type type, Iden from, Iden to, int hops, boolean reliable, Payload data, UUID uuid, String sig, String rnd, long seq) {
+    Message(Type type, Iden from, Iden to, int hops, boolean reliable, Payload data, UUID uuid, String sig, String rnd, long when) {
         if (reliable && to.getType() == Iden.Type.CLD) {
             throw new IllegalArgumentException("Cannot create a reliable message to the whole cloud!");
         }
 
-        this.uuid = uuid == null ? new UUID(from.getUUID().getMostSignificantBits(), seq) : uuid;
+        this.uuid = uuid == null ? UUID.randomUUID() : uuid;
         this.type = type;
+        this.when = (when == 0 ? SystemTime.asMillis() : when);
         this.from = from;
         this.to = to;
         this.hops = hops;
         this.reliable = reliable;
         this.sig = sig;
         this.rnd = (sig == null ? null : (rnd == null ? new BigInteger(130, random).toString(32) : rnd));
-        this.seq = seq;
 
         // TODO this can be achieved in a much better way (i.e. type.getPayload(this) here or in the builder)
         if (type == Type.PON)
             this.data = new PongPayload();
         else
             this.data = (data == null ? NullPayload.INSTANCE : data);
-    }
-
-    public long getSequence() {
-        return seq;
     }
 
     public UUID getUuid() {
@@ -104,6 +101,10 @@ public class Message {
         return reliable;
     }
 
+    public long getWhen() {
+        return when;
+    }
+
     @Override
     public String toString() {
         return Json.toJsonString(this);
@@ -132,20 +133,20 @@ public class Message {
     }
 
     public Message data(Payload load) {
-        return new Message(type, from, to, hops, reliable, load, uuid, sig, rnd, seq);
+        return new Message(type, from, to, hops, reliable, load, uuid, sig, rnd, when);
     }
 
     public Message hopped() {
-        return new Message(type, from, to, hops-1, reliable, data, uuid, sig, rnd, seq);
+        return new Message(type, from, to, hops-1, reliable, data, uuid, sig, rnd, when);
     }
 
     public Message withHops(int hops) {
-        return new Message(type, from, to, hops, reliable, data, uuid, sig, rnd, seq);
+        return new Message(type, from, to, hops, reliable, data, uuid, sig, rnd, when);
     }
 
     public Message signed(String keyId, String signature) {
         String sign = keyId + ":" + signature;
-        return new Message(type, from, to, hops, reliable, data, uuid, sign, rnd, seq);
+        return new Message(type, from, to, hops, reliable, data, uuid, sign, rnd, when);
     }
 
     public Endpoint.Type getEndpoint() {

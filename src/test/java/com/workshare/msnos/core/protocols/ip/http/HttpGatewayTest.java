@@ -27,7 +27,6 @@ import com.workshare.msnos.core.Message;
 import com.workshare.msnos.core.Ring;
 import com.workshare.msnos.core.Message.Type;
 import com.workshare.msnos.core.MessageBuilder;
-import com.workshare.msnos.core.MessageBuilder.Mode;
 import com.workshare.msnos.core.MsnosException;
 import com.workshare.msnos.core.Receipt;
 import com.workshare.msnos.core.protocols.ip.BaseEndpoint;
@@ -159,6 +158,6 @@ public class HttpGatewayTest {
     }
     
     private Message newSampleMessage(Iden from, Iden to) {
-        return new MessageBuilder(Mode.RELAXED, Type.APP, from, to).with(UUID.randomUUID()).make();
+        return new MessageBuilder(Type.APP, from, to).with(UUID.randomUUID()).make();
     }
 }

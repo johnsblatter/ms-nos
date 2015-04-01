@@ -286,7 +286,7 @@ public class MicroserviceTest {
     }
 
     private Message newQNEMessage(RemoteEntity from, String name, RestApi... apis) {
-        return new MockMessageHelper(Message.Type.QNE, from.getIden(), cloud.getIden()).sequence(12).data(new QnePayload("content", apis)).make();
+        return new MockMessageHelper(Message.Type.QNE, from.getIden(), cloud.getIden()).data(new QnePayload("content", apis)).make();
     }
 
     private Message newFaultMessage(Agent agent) {
