@@ -43,7 +43,7 @@ public class NTPClient {
                 client.connect(hostname);
                 try {
                     if (client.isConnected()) {
-                        Long time = client.getTime();
+                        Long time = client.getDate().getTime();
                         log.debug("Time is: {}", time);
                         return time;
                     }

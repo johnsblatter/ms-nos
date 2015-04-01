@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Date;
 
 import org.apache.commons.net.time.TimeTCPClient;
 import org.junit.Before;
@@ -50,7 +51,7 @@ public class NTPClientTest {
 
     @Test   
     public void shouldReturnTimeFromTimeTCPClient() throws Exception {
-        when(client.getTime()).thenReturn(1234L);
+        when(client.getDate()).thenReturn(new Date(1234L));
         when(client.isConnected()).thenReturn(true);
 
         NTPClient ntp = new NTPClient(Arrays.asList("10.10.10.10"), client);

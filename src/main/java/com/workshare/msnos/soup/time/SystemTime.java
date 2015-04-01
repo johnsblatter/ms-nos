@@ -12,8 +12,8 @@ public class SystemTime {
         long millis();
     }
 
-    private static final TimeSource NTP_TIMESOURCE = new NTPCachedTimeSource(new NTPClient());
-    private static final TimeSource SYS_TIMESOURCE = new TimeSource(){
+    public static final TimeSource NTP_TIMESOURCE = new NTPCachedTimeSource(new NTPClient());
+    public static final TimeSource SYS_TIMESOURCE = new TimeSource(){
         @Override
         public long millis() {
             return System.currentTimeMillis();

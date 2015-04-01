@@ -67,6 +67,7 @@ public class NTPCachedTimeSourceTest {
         verifyZeroInteractions(ntp);
     }
 
+
     private void fakeSysMillis(final long millis) {
         this.millis = millis;
     }
@@ -78,5 +79,5 @@ public class NTPCachedTimeSourceTest {
     private Long toNanos(long millis) {
         return millis * 1000l * 1000l;
     }
-
+    
 }
