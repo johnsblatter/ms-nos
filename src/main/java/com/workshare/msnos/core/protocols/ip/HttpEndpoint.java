@@ -7,7 +7,9 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.gson.JsonObject;
 import com.workshare.msnos.core.Iden;
+import com.workshare.msnos.soup.json.Json;
 import com.workshare.msnos.usvc.IMicroservice;
 import com.workshare.msnos.usvc.api.RestApi;
 
@@ -28,7 +30,7 @@ public class HttpEndpoint extends BaseEndpoint {
     public HttpEndpoint(Network host, String url, Iden target) {
         super(Type.HTTP, host, extractPort(url));
         if (target == null)
-            throw new IllegalArgumentException("Target cannot be null: pelase use Iden.NULL instead, thanks :)");
+            throw new IllegalArgumentException("Target cannot be null: please use Iden.NULL instead, thanks :)");
         
         this.url = url;
         this.target = target;
@@ -61,6 +63,14 @@ public class HttpEndpoint extends BaseEndpoint {
         }
     }
 
+//    @Override
+//    public String toString() {
+//        JsonObject json = (JsonObject)Json.toJsonTree(this);
+//        json.add("target", Json.toJsonTree(target));
+//        return json.toString();
+//    }
+//    
+//
     private static short extractPort(String urlString) {
         URL url;
         try {
@@ -82,5 +92,9 @@ public class HttpEndpoint extends BaseEndpoint {
         }
         
         throw new IllegalArgumentException("Network not found for api host ["+api.getHost()+"}");
+    }
+
+    public Endpoint withTarget(Iden target) {
+        return new HttpEndpoint(this.getNetwork(), this.getUrl(), target);
     }
 }

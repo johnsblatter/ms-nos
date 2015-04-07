@@ -223,8 +223,10 @@ public class Microcloud {
     private void registerRemoteMsnosEndpoints(RemoteMicroservice remote) throws MsnosException {
         Set<RestApi> remoteApis = remote.getApis();
         for (RestApi restApi : remoteApis) {
-            if (restApi.getType() == RestApi.Type.MSNOS_HTTP)
-                cloud.registerRemoteMsnosEndpoint(new HttpEndpoint(remote, restApi));
+            if (restApi.getType() == RestApi.Type.MSNOS_HTTP) {
+                final HttpEndpoint endpoint = new HttpEndpoint(remote, restApi);
+                cloud.registerRemoteMsnosEndpoint(endpoint);
+            }
         }
     }
 

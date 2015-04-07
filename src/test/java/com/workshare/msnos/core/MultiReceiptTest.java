@@ -57,7 +57,7 @@ public class MultiReceiptTest {
     public void shouldWaitForTimeoutsOnAllReceipts() throws InterruptedException {
         multi.waitForDelivery(100 * receipts.length, TimeUnit.MILLISECONDS);
         for (Receipt receipt : receipts) {
-            verify(receipt).waitForDelivery(100, TimeUnit.MILLISECONDS);
+            verify(receipt, atLeastOnce()).waitForDelivery(anyLong(), eq(TimeUnit.MILLISECONDS));
         }
     }
 
@@ -79,6 +79,16 @@ public class MultiReceiptTest {
         mockStatus(receipts[2], Status.DELIVERED);
         boolean res = multi.waitForDelivery(100, TimeUnit.MILLISECONDS);
         assertTrue(res);
+    }
+
+    @Test
+    public void shouldWaitForTimeoutsWhenNoReceipts() throws InterruptedException {
+        long now = System.currentTimeMillis();
+        
+        multi = new MultiReceipt(MESSAGE);
+        multi.waitForDelivery(100, TimeUnit.MILLISECONDS);
+
+        assertTrue(System.currentTimeMillis() > now + 100);
     }
 
     @Test

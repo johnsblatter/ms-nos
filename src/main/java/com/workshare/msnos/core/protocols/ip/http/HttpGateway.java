@@ -53,16 +53,20 @@ public class HttpGateway implements Gateway {
     public void addListener(Cloud cloud, Listener listener) {
     }
 
+    // FIXME a test is missing here to check the FAILED / PENDING status when sending to the cloud
     @Override
     public Receipt send(Cloud cloud, Message message) throws IOException {
         if (message.getTo().getType() == Type.CLD) {
+            Message.Status status = Status.FAILED;
             for (HttpEndpoint endpoint : endpoints.values()) {
                 RemoteAgent remote = cloud.find(endpoint.getTarget());
-                if (remote != null && !cloud.getRing().equals(remote.getRing()))
+                if (remote != null && !cloud.getRing().equals(remote.getRing())) {
                     sendTo(message, endpoint);
+                    status = Status.PENDING;
+                }
             }
             
-            return new SingleReceipt(this, Status.PENDING, message);
+            return new SingleReceipt(this, status, message);
         }
         else {
             HttpEndpoint endpoint = endpoints.get(message.getTo());

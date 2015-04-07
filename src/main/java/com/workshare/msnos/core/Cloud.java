@@ -19,10 +19,10 @@ import net.jodah.expiringmap.ExpiringMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.workshare.msnos.core.MsnosException.Code;
 import com.workshare.msnos.core.cloud.AgentWatchdog;
 import com.workshare.msnos.core.cloud.IdentifiablesList;
 import com.workshare.msnos.core.cloud.JoinSynchronizer;
-import com.workshare.msnos.core.cloud.JoinSynchronizer.Status;
 import com.workshare.msnos.core.cloud.Multicaster;
 import com.workshare.msnos.core.payloads.FltPayload;
 import com.workshare.msnos.core.payloads.Presence;
@@ -58,7 +58,6 @@ public class Cloud implements Identifiable {
     private final AtomicLong seq;
 
     transient private final Set<Gateway> gates;
-    transient private final JoinSynchronizer synchronizer;
     transient private final Ring ring;
     transient private final Signer signer;
     transient private final Internal internal;
@@ -115,7 +114,6 @@ public class Cloud implements Identifiable {
 
         this.signer = signer;
         this.signid = signid;
-        this.synchronizer = synchronizer;
         this.ring = calculateRing(gates);
 
         this.sender = sender;
@@ -226,13 +224,18 @@ public class Cloud implements Identifiable {
         log.debug("Local agent joined: {}", agent);
         localAgents.add(agent);
 
-        final Status status = synchronizer.start(agent);
+        Receipt receipt = send(new MessageBuilder(Message.Type.PRS, agent, this).with(new Presence(true, agent)).make());
+        waitForDelivery(receipt, 2, TimeUnit.SECONDS);
+        
+        sendSync(new MessageBuilder(Message.Type.DSC, agent, this).make());
+    }
+
+    private void waitForDelivery(Receipt receipt, final int amount, final TimeUnit unit) throws MsnosException {
         try {
-            send(new MessageBuilder(Message.Type.PRS, agent, this).with(new Presence(true, agent)).make());
-            send(new MessageBuilder(Message.Type.DSC, agent, this).make());
-            synchronizer.wait(status);
-        } finally {
-            synchronizer.remove(status);
+            receipt.waitForDelivery(amount, unit);
+        } catch (InterruptedException e) {
+            Thread.interrupted();
+            throw new MsnosException(e.getMessage(), Code.SEND_FAILED);
         }
     }
 
@@ -245,7 +248,7 @@ public class Cloud implements Identifiable {
     }
 
     private void checkCloudAlive() throws MsnosException {
-        if (gates.size() == 0 || synchronizer == null)
+        if (gates.size() == 0)
             throw new MsnosException("This cloud is not connected as it is a mirror of a remote one", MsnosException.Code.NOT_CONNECTED);
     }
 
@@ -281,7 +284,7 @@ public class Cloud implements Identifiable {
         touch(remoteAgents.get(from));
         touch(remoteClouds.get(from));
 
-        synchronizer.process(message);
+//        synchronizer.process(message);
     }
 
     private void touch(RemoteEntity entity) {

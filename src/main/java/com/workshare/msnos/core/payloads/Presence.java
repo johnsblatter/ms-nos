@@ -8,7 +8,6 @@ import org.slf4j.LoggerFactory;
 
 import com.workshare.msnos.core.Agent;
 import com.workshare.msnos.core.Cloud;
-import com.workshare.msnos.core.Gateways;
 import com.workshare.msnos.core.Iden;
 import com.workshare.msnos.core.LocalAgent;
 import com.workshare.msnos.core.Message;
@@ -16,6 +15,7 @@ import com.workshare.msnos.core.Message.Payload;
 import com.workshare.msnos.core.MsnosException;
 import com.workshare.msnos.core.RemoteAgent;
 import com.workshare.msnos.core.protocols.ip.Endpoint;
+import com.workshare.msnos.core.protocols.ip.HttpEndpoint;
 import com.workshare.msnos.soup.json.Json;
 
 public class Presence implements Message.Payload {
@@ -32,7 +32,7 @@ public class Presence implements Message.Payload {
     }
 
     public Presence(boolean present, Agent agent) throws MsnosException {
-        this(present, present ? Gateways.endpointsOf(agent) : new HashSet<Endpoint>());
+        this(present, present ? agent.getEndpoints() : new HashSet<Endpoint>());
     }
 
     public boolean isPresent() {
@@ -93,9 +93,9 @@ public class Presence implements Message.Payload {
         if (isPresent()) {
             RemoteAgent agent;
             if (message.getEndpoint() == Endpoint.Type.UDP) 
-                agent = new RemoteAgent(from.getUUID(), internal.cloud(), getEndpoints(), internal.cloud().getRing());
+                agent = new RemoteAgent(from.getUUID(), internal.cloud(), extractEndpoints(from), internal.cloud().getRing());
             else
-                agent = new RemoteAgent(from.getUUID(), internal.cloud(), getEndpoints());
+                agent = new RemoteAgent(from.getUUID(), internal.cloud(), extractEndpoints(from));
                 
             log.debug("Discovered new agent from network: {}", agent.toString());
             internal.remoteAgents().add(agent);
@@ -105,6 +105,21 @@ public class Presence implements Message.Payload {
         }
 
         return true;
+    }
+
+    // FIXME this method is NOT tested - patch - need to be refactored and tested please
+    private Set<Endpoint> extractEndpoints(Iden from) {
+        final Set<Endpoint> all = getEndpoints();
+        final Set<Endpoint> res = new HashSet<Endpoint>();
+        for (Endpoint endpoint  : all) {
+            if (endpoint instanceof HttpEndpoint) {
+                HttpEndpoint http = (HttpEndpoint)endpoint;
+                endpoint = http.withTarget(from);
+            }
+            res.add(endpoint);
+        }
+
+        return res;
     }
 
     public static Presence on(LocalAgent agent) {

@@ -105,8 +105,8 @@ public class Sender {
 
         final String muid = shorten(msg.getUuid());
         final String payload = Json.toJsonString(msg.getData());
-        final String when = shorten(msg.getWhen());
-        proto.info("TX({}): {} {} {} {} {} {}", gateName, msg.getType(), muid, when, msg.getFrom(), msg.getTo(), payload);
+//        final String when = shorten(msg.getWhen());
+        proto.info("TX({}): {} {} {} {} {} {}", gateName, msg.getType(), muid, msg.getWhen(), msg.getFrom(), msg.getTo(), payload);
     }
 
     private void logNX(Message msg, String gateName) {
@@ -115,8 +115,8 @@ public class Sender {
 
         final String muid = shorten(msg.getUuid());
         final String payload = Json.toJsonString(msg.getData());
-        final String when = shorten(msg.getWhen());
-        proto.debug("NX({}): {} {} {} {} {} {}", gateName, msg.getType(), muid, when, msg.getFrom(), msg.getTo(), payload);
+//        final String when = shorten(msg.getWhen());
+        proto.debug("T#({}): {} {} {} {} {} {}", gateName, msg.getType(), muid, msg.getWhen(), msg.getFrom(), msg.getTo(), payload);
     }
 
 }

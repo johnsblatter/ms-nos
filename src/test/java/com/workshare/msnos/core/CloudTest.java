@@ -1,8 +1,9 @@
 package com.workshare.msnos.core;
 
-import static com.workshare.msnos.core.CoreHelper.*;
+import static com.workshare.msnos.core.CoreHelper.asNetwork;
 import static com.workshare.msnos.core.CoreHelper.asPublicNetwork;
 import static com.workshare.msnos.core.CoreHelper.asSet;
+import static com.workshare.msnos.core.CoreHelper.fakeElapseTime;
 import static com.workshare.msnos.core.CoreHelper.fakeSystemTime;
 import static com.workshare.msnos.core.CoreHelper.randomUUID;
 import static com.workshare.msnos.core.Message.Type.APP;
@@ -20,8 +21,6 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -44,7 +43,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InOrder;
 
 import com.workshare.msnos.core.Message.Status;
 import com.workshare.msnos.core.Message.Type;
@@ -95,6 +93,8 @@ public class CloudTest {
         home.mkdirs();
 
         sender = mock(Sender.class);
+        Receipt receipt = mock(Receipt.class);
+        when(sender.send(any(Cloud.class), any(Message.class))).thenReturn(receipt );
         scheduler = mock(ScheduledExecutorService.class);
 
         Receipt unknownReceipt = mock(Receipt.class);
@@ -285,9 +285,9 @@ public class CloudTest {
         RemoteAgent remoteAgent = newRemoteAgent(thisCloud);
 
         fakeSystemTime(12345L);
-        simulateMessageFromNetwork(new MockMessageHelper(Message.Type.PRS, remoteAgent.getIden(), thisCloud.getIden()).data(new Presence(true, remoteAgent)).make());
+        simulateMessageFromNetwork(newMessage(Message.Type.PRS, remoteAgent.getIden(), thisCloud.getIden()).data(new Presence(true, remoteAgent)));
 
-        fakeSystemTime(99999L);
+        fakeElapseTime(100);
         assertEquals(12345L, getRemoteAgentAccessTime(thisCloud, remoteAgent));
     }
 
@@ -375,46 +375,6 @@ public class CloudTest {
     }
 
     @Test
-    public void shouldUseSynchronizerOnSuccessfulJoin() throws IOException {
-        JoinSynchronizer.Status status = mock(JoinSynchronizer.Status.class);
-        when(synchro.start(any(LocalAgent.class))).thenReturn(status);
-
-        LocalAgent local = new LocalAgent(UUID.randomUUID());
-        local.join(thisCloud);
-
-        InOrder inOrder = inOrder(synchro);
-        inOrder.verify(synchro).start(local);
-        inOrder.verify(synchro).wait(status);
-        inOrder.verify(synchro).remove(status);
-    }
-
-    @Test(expected = IOException.class)
-    public void shouldUseSynchronizerOnUnsuccessfulSync() throws IOException {
-        JoinSynchronizer.Status status = mock(JoinSynchronizer.Status.class);
-        when(synchro.start(any(LocalAgent.class))).thenReturn(status);
-        doThrow(IOException.class).when(synchro).wait(status);
-
-        LocalAgent local = new LocalAgent(UUID.randomUUID());
-        try {
-            local.join(thisCloud);
-        } finally {
-            InOrder inOrder = inOrder(synchro);
-            inOrder.verify(synchro).start(local);
-            inOrder.verify(synchro).wait(status);
-            inOrder.verify(synchro).remove(status);
-        }
-    }
-
-    @Test
-    public void shouldInvokeSynchronzerWhenMessageReceived() throws Exception {
-        RemoteAgent frank = newRemoteAgent(thisCloud);
-
-        Message message = simulateAgentJoiningCloud(frank, thisCloud);
-
-        verify(synchro).process(message);
-    }
-
-    @Test
     public void shouldSendSignedMessagesIfKeystoreConfigured() throws Exception {
         when(keystore.get(KEY_ID)).thenReturn(KEY_VAL);
 
@@ -482,20 +442,7 @@ public class CloudTest {
         assertEquals(message, receivedMessages.get(0));
     }
 
-    @Test
-    public void shouldDiscardOldMessagesFromMultipleOtherClouds() throws Exception {
-        Message fromOne = simulateMessageFromOtherCloud("ONE", 999999, 1);
-        Message fromTwo = simulateMessageFromOtherCloud("TWO", 999999, 2);
-
-        simulateMessageFromOtherCloud("ONE", 42, 1);
-        simulateMessageFromOtherCloud("TWO", 42, 2);
-
-        assertEquals(receivedMessages.size(), 2);
-        assertTrue(receivedMessages.contains(fromOne));
-        assertTrue(receivedMessages.contains(fromTwo));
-    }
-
-    @Test
+   @Test
     public void shouldRegisterMsnosEndpointsOnHttpGateway() throws Exception {
         HttpEndpoint endpoint = mock(HttpEndpoint.class);
         when(endpoint.getTarget()).thenReturn(new Iden(Iden.Type.AGT, UUID.randomUUID()));
@@ -725,7 +672,8 @@ public class CloudTest {
         try {
             ArgumentCaptor<Message> captor = ArgumentCaptor.forClass(Message.class);
             verify(sender, atLeastOnce()).sendSync(any(Cloud.class), captor.capture(), any(MultiReceipt.class));
-            return captor.getAllValues().get(0);
+            final List<Message> allValues = captor.getAllValues();
+            return allValues.get(allValues.size()-1);
         } catch (Throwable any) {
             return mock(Message.class);
         }

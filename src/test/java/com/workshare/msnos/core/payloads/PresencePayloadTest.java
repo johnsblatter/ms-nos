@@ -61,14 +61,16 @@ public class PresencePayloadTest {
         Endpoint alfa = Mockito.mock(Endpoint.class);
         Endpoint beta = Mockito.mock(Endpoint.class);
         HashSet<Endpoint> expected = asSet(alfa, beta);
-        when(Gateways.endpointsOf(any(Agent.class))).thenReturn(expected);
-
         Agent agent = mock(Agent.class);
+        when(agent.getEndpoints()).thenReturn(expected);
+        
         Presence payload = new Presence(true, agent);
 
-        assertEquals(expected, payload.getEndpoints());
+        final Set<Endpoint> current = payload.getEndpoints();
+        assertEquals(expected, current);
     }
     
+    // FIXME now working on agents endpoints, not on Gateway's'/
     @Test
     public void shouldLoadNoGatewaysWhenPresenceFalse() throws MsnosException {
         PowerMockito.mockStatic(Gateways.class);

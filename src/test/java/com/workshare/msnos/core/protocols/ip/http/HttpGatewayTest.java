@@ -100,12 +100,12 @@ public class HttpGatewayTest {
 
     // FIXME the test about sending the message to all agents outside my ring it's missing :(
     @Test
-    public void shouldReturnPendingDeliveryReceiptWhenMessageDirectedToCloud() throws Exception {
+    public void shouldReturnFailedDeliveryReceiptWhenMessageDirectedToCloudAndNoMeansToDeliverIt() throws Exception {
         
         Message message = newSampleMessage(newIden(AGT), newIden(CLD));
         Receipt receipt = gate.send(cloud, message);
 
-        assertEquals(Message.Status.PENDING, receipt.getStatus());
+        assertEquals(Message.Status.FAILED, receipt.getStatus());
     }
 
     @Test

@@ -51,14 +51,33 @@ public class MultiReceipt implements Receipt {
     }
 
     public boolean waitForDelivery(long amount, TimeUnit unit) throws InterruptedException {
-        long slice = unit.toMillis(amount) / receipts.size();
+
+        final long tenth = unit.toMillis(amount)/10;
+        while(amount > 0) {
+            amount-=tenth;
+            if (receipts.size() == 0)
+                justWait(tenth);
+            else
+                if (waitForDelivery(tenth))
+                    return true;
+        }
+
+        return getStatus() == Status.DELIVERED;
+    }
+
+    private synchronized void justWait(long millis) throws InterruptedException {
+        this.wait(millis);
+    }
+
+    private boolean waitForDelivery(long millis) throws InterruptedException {
+        long slice = millis / receipts.size();
         for (Receipt receipt : receipts) {
             boolean res = receipt.waitForDelivery(slice, TimeUnit.MILLISECONDS);
             if (res == true)
                 return true;
         }
-
-        return getStatus() == Status.DELIVERED;
+        
+        return false;
     }
 
     public int size() {

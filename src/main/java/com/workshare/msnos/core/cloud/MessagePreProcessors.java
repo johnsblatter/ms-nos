@@ -66,8 +66,8 @@ public class MessagePreProcessors {
         validators.add(shouldNotComeFromLocalAgent());
         validators.add(shouldNotBeAddressedToRemoteAgent());
         validators.add(shouldNotBeAddressedToAnotherCloud());
-        validators.add(shouldNeverSeenMessage());
         validators.add(shouldNotBeTooOld());
+        validators.add(shouldNeverSeenMessage());
         validators.add(shouldHaveValidSignature());
     }
 
@@ -84,7 +84,7 @@ public class MessagePreProcessors {
     }
 
     private long getMessageLifetime() {
-        return Long.getLong(SYSP_MESSAGE_LIFETIME, 60);
+        return Long.getLong(SYSP_MESSAGE_LIFETIME, 60000);
     }
 
     private MessagePreProcessor shouldHaveValidSignature() {
@@ -125,8 +125,10 @@ public class MessagePreProcessors {
 
             @Override
             public Result isValid(Message message) {
-                final long elapsed = System.currentTimeMillis() - message.getWhen();
-                return asResult(elapsed < lifetime);
+                final long now = SystemTime.asMillis();
+                final long elapsed = now - message.getWhen();
+                final Result result = asResult(elapsed < lifetime);
+                return result;
             }
         };
     }
