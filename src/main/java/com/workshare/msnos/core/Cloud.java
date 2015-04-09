@@ -3,7 +3,6 @@ package com.workshare.msnos.core;
 import static com.workshare.msnos.core.Message.Type.PRS;
 
 import java.io.IOException;
-import java.security.SecureRandom;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -22,7 +21,6 @@ import org.slf4j.LoggerFactory;
 import com.workshare.msnos.core.MsnosException.Code;
 import com.workshare.msnos.core.cloud.AgentWatchdog;
 import com.workshare.msnos.core.cloud.IdentifiablesList;
-import com.workshare.msnos.core.cloud.JoinSynchronizer;
 import com.workshare.msnos.core.cloud.Multicaster;
 import com.workshare.msnos.core.payloads.FltPayload;
 import com.workshare.msnos.core.payloads.Presence;
@@ -43,8 +41,6 @@ public class Cloud implements Identifiable {
     private static final ScheduledExecutorService DEFAULT_SCHEDULER = ExecutorServices.newSingleThreadScheduledExecutor();
 
     private static final Logger log = LoggerFactory.getLogger(Cloud.class);
-
-    private static final SecureRandom random = new SecureRandom();
 
     public static interface Listener {
         public void onMessage(Message message);
@@ -92,14 +88,14 @@ public class Cloud implements Identifiable {
     }
 
     public Cloud(UUID uuid, String signid) throws MsnosException {
-        this(uuid, signid, Gateways.all(), new JoinSynchronizer(), random.nextLong());
+        this(uuid, signid, Gateways.all());
     }
 
-    public Cloud(UUID uuid, String signid, Set<Gateway> gates, JoinSynchronizer synchronizer, Long instanceId) {
-        this(uuid, signid, new Signer(), new Sender(), gates, synchronizer, new Multicaster(), DEFAULT_SCHEDULER, instanceId);
+    public Cloud(UUID uuid, String signid, Set<Gateway> gates) {
+        this(uuid, signid, new Signer(), new Sender(), gates, new Multicaster(), DEFAULT_SCHEDULER);
     }
 
-    Cloud(final UUID uuid, String signid, Signer signer, Sender sender, Set<Gateway> gates, JoinSynchronizer synchronizer, Multicaster multicaster, ScheduledExecutorService executor, Long instanceId) {
+    Cloud(final UUID uuid, String signid, Signer signer, Sender sender, Set<Gateway> gates, Multicaster multicaster, ScheduledExecutorService executor) {
         this.iden = new Iden(Iden.Type.CLD, uuid);
 
         this.enquiries = ExpiringMap.builder().expiration(ENQUIRY_EXPIRE, TimeUnit.SECONDS).build();

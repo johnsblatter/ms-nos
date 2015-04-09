@@ -2,7 +2,6 @@ package com.workshare.msnos.core.serializers;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
 
 import java.util.Arrays;
 import java.util.HashSet;
@@ -23,7 +22,6 @@ import com.workshare.msnos.core.NoopGateway;
 import com.workshare.msnos.core.RemoteAgent;
 import com.workshare.msnos.core.RemoteEntity;
 import com.workshare.msnos.core.Version;
-import com.workshare.msnos.core.cloud.JoinSynchronizer;
 import com.workshare.msnos.core.payloads.FltPayload;
 import com.workshare.msnos.core.payloads.HealthcheckPayload;
 import com.workshare.msnos.core.payloads.Presence;
@@ -57,7 +55,7 @@ public class WireJsonSerializerTest {
 
     @Before
     public void before() throws Exception {
-        cloud = new Cloud(CLOUD_UUID, "1231", new HashSet<Gateway>(Arrays.asList(new NoopGateway())), mock(JoinSynchronizer.class), CLOUD_INSTANCE_ID);
+        cloud = new Cloud(CLOUD_UUID, "1231", new HashSet<Gateway>(Arrays.asList(new NoopGateway())));
 
         localAgent = new LocalAgent(AGENT_UUID);
         localAgent.join(cloud);

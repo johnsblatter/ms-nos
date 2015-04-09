@@ -38,7 +38,6 @@ import com.workshare.msnos.core.Receipt;
 import com.workshare.msnos.core.RemoteAgent;
 import com.workshare.msnos.core.RemoteEntity;
 import com.workshare.msnos.core.Ring;
-import com.workshare.msnos.core.cloud.JoinSynchronizer;
 import com.workshare.msnos.core.payloads.FltPayload;
 import com.workshare.msnos.core.payloads.QnePayload;
 import com.workshare.msnos.core.protocols.ip.BaseEndpoint;
@@ -88,7 +87,7 @@ public class MicroserviceTest {
     @Test
     public void shouldInternalAgentJoinTheCloudOnJoin() throws Exception {
         localMicroservice = new Microservice("jeff");
-        cloud = new Cloud(UUID.randomUUID(), " ", mockGateways(), mock(JoinSynchronizer.class), null);
+        cloud = new Cloud(UUID.randomUUID(), " ", mockGateways());
 
         localMicroservice.join(newMicrocloud(cloud));
 
@@ -98,7 +97,7 @@ public class MicroserviceTest {
     @Test
     public void shouldInternalAgentLeaveTheCloudOnLeave() throws Exception {
         localMicroservice = new Microservice("jeff");
-        cloud = new Cloud(UUID.randomUUID(), " ", mockGateways(), mock(JoinSynchronizer.class), null);
+        cloud = new Cloud(UUID.randomUUID(), " ", mockGateways());
 
         final Microcloud ucloud = newMicrocloud(cloud);
         localMicroservice.join(ucloud);

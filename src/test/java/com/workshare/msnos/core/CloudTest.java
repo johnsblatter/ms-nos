@@ -46,7 +46,6 @@ import org.mockito.ArgumentCaptor;
 
 import com.workshare.msnos.core.Message.Status;
 import com.workshare.msnos.core.Message.Type;
-import com.workshare.msnos.core.cloud.JoinSynchronizer;
 import com.workshare.msnos.core.payloads.FltPayload;
 import com.workshare.msnos.core.payloads.Presence;
 import com.workshare.msnos.core.protocols.ip.BaseEndpoint;
@@ -80,7 +79,6 @@ public class CloudTest {
 
     private ScheduledExecutorService scheduler;
     private List<Message> receivedMessages;
-    private JoinSynchronizer synchro;
     private KeysStore keystore;
     private Signer signer;
     private File home;
@@ -100,8 +98,6 @@ public class CloudTest {
         Receipt unknownReceipt = mock(Receipt.class);
         when(unknownReceipt.getStatus()).thenReturn(Status.UNKNOWN);
 
-        synchro = mock(JoinSynchronizer.class);
-
         httpGate = mock(HttpGateway.class);
         when(httpGate.name()).thenReturn("HTTP");
         Endpoints endpoints = mock(Endpoints.class);
@@ -115,7 +111,7 @@ public class CloudTest {
         when(timeClient.getTime()).thenReturn(1234L);
 
         gates = new LinkedHashSet<Gateway>(Arrays.asList(httpGate));
-        thisCloud = new Cloud(MY_CLOUD.getUUID(), KEY_ID, signer, sender, gates, synchro, CoreHelper.synchronousCloudMulticaster(), scheduler, null);
+        thisCloud = new Cloud(MY_CLOUD.getUUID(), KEY_ID, signer, sender, gates, CoreHelper.synchronousCloudMulticaster(), scheduler);
         thisCloud.addListener(new Cloud.Listener() {
             @Override
             public void onMessage(Message message) {
@@ -125,7 +121,7 @@ public class CloudTest {
 
         receivedMessages = new ArrayList<Message>();
 
-        otherCloud = new Cloud(UUID.randomUUID(), KEY_ID, signer, sender, Collections.<Gateway> emptySet(), synchro, CoreHelper.synchronousCloudMulticaster(), Executors.newSingleThreadScheduledExecutor(), null);
+        otherCloud = new Cloud(UUID.randomUUID(), KEY_ID, signer, sender, Collections.<Gateway> emptySet(), CoreHelper.synchronousCloudMulticaster(), Executors.newSingleThreadScheduledExecutor());
         thisCloudRemoteIden = new Iden(Iden.Type.CLD, thisCloud.getIden().getUUID());
     }
 
@@ -549,7 +545,7 @@ public class CloudTest {
         final Gateway gate = mock(Gateway.class);
         when(gate.endpoints()).thenReturn(CoreHelper.makeImmutableEndpoints(endpoints));
 
-        Cloud cloud = new Cloud(randomUUID(), KEY_ID, signer, sender, asSet(gate), synchro, CoreHelper.synchronousCloudMulticaster(), scheduler, null);
+        Cloud cloud = new Cloud(randomUUID(), KEY_ID, signer, sender, asSet(gate), CoreHelper.synchronousCloudMulticaster(), scheduler);
 
         assertEquals(Ring.make(endpoints), cloud.getRing());
     }

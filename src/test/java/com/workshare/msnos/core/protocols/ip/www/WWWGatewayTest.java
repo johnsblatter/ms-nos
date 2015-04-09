@@ -48,7 +48,6 @@ import com.workshare.msnos.core.Message;
 import com.workshare.msnos.core.Message.Status;
 import com.workshare.msnos.core.MessageBuilder;
 import com.workshare.msnos.core.Receipt;
-import com.workshare.msnos.core.cloud.JoinSynchronizer;
 import com.workshare.msnos.core.serializers.WireJsonSerializer;
 import com.workshare.msnos.core.serializers.WireSerializer;
 
@@ -75,7 +74,7 @@ public class WWWGatewayTest {
     @Before
     public void setup() throws Exception {
         
-        cloud = new Cloud(CLOUD_UUID, " ", Collections.<Gateway>emptySet(), mock(JoinSynchronizer.class),null);
+        cloud = new Cloud(CLOUD_UUID, " ", Collections.<Gateway>emptySet());
 
         System.setProperty(WWWGateway.SYSP_ADDRESS, WWW_ROOT);
 
