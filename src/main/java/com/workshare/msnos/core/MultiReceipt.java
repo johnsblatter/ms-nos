@@ -2,6 +2,7 @@ package com.workshare.msnos.core;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -15,9 +16,13 @@ public class MultiReceipt implements Receipt {
     private final Set<Receipt> receipts;
      
     public MultiReceipt(Message message, Receipt... someReceipts) {
+        this(message, Arrays.asList(someReceipts));
+    }
+    
+    public MultiReceipt(Message message, List<Receipt> someReceipts) {
         this.messageUuid = message.getUuid();
         this.receipts = Collections.newSetFromMap(new ConcurrentHashMap<Receipt, Boolean>());
-        receipts.addAll(Arrays.asList(someReceipts));
+        receipts.addAll(someReceipts);
     }
     
     public void add(Receipt receipt) {

@@ -11,7 +11,7 @@ public class UDPRouteBroadcast extends Route {
 
     public UDPRouteBroadcast(Router router) {
         super(router);
-        maximumHops = Integer.getInteger(Router.SYSP_MAXIMUM_HOPS, 10);
+        maximumHops = Integer.getInteger(Router.SYSP_MAXIMUM_HOPS_DIRECT, 10);
     }
 
     @Override

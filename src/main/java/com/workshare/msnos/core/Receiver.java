@@ -14,8 +14,6 @@ import com.workshare.msnos.core.Cloud.Listener;
 import com.workshare.msnos.core.cloud.MessagePreProcessors;
 import com.workshare.msnos.core.cloud.MessagePreProcessors.Result;
 import com.workshare.msnos.core.cloud.Multicaster;
-import com.workshare.msnos.core.protocols.ip.http.HttpGateway;
-import com.workshare.msnos.core.protocols.ip.udp.UDPGateway;
 import com.workshare.msnos.core.routing.Router;
 import com.workshare.msnos.soup.json.Json;
 
@@ -32,7 +30,7 @@ public class Receiver {
     private final Router router;
     
     Receiver(Cloud cloud, Set<Gateway> gates, Multicaster multicaster) {
-        this(cloud, gates, multicaster, new Router(cloud, getGate(gates, UDPGateway.class), getGate(gates, HttpGateway.class)));
+        this(cloud, gates, multicaster, new Router(cloud, gates));
     }
 
 
@@ -132,15 +130,4 @@ public class Receiver {
         final String payload = Json.toJsonString(msg.getData());
         proto.info("RX({}): {} {} {} {} {} {}", shorten(gateName,3), msg.getType(), muid, msg.getWhen(), msg.getFrom(), msg.getTo(), payload);
     }
-    
-    @SuppressWarnings("unchecked")
-    private static <T> T getGate(Set<? super T> gates, Class<T> clazz) {
-        for (Object gate : gates) {
-            if (gate.getClass() == clazz)
-                return (T)gate;
-        }
-        
-        return null;
-    }
-
 }

@@ -23,6 +23,7 @@ import org.junit.Test;
 import com.workshare.msnos.core.Cloud;
 import com.workshare.msnos.core.CoreHelper;
 import com.workshare.msnos.core.Iden;
+import com.workshare.msnos.core.Identifiable;
 import com.workshare.msnos.core.Message;
 import com.workshare.msnos.core.Ring;
 import com.workshare.msnos.core.Message.Type;
@@ -98,7 +99,6 @@ public class HttpGatewayTest {
         assertEquals("HTTP", receipt.getGate());
     }
 
-    // FIXME the test about sending the message to all agents outside my ring it's missing :(
     @Test
     public void shouldReturnFailedDeliveryReceiptWhenMessageDirectedToCloudAndNoMeansToDeliverIt() throws Exception {
         
@@ -128,6 +128,22 @@ public class HttpGatewayTest {
         assertEquals(AGENT_SMITH_URL, request.getURI().toString());
         assertEquals(toText(message), toText(request.getEntity()));
         assertEquals(Message.Status.DELIVERED, receipt.getStatus());
+    }
+
+    @Test
+    public void shouldPreferIdentifiableAgaubsMessageTo() throws Exception {
+
+        Message message = newSampleMessage(newIden(AGT), newIden(AGT));
+
+        gate.send(cloud, message, asIdentifiable(AGENT_SMITH));
+
+        assertEquals(AGENT_SMITH_URL, http.getLastPostToWWW().getURI().toString());
+    }
+
+    private Identifiable asIdentifiable(Iden iden) {
+        Identifiable target = mock(Identifiable.class);
+        when(target.getIden()).thenReturn(iden);
+        return target;
     }
 
     @Test

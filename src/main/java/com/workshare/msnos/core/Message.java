@@ -141,7 +141,10 @@ public class Message {
     }
 
     public Message withHops(int hops) {
-        return new Message(type, from, to, hops, reliable, data, uuid, sig, rnd, when);
+        if (hops == this.hops)
+            return this;
+        else
+            return new Message(type, from, to, hops, reliable, data, uuid, sig, rnd, when);
     }
 
     public Message signed(String keyId, String signature) {

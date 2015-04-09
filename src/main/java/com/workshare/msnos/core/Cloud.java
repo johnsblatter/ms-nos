@@ -283,8 +283,6 @@ public class Cloud implements Identifiable {
         final Iden from = message.getFrom();
         touch(remoteAgents.get(from));
         touch(remoteClouds.get(from));
-
-//        synchronizer.process(message);
     }
 
     private void touch(RemoteEntity entity) {

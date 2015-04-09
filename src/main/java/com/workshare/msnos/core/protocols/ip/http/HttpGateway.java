@@ -18,13 +18,11 @@ import com.workshare.msnos.core.Agent;
 import com.workshare.msnos.core.Cloud;
 import com.workshare.msnos.core.Gateway;
 import com.workshare.msnos.core.Iden;
-import com.workshare.msnos.core.Iden.Type;
 import com.workshare.msnos.core.Identifiable;
 import com.workshare.msnos.core.Message;
 import com.workshare.msnos.core.Message.Status;
 import com.workshare.msnos.core.MsnosException;
 import com.workshare.msnos.core.Receipt;
-import com.workshare.msnos.core.RemoteAgent;
 import com.workshare.msnos.core.SingleReceipt;
 import com.workshare.msnos.core.protocols.ip.Endpoint;
 import com.workshare.msnos.core.protocols.ip.Endpoints;
@@ -54,28 +52,14 @@ public class HttpGateway implements Gateway {
     public void addListener(Cloud cloud, Listener listener) {
     }
 
-    // FIXME a test is missing here to check the FAILED / PENDING status when sending to the cloud
     @Override
     public Receipt send(Cloud cloud, Message message, Identifiable to) throws IOException {
-        if (message.getTo().getType() == Type.CLD) {
-            Message.Status status = Status.FAILED;
-            for (HttpEndpoint endpoint : endpoints.values()) {
-                RemoteAgent remote = cloud.find(endpoint.getTarget());
-                if (remote != null && !cloud.getRing().equals(remote.getRing())) {
-                    sendTo(message, endpoint);
-                    status = Status.PENDING;
-                }
-            }
-            
-            return new SingleReceipt(this, status, message);
-        }
-        else {
-            HttpEndpoint endpoint = endpoints.get(message.getTo());
-            if (endpoint == null)
-                return new SingleReceipt(this, Status.FAILED, message);
-    
+        Iden destination = (to != null ? to.getIden() : message.getTo());
+        HttpEndpoint endpoint = endpoints.get(destination);
+        if (endpoint == null)
+            return new SingleReceipt(this, Status.FAILED, message);
+        else
             return sendTo(message, endpoint);
-        }
     }
 
     private Receipt sendTo(Message message, HttpEndpoint endpoint) {
