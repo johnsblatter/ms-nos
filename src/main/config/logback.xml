@@ -1,30 +1,44 @@
 <configuration scan="true" scanPeriod="10 seconds">
 
-    <appender name="STANDARD" class="ch.qos.logback.core.ConsoleAppender">
+	<!--  Protocol logger -->
+    <appender name="proto.appender" class="ch.qos.logback.core.ConsoleAppender">
         <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
-            <pattern>%-2(%d{dd MMM yyyy HH:mm:ss.SSS}) |-%-5level %class{0}: %method{20} - %msg%n</pattern>
+            <pattern>%-2(%d{dd MMM yyyy HH:mm:ss.SSS}) | %msg%n</pattern>
         </encoder>
     </appender>
 
-    <appender name="MESSAGES" class="ch.qos.logback.core.ConsoleAppender">
-        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
-            <pattern>%-2(%d{dd MMM yyyy HH:mm:ss.SSS}) |-%-5level %class{0}: %method{20} - %msg%n</pattern>
-            <pattern>%d{HH:mm:ss} | %m%n</pattern>
-        </encoder>
-    </appender>
-
-    <logger name="protocol" level="DEBUG" additivity="false">
-        <appender-ref ref="MESSAGES"/>
+    <logger name="protocol" level="ERROR" additivity="false">
+        <appender-ref ref="proto.appender"/>
     </logger>
 
-    <logger name="org.apache.commons" level="WARN"/>
+
+	<!--  Routing logger -->
+    <appender name="routing.appender" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <pattern>%-2(%d{dd MMM yyyy HH:mm:ss.SSS}) | %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <logger name="routing" level="ERROR" additivity="false">
+        <appender-ref ref="routing.appender"/>
+    </logger>
+
+
+	<!--  main logger -->
+    <appender name="main.appender" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <pattern>%-2(%d{dd MMM yyyy HH:mm:ss.SSS}) | %class{0}: %method{20} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <logger name="org.eclipse" level="ERROR"/>
+    <logger name="org.apache.commons" level="ERROR"/>
+    <logger name="com.workshare.msnos" level="WARN"/>
+
 
     <root>
-        <level value="DEBUG"/>
-        <!--
-                <appender-ref ref="STRICT"/>
-        -->
-        <appender-ref ref="MESSAGES"/>
+        <level value="INFO"/>
+		<appender-ref ref="main.appender"/>
     </root>
 
 </configuration>
