@@ -10,6 +10,7 @@ public class SystemTime {
 
     public interface TimeSource {
         long millis();
+        void sleep(long millis) throws InterruptedException;
     }
 
     public static final TimeSource NTP_TIMESOURCE = new NTPCachedTimeSource(new NTPClient());
@@ -17,6 +18,11 @@ public class SystemTime {
         @Override
         public long millis() {
             return System.currentTimeMillis();
+        }
+
+        @Override
+        public void sleep(long millis) throws InterruptedException {
+            Thread.sleep(millis);
         }};
 
     private static final TimeSource DEFAULT_TIMESOURCE;
@@ -35,6 +41,10 @@ public class SystemTime {
     }
 
     private static TimeSource source = DEFAULT_TIMESOURCE;
+
+    public static void sleep(long millis) throws InterruptedException {
+        source.sleep(millis);
+    }
 
     public static long asMillis() {
         return source.millis();

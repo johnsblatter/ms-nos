@@ -1,4 +1,4 @@
-package com.workshare.msnos.core;
+package com.workshare.msnos.core.receipts;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -8,6 +8,8 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
+import com.workshare.msnos.core.Message;
+import com.workshare.msnos.core.Receipt;
 import com.workshare.msnos.core.Message.Status;
 
 public class MultiReceipt implements Receipt {

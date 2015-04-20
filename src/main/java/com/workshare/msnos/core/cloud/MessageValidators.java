@@ -1,6 +1,6 @@
 package com.workshare.msnos.core.cloud;
 
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -12,24 +12,25 @@ import org.slf4j.LoggerFactory;
 
 import com.workshare.msnos.core.Cloud;
 import com.workshare.msnos.core.Iden;
+import com.workshare.msnos.core.Iden.Type;
 import com.workshare.msnos.core.Message;
 import com.workshare.msnos.soup.time.SystemTime;
 
-public class MessagePreProcessors {
+public class MessageValidators {
 
     private static final String SYSP_MESSAGE_LIFETIME = "msnos.core.message.lifetime";
 
     public enum Reason {
+        TO_LOCAL,       // directed to local agent
         FROM_LOCAL,     // coming from local agent
-        FOR_REMOTE,     // addressed to a remote agent
-        UNKNOWN_TO,     // addressed to unknown cloud or agent
+        TO_OTHER,       // addressed to unknown cloud or agent
         BAD_SIGNED,     // signature is not valid
         DUPLICATE,      // duplicate
         TOO_OLD,        // too old
     }
 
 
-    private static final Logger log = LoggerFactory.getLogger(MessagePreProcessors.class);
+    private static final Logger log = LoggerFactory.getLogger(MessageValidators.class);
 
     public static class Result {
         private final boolean success;
@@ -50,29 +51,50 @@ public class MessagePreProcessors {
         }
     }
     
-    public static interface MessagePreProcessor {
+    public static interface Validator {
         public Result isValid(Message message);
     }
 
-    private static final Result SUCCESS = new Result(true, null);
+    public static final Result SUCCESS = new Result(true, null);
     
     private final Cloud.Internal cloud;
-    private final List<MessagePreProcessor> validators;
+    private final List<Validator> receivingValidators;
+    private final List<Validator> forwardingValidators;
 
-    public MessagePreProcessors(Cloud.Internal aCloud) {
+    public MessageValidators(Cloud.Internal aCloud) {
         this.cloud = aCloud;
 
-        this.validators = new ArrayList<MessagePreProcessor>();
-        validators.add(shouldNotComeFromLocalAgent());
-        validators.add(shouldNotBeAddressedToRemoteAgent());
-        validators.add(shouldNotBeAddressedToAnotherCloud());
-        validators.add(shouldNotBeTooOld());
-        validators.add(shouldNeverSeenMessage());
-        validators.add(shouldHaveValidSignature());
+        final Validator notToLocal = shouldNotDirectedToLocalAgent();
+        final Validator notFromLocal = shouldNotComeFromLocalAgent();
+        final Validator neverSeen = shouldNeverSeenMessage();
+        final Validator withValidSignature = shouldHaveValidSignature();
+        final Validator notTooOld = shouldNotBeTooOld();
+        final Validator notAddressedOutside = shouldNotBeAddressedToAnotherCloud();
+
+        this.receivingValidators = Arrays.asList(
+                notFromLocal, 
+                notAddressedOutside,
+                notTooOld,
+                neverSeen, 
+                withValidSignature);
+
+        this.forwardingValidators = Arrays.asList(
+                notToLocal, 
+                notTooOld,
+                neverSeen, 
+                withValidSignature);
     }
 
-    public Result isValid(Message message) {
-        for (MessagePreProcessor validator : validators) {
+    public Result isReceivable(Message message) {
+        return isValid(message, receivingValidators);
+    }
+
+    public Result isForwardable(Message message) {
+        return isValid(message, forwardingValidators);
+    }
+
+    private Result isValid(Message message, final List<Validator> validators) {
+        for (Validator validator : validators) {
             final Result result = validator.isValid(message);
             if (!result.success()) {
                 log.debug("Message validation failed: {} - message: {}", validator, message);
@@ -87,7 +109,7 @@ public class MessagePreProcessors {
         return Long.getLong(SYSP_MESSAGE_LIFETIME, 60000);
     }
 
-    private MessagePreProcessor shouldHaveValidSignature() {
+    private Validator shouldHaveValidSignature() {
         return new AbstractMessageValidator(Reason.BAD_SIGNED) {
             @Override
             public Result isValid(Message message) {
@@ -100,7 +122,7 @@ public class MessagePreProcessors {
             }};
     }
 
-    private MessagePreProcessor shouldNeverSeenMessage() {
+    private Validator shouldNeverSeenMessage() {
         return new AbstractMessageValidator(Reason.DUPLICATE) {
             
             private final ExpiringMap<UUID, Message> messages = ExpiringMap.builder()
@@ -118,7 +140,7 @@ public class MessagePreProcessors {
         };
     }
 
-    private MessagePreProcessor shouldNotBeTooOld() {
+    private Validator shouldNotBeTooOld() {
         return new AbstractMessageValidator(Reason.TOO_OLD) {
             
             private final long lifetime = getMessageLifetime();
@@ -133,25 +155,17 @@ public class MessagePreProcessors {
         };
     }
 
-    private MessagePreProcessor shouldNotBeAddressedToAnotherCloud() {
-        return new AbstractMessageValidator(Reason.UNKNOWN_TO) {
+    private Validator shouldNotBeAddressedToAnotherCloud() {
+        return new AbstractMessageValidator(Reason.TO_OTHER) {
             @Override
             public Result isValid(Message message) {
                 final Iden to = message.getTo();
-                boolean success = to.equals(cloud.cloud().getIden()) || cloud.localAgents().containsKey(to);
+                boolean success = to.getType() != Type.CLD || to.equals(cloud.cloud().getIden());
                 return asResult(success);
             }};
     }
 
-    private MessagePreProcessor shouldNotBeAddressedToRemoteAgent() {
-        return new AbstractMessageValidator(Reason.FOR_REMOTE) {
-            @Override
-            public Result isValid(Message message) {
-                return asResult(!cloud.remoteAgents().containsKey(message.getTo()));
-            }};
-    }
-
-    private MessagePreProcessor shouldNotComeFromLocalAgent() {
+    private Validator shouldNotComeFromLocalAgent() {
         return new AbstractMessageValidator(Reason.FROM_LOCAL) {
             @Override
             public Result isValid(Message message) {
@@ -159,7 +173,15 @@ public class MessagePreProcessors {
             }};
     }
 
-    abstract class AbstractMessageValidator implements MessagePreProcessor {
+    private Validator shouldNotDirectedToLocalAgent() {
+        return new AbstractMessageValidator(Reason.TO_LOCAL) {
+            @Override
+            public Result isValid(Message message) {
+                return asResult(!cloud.localAgents().containsKey(message.getTo()));
+            }};
+    }
+
+    abstract class AbstractMessageValidator implements Validator {
         protected final Reason reason;
         protected final Result failure;
 

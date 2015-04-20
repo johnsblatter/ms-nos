@@ -6,6 +6,7 @@ import static com.workshare.msnos.core.CoreHelper.asSet;
 import static com.workshare.msnos.core.CoreHelper.fakeElapseTime;
 import static com.workshare.msnos.core.CoreHelper.fakeSystemTime;
 import static com.workshare.msnos.core.CoreHelper.randomUUID;
+import static com.workshare.msnos.core.CoreHelper.synchronousCloudMulticaster;
 import static com.workshare.msnos.core.Message.Type.APP;
 import static com.workshare.msnos.core.Message.Type.FLT;
 import static com.workshare.msnos.core.Message.Type.PIN;
@@ -46,6 +47,7 @@ import org.mockito.ArgumentCaptor;
 
 import com.workshare.msnos.core.Message.Status;
 import com.workshare.msnos.core.Message.Type;
+import com.workshare.msnos.core.cloud.Multicaster;
 import com.workshare.msnos.core.payloads.FltPayload;
 import com.workshare.msnos.core.payloads.Presence;
 import com.workshare.msnos.core.protocols.ip.BaseEndpoint;
@@ -53,6 +55,7 @@ import com.workshare.msnos.core.protocols.ip.Endpoint;
 import com.workshare.msnos.core.protocols.ip.Endpoints;
 import com.workshare.msnos.core.protocols.ip.HttpEndpoint;
 import com.workshare.msnos.core.protocols.ip.http.HttpGateway;
+import com.workshare.msnos.core.receipts.SingleReceipt;
 import com.workshare.msnos.core.security.KeysStore;
 import com.workshare.msnos.core.security.Signer;
 import com.workshare.msnos.soup.json.Json;
@@ -75,13 +78,13 @@ public class CloudTest {
     private Cloud otherCloud;
     private Sender sender;
 
-    private Iden thisCloudRemoteIden;
-
     private ScheduledExecutorService scheduler;
     private List<Message> receivedMessages;
     private KeysStore keystore;
     private Signer signer;
     private File home;
+    private Receiver receiver;
+    private Multicaster caster;
 
     @Before
     public void init() throws Exception {
@@ -93,6 +96,8 @@ public class CloudTest {
         sender = mock(Sender.class);
         Receipt receipt = mock(Receipt.class);
         when(sender.send(any(Cloud.class), any(Message.class))).thenReturn(receipt );
+
+        caster = synchronousCloudMulticaster();
         scheduler = mock(ScheduledExecutorService.class);
 
         Receipt unknownReceipt = mock(Receipt.class);
@@ -111,7 +116,7 @@ public class CloudTest {
         when(timeClient.getTime()).thenReturn(1234L);
 
         gates = new LinkedHashSet<Gateway>(Arrays.asList(httpGate));
-        thisCloud = new Cloud(MY_CLOUD.getUUID(), KEY_ID, signer, sender, gates, CoreHelper.synchronousCloudMulticaster(), scheduler);
+        thisCloud = new Cloud(MY_CLOUD.getUUID(), KEY_ID, signer, sender, receiver, gates, caster, scheduler);
         thisCloud.addListener(new Cloud.Listener() {
             @Override
             public void onMessage(Message message) {
@@ -121,8 +126,7 @@ public class CloudTest {
 
         receivedMessages = new ArrayList<Message>();
 
-        otherCloud = new Cloud(UUID.randomUUID(), KEY_ID, signer, sender, Collections.<Gateway> emptySet(), CoreHelper.synchronousCloudMulticaster(), Executors.newSingleThreadScheduledExecutor());
-        thisCloudRemoteIden = new Iden(Iden.Type.CLD, thisCloud.getIden().getUUID());
+        otherCloud = new Cloud(UUID.randomUUID(), KEY_ID, signer, sender, receiver, Gateways.NONE, caster, Executors.newSingleThreadScheduledExecutor());
     }
 
     @After
@@ -229,53 +233,6 @@ public class CloudTest {
         assertFalse(thisCloud.getLocalAgents().contains(frank));
     }
 
-    @Test
-    public void shouldForwardAnyNonCoreMessageSentToThisCloud() throws Exception {
-        simulateMessageFromNetwork(newMessage(APP, SOMEONE, thisCloud.getIden()));
-        assertEquals(1, receivedMessages.size());
-    }
-
-    @Test
-    public void shouldNOTForwardAnyNonCoreMessageSentToAnAgentOfAnotherCloud() throws Exception {
-        RemoteEntity smith = newRemoteAgent(otherCloud);
-        simulateMessageFromNetwork(newMessage(APP, SOMEONE, smith.getIden()));
-        assertEquals(0, receivedMessages.size());
-    }
-
-    @Test
-    public void shouldNOTForwardAnyNonCoreMessageSentToAnotherCloud() throws Exception {
-        simulateMessageFromNetwork(newMessage(APP, SOMEONE, otherCloud.getIden()));
-        assertEquals(0, receivedMessages.size());
-    }
-
-    @Test
-    public void shouldForwardAnyMessageSentToSameCloudUsingSpecificIden() throws Exception {
-        Iden iden = thisCloud.getIden();
-        Iden thisCloudSpecificIden = new Iden(iden.getType(), iden.getUUID());
-
-        simulateMessageFromNetwork(newMessage(APP, SOMEONE, thisCloudSpecificIden));
-
-        assertEquals(1, receivedMessages.size());
-    }
-
-    @Test
-    public void shouldNOTForwardAnyMessageSentFromALocalAgent() throws Exception {
-        LocalAgent karl = new LocalAgent(UUID.randomUUID());
-        karl.join(thisCloud);
-
-        simulateMessageFromNetwork(newMessage(APP, karl.getIden(), thisCloud.getIden()));
-        assertEquals(0, receivedMessages.size());
-    }
-
-    @Test
-    public void shouldNOTForwardAnyMessageSentToARemoteAgent() throws Exception {
-        RemoteAgent remote = newRemoteAgent(thisCloud);
-        simulateAgentJoiningCloud(remote, thisCloud);
-
-        receivedMessages.clear();
-        simulateMessageFromNetwork(newMessage(APP, thisCloud.getIden(), remote.getIden()));
-        assertEquals(0, receivedMessages.size());
-    }
 
     @Test
     public void shouldUpdateRemoteAgentAccessTimeOnPresenceReceived() throws Exception {
@@ -362,16 +319,6 @@ public class CloudTest {
     }
 
     @Test
-    public void shouldSkipMessagesFromLocalAgents() throws Exception {
-        LocalAgent local = new LocalAgent(UUID.randomUUID());
-        local.join(thisCloud);
-
-        simulateMessageFromNetwork(new MessageBuilder(Message.Type.APP, local, thisCloud).make());
-
-        assertEquals(0, receivedMessages.size());
-    }
-
-    @Test
     public void shouldSendSignedMessagesIfKeystoreConfigured() throws Exception {
         when(keystore.get(KEY_ID)).thenReturn(KEY_VAL);
 
@@ -380,63 +327,6 @@ public class CloudTest {
         Message message = getLastMessageSent();
         assertNotNull(message.getSig());
         assertNotNull(message.getRnd());
-    }
-
-    @Test
-    public void shouldDiscardMessagesSignedWithAnInvalidSignature() throws Exception {
-        when(keystore.get(KEY_ID)).thenReturn(KEY_VAL);
-
-        final Message message = newMessage(APP, SOMEONE, thisCloud.getIden()).signed(KEY_ID, "this-is-an-invalid-signature");
-        simulateMessageFromNetwork(message);
-
-        assertEquals(0, receivedMessages.size());
-    }
-
-    @Test
-    public void shouldDiscardMessagesAlreadyReceived() throws Exception {
-        RemoteAgent remoteAgent = mockRemoteWithIden(new Iden(Iden.Type.AGT, UUID.randomUUID()));
-        simulateAgentJoiningCloud(remoteAgent, thisCloud);
-        receivedMessages.clear();
-
-        Message msg = newMessage(APP, remoteAgent.getIden(), thisCloud.getIden());
-        simulateMessageFromNetwork(msg);
-        receivedMessages.clear();
-
-        simulateMessageFromNetwork(msg);
-        assertEquals(0, receivedMessages.size());
-    }
-
-    @Test
-    public void shouldDiscardMessagesWithOldTimestamps() throws Exception {
-        RemoteAgent remoteAgent = mockRemoteWithIden(new Iden(Iden.Type.AGT, UUID.randomUUID()));
-        simulateAgentJoiningCloud(remoteAgent, thisCloud);
-        receivedMessages.clear();
-
-        fakeSystemTime(100000);
-        Message msg = newMessage(APP, remoteAgent.getIden(), thisCloud.getIden());
-
-        fakeSystemTime(9900000);
-        simulateMessageFromNetwork(msg);
-
-        assertEquals(0, receivedMessages.size());
-    }
-
-    @Test
-    public void shouldAcceptNewMessageFromAnotherCloud() throws Exception {
-        Message first = simulateMessageFromOtherCloud("ONE", 42, 1);
-        Message secnd = simulateMessageFromOtherCloud("ONE", 99999999, 1);
-
-        assertEquals(receivedMessages.size(), 2);
-        assertTrue(receivedMessages.contains(first));
-        assertTrue(receivedMessages.contains(secnd));
-    }
-
-    @Test
-    public void shouldDiscardOldMessageFromAnotherCloudInstance() throws Exception {
-        Message message = simulateMessageFromOtherCloud("ONE", 99999999, 1);
-
-        assertEquals(1, receivedMessages.size());
-        assertEquals(message, receivedMessages.get(0));
     }
 
     @Test
@@ -534,7 +424,7 @@ public class CloudTest {
     public void shouldSendMessagesTroughSenderWhenSync() throws Exception {
         Message message = newPingMessage(thisCloud);
         thisCloud.sendSync(message);
-        verify(sender).sendSync(eq(thisCloud), eq(message), any(MultiReceipt.class));
+        verify(sender).sendSync(eq(thisCloud), eq(message), any(SingleReceipt.class));
     }
 
     @Test
@@ -545,7 +435,7 @@ public class CloudTest {
         final Gateway gate = mock(Gateway.class);
         when(gate.endpoints()).thenReturn(CoreHelper.makeImmutableEndpoints(endpoints));
 
-        Cloud cloud = new Cloud(randomUUID(), KEY_ID, signer, sender, asSet(gate), CoreHelper.synchronousCloudMulticaster(), scheduler);
+        Cloud cloud = new Cloud(randomUUID(), KEY_ID, signer, sender, null, asSet(gate), caster, scheduler);
 
         assertEquals(Ring.make(endpoints), cloud.getRing());
     }
@@ -581,20 +471,6 @@ public class CloudTest {
 
         frank = getRemoteAgent(thisCloud, frank.getIden());
         assertNotEquals(thisCloud.getRing(), frank.getRing());
-    }
-
-    
-    private Message simulateMessageFromOtherCloud(String uuidString, int seq, long instance) {
-        final Message message = new MessageBuilder(APP, thisCloudRemoteIden, thisCloud.getIden()).with(UUID.randomUUID()).make();
-        simulateMessageFromNetwork(message);
-
-        return message;
-    }
-
-    private RemoteAgent mockRemoteWithIden(Iden iden) {
-        RemoteAgent remoteAgent = mock(RemoteAgent.class);
-        when(remoteAgent.getIden()).thenReturn(iden);
-        return remoteAgent;
     }
 
     private RemoteAgent getRemoteAgent(Cloud thisCloud, Iden iden) {
@@ -668,7 +544,7 @@ public class CloudTest {
     private Message getLastMessageSentSynchronously() throws IOException {
         try {
             ArgumentCaptor<Message> captor = ArgumentCaptor.forClass(Message.class);
-            verify(sender, atLeastOnce()).sendSync(any(Cloud.class), captor.capture(), any(MultiReceipt.class));
+            verify(sender, atLeastOnce()).sendSync(any(Cloud.class), captor.capture(), any(SingleReceipt.class));
             final List<Message> allValues = captor.getAllValues();
             return allValues.get(allValues.size()-1);
         } catch (Throwable any) {

@@ -1,7 +1,5 @@
 package com.workshare.msnos.core.routing;
 
-import java.io.IOException;
-
 import com.workshare.msnos.core.Message;
 import com.workshare.msnos.core.Message.Status;
 import com.workshare.msnos.core.Receipt;
@@ -14,7 +12,7 @@ public class HTTPRouteDirect extends Route {
     }
 
     @Override
-    public Receipt send(Message message) throws IOException {
+    public Receipt send(Message message) {
         RemoteAgent remote = cloud.getRemoteAgent(message.getTo());
         if (remote != null) {
             if (router.hasRouteFor(remote)) {

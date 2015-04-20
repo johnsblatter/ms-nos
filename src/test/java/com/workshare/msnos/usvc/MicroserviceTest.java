@@ -1,5 +1,6 @@
 package com.workshare.msnos.usvc;
 
+import static com.workshare.msnos.core.CoreHelper.fakeSystemTime;
 import static junit.framework.TestCase.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
@@ -305,13 +306,6 @@ public class MicroserviceTest {
         return message;
     }
 
-    private void fakeSystemTime(final long time) {
-        SystemTime.setTimeSource(new SystemTime.TimeSource() {
-            public long millis() {
-                return time;
-            }
-        });
-    }
 
     private RemoteEntity newRemoteAgentWithFakeHosts(String address, short suffix) throws Exception {
         List<String> tokens = Arrays.asList(address.split("\\."));

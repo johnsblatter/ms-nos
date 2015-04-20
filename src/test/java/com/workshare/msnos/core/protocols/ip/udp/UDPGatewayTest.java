@@ -1,15 +1,18 @@
 package com.workshare.msnos.core.protocols.ip.udp;
 
+import static com.workshare.msnos.core.CoreHelper.fakeSystemTime;
 import static com.workshare.msnos.core.CoreHelper.synchronousGatewayMulticaster;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -22,6 +25,7 @@ import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -30,9 +34,9 @@ import org.mockito.ArgumentCaptor;
 import com.workshare.msnos.core.Cloud;
 import com.workshare.msnos.core.Cloud.Internal;
 import com.workshare.msnos.core.Gateway.Listener;
-import com.workshare.msnos.core.Message.Status;
 import com.workshare.msnos.core.Iden;
 import com.workshare.msnos.core.Message;
+import com.workshare.msnos.core.Message.Status;
 import com.workshare.msnos.core.MessageBuilder;
 import com.workshare.msnos.core.Receipt;
 import com.workshare.msnos.core.protocols.ip.Endpoint;
@@ -64,7 +68,6 @@ public class UDPGatewayTest {
 
         cloud = mock(Cloud.class);
         when(cloud.getIden()).thenReturn(new Iden(Iden.Type.CLD, UUID.randomUUID()));
-
     }
 
     @Test
@@ -115,6 +118,30 @@ public class UDPGatewayTest {
         List<DatagramPacket> packets = getSentPackets();
         assertPacketValid(message, packets.get(0));
     }
+
+    @Test
+    public void shouldResendMessageOnUDPFailure() throws Exception {
+        System.setProperty(UDPGateway.SYSP_RETRY_TIMES, "5");
+        System.setProperty(UDPGateway.SYSP_PORT_WIDTH, "1");
+        doThrow(new SocketException("boom!")).when(socket).send(any(DatagramPacket.class));
+
+        sendMessageAndIgnoreExceptions(newSampleMessage());
+
+        verify(socket, times(5)).send(any(DatagramPacket.class));
+    }
+
+    @Test
+    public void shouldResendMessageUsingTransmitPacing() throws Exception {
+        System.setProperty(UDPGateway.SYSP_RETRY_TIMES, "5");
+        System.setProperty(UDPGateway.SYSP_PORT_WIDTH, "1");
+        doThrow(new SocketException("boom!")).when(socket).send(any(DatagramPacket.class));
+        
+        AtomicLong counter = fakeSystemTime();
+        sendMessageAndIgnoreExceptions(newSampleMessage());
+
+        assertEquals(1+3+5+5, counter.get());
+    }
+
 
     @Test
     public void shouldReturnAReceiptOnSend() throws Exception {
@@ -229,6 +256,13 @@ public class UDPGatewayTest {
         assertEquals(1, messages.size());
         assertEquals(message, messages.get(0));
         return messages.get(0);
+    }
+
+    private void sendMessageAndIgnoreExceptions(final Message message) {
+        try {
+            gate().send(cloud, message, null);
+        } catch (IOException ignore) {
+        }
     }
 
     private UDPGateway gate() throws IOException {

@@ -1,14 +1,27 @@
-package com.workshare.msnos.core;
+package com.workshare.msnos.core.receipts;
 
-import com.workshare.msnos.core.Message.Status;
-import org.junit.Before;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyLong;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
+import org.junit.Before;
+import org.junit.Test;
+
+import com.workshare.msnos.core.LocalAgent;
+import com.workshare.msnos.core.Message;
+import com.workshare.msnos.core.Message.Status;
+import com.workshare.msnos.core.MessageBuilder;
+import com.workshare.msnos.core.Receipt;
 
 public class MultiReceiptTest {
 

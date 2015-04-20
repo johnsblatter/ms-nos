@@ -47,4 +47,9 @@ public class NTPCachedTimeSource implements TimeSource {
     protected long sysNanos() {
         return System.nanoTime();
     }
+
+    @Override
+    public void sleep(long millis) throws InterruptedException {
+        Thread.sleep(millis);
+    }
 }

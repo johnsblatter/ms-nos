@@ -16,4 +16,15 @@ public class PongPayload implements Message.Payload {
         return false;
     }
 
+    @Override
+    public int hashCode() {
+        return "pong".hashCode();
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        return obj instanceof PongPayload;
+    }
+
+    
 }

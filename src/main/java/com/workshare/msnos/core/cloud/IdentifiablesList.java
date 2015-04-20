@@ -34,4 +34,8 @@ public class IdentifiablesList<T extends Identifiable> {
     public T get(Iden iden) {
         return entities.get(iden);
     }
+    
+    public String toString() {
+        return this.entities.toString();
+    }
 }

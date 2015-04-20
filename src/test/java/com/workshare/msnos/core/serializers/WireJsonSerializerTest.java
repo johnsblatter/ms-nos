@@ -2,6 +2,7 @@ package com.workshare.msnos.core.serializers;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static com.workshare.msnos.core.CoreHelper.*;
 
 import java.util.Arrays;
 import java.util.HashSet;
@@ -18,7 +19,6 @@ import com.workshare.msnos.core.Message;
 import com.workshare.msnos.core.Message.Payload;
 import com.workshare.msnos.core.Iden;
 import com.workshare.msnos.core.MessageBuilder;
-import com.workshare.msnos.core.NoopGateway;
 import com.workshare.msnos.core.RemoteAgent;
 import com.workshare.msnos.core.RemoteEntity;
 import com.workshare.msnos.core.Version;
@@ -26,20 +26,21 @@ import com.workshare.msnos.core.payloads.FltPayload;
 import com.workshare.msnos.core.payloads.HealthcheckPayload;
 import com.workshare.msnos.core.payloads.Presence;
 import com.workshare.msnos.core.payloads.QnePayload;
+import com.workshare.msnos.core.payloads.TracePayload;
 import com.workshare.msnos.core.protocols.ip.Endpoint;
 import com.workshare.msnos.core.protocols.ip.HttpEndpoint;
 import com.workshare.msnos.core.protocols.ip.Network;
 import com.workshare.msnos.core.protocols.ip.BaseEndpoint;
+import com.workshare.msnos.core.protocols.ip.NullGateway;
 import com.workshare.msnos.usvc.api.RestApi;
 
 public class WireJsonSerializerTest {
 
     private static final UUID AGENT_UUID = UUID.randomUUID();
-
     private static final UUID CLOUD_UUID = UUID.randomUUID();
-    private static final Long CLOUD_INSTANCE_ID = 1274L;
 
     private static final Iden A_CLOUD_IDEN = new Iden(Iden.Type.CLD, UUID.randomUUID());
+    private static final Iden A_AGENT_IDEN = new Iden(Iden.Type.CLD, UUID.randomUUID());
 
     private static final Network SAMPLE_NETWORK = new Network(new byte[]{10,10,10,1}, (short)25);
 
@@ -55,7 +56,7 @@ public class WireJsonSerializerTest {
 
     @Before
     public void before() throws Exception {
-        cloud = new Cloud(CLOUD_UUID, "1231", new HashSet<Gateway>(Arrays.asList(new NoopGateway())));
+        cloud = new Cloud(CLOUD_UUID, "1231", new HashSet<Gateway>(Arrays.asList(new NullGateway())));
 
         localAgent = new LocalAgent(AGENT_UUID);
         localAgent.join(cloud);
@@ -179,6 +180,47 @@ public class WireJsonSerializerTest {
         assertEquals(source.getData(), decoded.getData());
     }
 
+    @Test
+    public void shouldCorrectlyDeserializePONMessage() throws Exception {
+        Message source = new MessageBuilder(Message.Type.PON, A_CLOUD_IDEN, A_CLOUD_IDEN).make();
+
+        byte[] data = sz.toBytes(source);
+        Message decoded = sz.fromBytes(data, Message.class);
+
+        assertEquals(source.getData(), decoded.getData());
+    }
+
+    @Test
+    public void shouldCorrectlyDeserializeTRCMessage() throws Exception {
+        Payload payload = new TracePayload(A_CLOUD_IDEN).crumbed(randomUUID(), randomUUID(), new NullGateway(), 3);
+        Message source = new MessageBuilder(Message.Type.TRC, A_CLOUD_IDEN, A_AGENT_IDEN).with(payload).make();
+
+        byte[] data = sz.toBytes(source);
+        Message decoded = sz.fromBytes(data, Message.class);
+
+        assertEquals(source.getData(), decoded.getData());
+    }
+
+    @Test
+    public void shouldCorrectlyDeserializeTracePayloadWhenReturnedInACK() throws Exception {
+        Payload payload = new TracePayload(A_AGENT_IDEN).crumbed(randomUUID(), randomUUID(), new NullGateway(), 3);
+        Message source = new MessageBuilder(Message.Type.ACK, A_AGENT_IDEN, A_CLOUD_IDEN).with(payload).make();
+
+        byte[] data = sz.toBytes(source);
+        Message decoded = sz.fromBytes(data, Message.class);
+
+        assertEquals(source.getData(), decoded.getData());
+    }
+
+    @Test
+    public void shouldCorrectlyDeserializeNoPayloadACK() throws Exception {
+        Message source = new MessageBuilder(Message.Type.ACK, A_AGENT_IDEN, A_CLOUD_IDEN).make();
+
+        byte[] data = sz.toBytes(source);
+        Message decoded = sz.fromBytes(data, Message.class);
+
+        assertEquals(source.getData(), decoded.getData());
+    }
 
     private String toShortString(UUID uuid) {
         return uuid.toString().replaceAll("-", "");

@@ -24,5 +24,5 @@ abstract class Route {
      * @return null if route is not applicable or a valid receipt
      * @throws IOException 
      */
-    public abstract Receipt send(Message message) throws IOException;
+    public abstract Receipt send(Message message);
 }

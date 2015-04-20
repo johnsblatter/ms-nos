@@ -245,6 +245,10 @@ public class WireJsonSerializer implements WireSerializer {
             JsonElement dataJson = obj.get("dt");
             if (dataJson != null) {
                 switch (type) {
+                    case ACK:
+                        try {data = (Payload) gson.fromJsonTree(dataJson, TracePayload.class);}
+                        catch (Exception ignore) {}
+                        break;
                     case PRS:
                         data = (Payload) gson.fromJsonTree(dataJson, Presence.class);
                         break;
@@ -256,6 +260,12 @@ public class WireJsonSerializer implements WireSerializer {
                         break;
                     case HCK:
                         data = (Payload) gson.fromJsonTree(dataJson, HealthcheckPayload.class);
+                        break;
+                    case PON:
+                        data = (Payload) gson.fromJsonTree(dataJson, PongPayload.class);
+                        break;
+                    case TRC:
+                        data = (Payload) gson.fromJsonTree(dataJson, TracePayload.class);
                         break;
                     default:
                         data = (dataJson == null ? NullPayload.INSTANCE : new GenericPayload(dataJson));

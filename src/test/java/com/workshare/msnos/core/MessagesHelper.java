@@ -21,6 +21,10 @@ public class MessagesHelper {
                 .make();
     }
     
+    public static Message newPingMessage(Iden from) {
+        return new MessageBuilder(Message.Type.PIN, from, from).make();
+    }
+
     public static Message newPingMessage(Identifiable from) {
         return newPingMessage(from, from);
     }

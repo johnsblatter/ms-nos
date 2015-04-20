@@ -6,6 +6,7 @@ import java.util.UUID;
 
 import com.workshare.msnos.core.payloads.NullPayload;
 import com.workshare.msnos.core.payloads.PongPayload;
+import com.workshare.msnos.core.payloads.TracePayload;
 import com.workshare.msnos.core.protocols.ip.Endpoint;
 import com.workshare.msnos.soup.json.Json;
 import com.workshare.msnos.soup.time.SystemTime;
@@ -20,7 +21,7 @@ public class Message {
 
     public enum Status {UNKNOWN, PENDING, DELIVERED, FAILED}
 
-    public enum Type {PRS, DSC, APP, PIN, PON, ACK, ENQ, FLT, QNE, HCK}
+    public enum Type {APP, PRS, DSC, PIN, PON, ACK, ENQ, FLT, QNE, HCK, TRC}
 
     private final Version version = Version.V1_0;
     private final UUID uuid;
@@ -54,11 +55,18 @@ public class Message {
         this.sig = sig;
         this.rnd = (sig == null ? null : (rnd == null ? new BigInteger(130, random).toString(32) : rnd));
 
+        // FIXME refactor this
         // TODO this can be achieved in a much better way (i.e. type.getPayload(this) here or in the builder)
-        if (type == Type.PON)
-            this.data = new PongPayload();
-        else
-            this.data = (data == null ? NullPayload.INSTANCE : data);
+        if (data == null) {
+            if (type == Type.TRC)
+                this.data = new TracePayload(from);
+            else if (type == Type.PON)
+                this.data = new PongPayload();
+            else
+                this.data = NullPayload.INSTANCE;
+        } else {
+            this.data = data;
+        }
     }
 
     public UUID getUuid() {

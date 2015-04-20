@@ -1,22 +1,26 @@
-package com.workshare.msnos.core;
+package com.workshare.msnos.core.receipts;
 
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
+import com.workshare.msnos.core.Gateway;
+import com.workshare.msnos.core.Message;
 import com.workshare.msnos.core.Message.Status;
+import com.workshare.msnos.core.protocols.ip.NullGateway;
+import com.workshare.msnos.core.Receipt;
 
 public class SingleReceipt implements Receipt {
 
     private final UUID messageUuid;
-    private final String gate;
     
+    private String gate;
     private Status status;
 
     public SingleReceipt(Gateway gateway, Status status, Message message) {
         this(gateway.name(), status, message);
     }
 
-    private SingleReceipt(String gatewayName, Status status, Message message) {
+    protected SingleReceipt(String gatewayName, Status status, Message message) {
         this.status = status;
         this.messageUuid = message.getUuid();
         this.gate = gatewayName;
@@ -32,8 +36,12 @@ public class SingleReceipt implements Receipt {
         return status;
     }
 
-    public synchronized void setStatus(Status newStatus) {
-        status = newStatus;
+    public synchronized void update(Receipt other) {
+        if (!messageUuid.equals(other.getMessageUuid()))
+            throw new IllegalArgumentException("You cannot update a receipt related to another message!");
+
+        this.gate = other.getGate();
+        this.status = other.getStatus();
         notifyAll();
     }
 
@@ -65,6 +73,10 @@ public class SingleReceipt implements Receipt {
     }
     
     public static SingleReceipt failure(Message message) {
-        return new SingleReceipt("none", Status.FAILED, message);
+        return new SingleReceipt(NullGateway.NAME, Status.FAILED, message);
+    }
+    
+    public static SingleReceipt unknown(Message message) {
+        return new SingleReceipt(NullGateway.NAME, Status.UNKNOWN, message);
     }
 }

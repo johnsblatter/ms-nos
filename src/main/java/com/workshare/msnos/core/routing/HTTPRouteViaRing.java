@@ -1,6 +1,5 @@
 package com.workshare.msnos.core.routing;
 
-import java.io.IOException;
 import java.util.Collection;
 
 import com.workshare.msnos.core.Message;
@@ -16,7 +15,7 @@ public class HTTPRouteViaRing extends Route {
     }
 
     @Override
-    public Receipt send(Message message) throws IOException {
+    public Receipt send(Message message)  {
         RemoteAgent remote = cloud.getRemoteAgent(message.getTo());
         if (remote == null)
             return null;

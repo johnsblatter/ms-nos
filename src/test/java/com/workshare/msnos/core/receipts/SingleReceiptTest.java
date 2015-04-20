@@ -1,4 +1,4 @@
-package com.workshare.msnos.core;
+package com.workshare.msnos.core.receipts;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -10,16 +10,23 @@ import java.util.concurrent.TimeUnit;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.workshare.msnos.core.Gateway;
+import com.workshare.msnos.core.LocalAgent;
+import com.workshare.msnos.core.Message;
 import com.workshare.msnos.core.Message.Status;
+import com.workshare.msnos.core.protocols.ip.NullGateway;
+import com.workshare.msnos.core.MessageBuilder;
+import com.workshare.msnos.core.Receipt;
 
-public class ReceiptTest {
+public class SingleReceiptTest {
 
     private static final Message MESSAGE = new MessageBuilder(Message.Type.PIN, new LocalAgent(UUID.randomUUID()), new LocalAgent(UUID.randomUUID())).make();
+
     private Gateway gate;
 
     @Before
     public void prepare() {
-        gate = new NoopGateway();
+        gate = new NullGateway();
     }
     
     @Test
@@ -84,7 +91,7 @@ public class ReceiptTest {
     public void shouldReturnBeforeTimeoutIfStatusChangedToDelivered() throws Exception {
         SingleReceipt receipt = new SingleReceipt(gate, Status.PENDING, MESSAGE);
         final long now = System.currentTimeMillis();
-        simulateMessageDelivered(receipt, 50);
+        simulateMessageChange(receipt, 50, Status.DELIVERED);
         receipt.waitForDelivery(5, TimeUnit.SECONDS);
 
         assertTrue(System.currentTimeMillis() < now+1000);
@@ -93,7 +100,7 @@ public class ReceiptTest {
     @Test
     public void shouldReturnTrueIfStatusChangedToDelivered() throws Exception {
         SingleReceipt receipt = new SingleReceipt(gate, Status.PENDING, MESSAGE);
-        simulateMessageDelivered(receipt, 50);
+        simulateMessageChange(receipt, 50, Status.DELIVERED);
         assertTrue(receipt.waitForDelivery(5, TimeUnit.SECONDS));
     }
 
@@ -103,7 +110,25 @@ public class ReceiptTest {
         assertEquals(gate.name(), receipt.getGate());
     }
 
-    private void simulateMessageDelivered(final SingleReceipt receipt, final long delay) {
+    @Test
+    public void shouldReturnBeforeTimeoutIfStatusChangedToFailed() throws Exception {
+        SingleReceipt receipt = new SingleReceipt(gate, Status.PENDING, MESSAGE);
+        final long now = System.currentTimeMillis();
+        simulateMessageChange(receipt, 50, Status.FAILED);
+        receipt.waitForDelivery(5, TimeUnit.SECONDS);
+
+        assertTrue(System.currentTimeMillis() < now+1000);
+    }
+
+    @Test
+    public void shouldReturnFalseIfStatusChangedToFailed() throws Exception {
+        SingleReceipt receipt = new SingleReceipt(gate, Status.PENDING, MESSAGE);
+        simulateMessageChange(receipt, 50, Status.FAILED);
+        assertFalse(receipt.waitForDelivery(5, TimeUnit.SECONDS));
+    }
+
+    private void simulateMessageChange(final SingleReceipt receipt, final long delay, Status status) {
+        final SingleReceipt newReceipt = new SingleReceipt(gate, status, MESSAGE);
         new Thread(new Runnable(){
             @Override
             public void run() {
@@ -112,7 +137,7 @@ public class ReceiptTest {
                 } catch (InterruptedException e) {
                     Thread.interrupted();
                 }
-                receipt.setStatus(Status.DELIVERED);
+                receipt.update(newReceipt);
             }}).start();
     }
 

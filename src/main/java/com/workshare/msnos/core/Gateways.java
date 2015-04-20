@@ -1,6 +1,7 @@
 package com.workshare.msnos.core;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
@@ -29,7 +30,8 @@ public class Gateways {
 
     private static Logger log = LoggerFactory.getLogger(Gateways.class);
 
-    private static Set<Gateway> all = new CopyOnWriteArraySet<Gateway>();
+    private static  Set<Gateway> all = new CopyOnWriteArraySet<Gateway>();
+    public static final Set<Gateway> NONE = Collections.<Gateway> emptySet();
 
 	public static Set<Gateway> all() throws MsnosException {
 		if (all.size() == 0) {

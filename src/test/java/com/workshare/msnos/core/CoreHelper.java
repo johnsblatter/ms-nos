@@ -1,5 +1,9 @@
 package com.workshare.msnos.core;
 
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
@@ -7,9 +11,16 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
+
+import com.workshare.msnos.core.Cloud.Internal;
 import com.workshare.msnos.core.Gateway.Listener;
 import com.workshare.msnos.core.MsnosException.Code;
+import com.workshare.msnos.core.cloud.IdentifiablesList;
+import com.workshare.msnos.core.cloud.MessageValidators;
 import com.workshare.msnos.core.protocols.ip.Endpoint;
 import com.workshare.msnos.core.protocols.ip.Endpoints;
 import com.workshare.msnos.core.protocols.ip.Network;
@@ -78,13 +89,28 @@ public class CoreHelper {
             }
         };
     }
-
-    public static void fakeSystemTime(final long timeInMillis) {
+    
+    public static AtomicLong fakeSystemTime() {
+        return fakeSystemTime(0l);
+    }
+    
+    public static AtomicLong fakeSystemTime(final long timeInMillis) {
+        final AtomicLong counter = new AtomicLong();
         SystemTime.setTimeSource(new SystemTime.TimeSource() {
             public long millis() {
-                return timeInMillis;
+                if (timeInMillis == 0l)
+                    return System.currentTimeMillis();
+                else
+                    return timeInMillis;
+            }
+
+            public void sleep(long millis) throws InterruptedException {
+                Thread.sleep(millis);
+                counter.addAndGet(millis);
             }
         });
+        
+        return counter;
     }
 
     public static void fakeElapseTime(final long elapsedInMillis) {
@@ -92,6 +118,10 @@ public class CoreHelper {
         SystemTime.setTimeSource(new SystemTime.TimeSource() {
             public long millis() {
                 return current + elapsedInMillis;
+            }
+
+            public void sleep(long millis) throws InterruptedException {
+                Thread.sleep(millis);
             }
         });
     }
@@ -150,5 +180,37 @@ public class CoreHelper {
 
     public static MessageBuilder newAPPMesage(Iden from, Iden to) {
         return new MessageBuilder(Message.Type.APP, from, to);
+    }
+
+    public static Cloud createMockCloud() {
+        return createMockCloud(null, null);
+    }
+    
+    public static Cloud createMockCloud(final Iden iden, final Ring ring) {
+        Cloud cloud = mock(Cloud.class);
+        
+        when(cloud.getIden()).thenReturn(iden == null ? newCloudIden() : iden);
+        when(cloud.getRing()).thenReturn(ring == null ? Ring.random() : ring);
+
+        Internal internal = mock(Cloud.Internal.class);
+        when(internal.sign(any(Message.class))).thenAnswer(new Answer<Message>(){
+            @Override
+            public Message answer(InvocationOnMock invocation) throws Throwable {
+                return (Message) invocation.getArguments()[0];
+            }});
+
+        when(internal.localAgents()).thenReturn(new IdentifiablesList<LocalAgent>());
+        when(internal.remoteAgents()).thenReturn(new IdentifiablesList<RemoteAgent>());
+        when(internal.remoteClouds()).thenReturn(new IdentifiablesList<RemoteEntity>());
+        when(internal.cloud()).thenReturn(cloud);
+        
+        when(cloud.internal()).thenReturn(internal);
+        when(cloud.validators()).thenReturn(new MessageValidators(internal));
+        
+        return cloud;
+    }
+    
+    public static Cloud.Internal getCloudInternal(Cloud cloud) {
+        return cloud.internal();
     }
 }

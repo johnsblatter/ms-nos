@@ -7,6 +7,9 @@ import java.util.UUID;
 
 import org.junit.Test;
 
+import com.workshare.msnos.core.payloads.PongPayload;
+import com.workshare.msnos.core.payloads.TracePayload;
+
 public class MessageTest {
 
     private static final Iden CLOUD_IDEN = new Iden(Iden.Type.CLD, UUID.randomUUID());
@@ -34,5 +37,19 @@ public class MessageTest {
     public void shouldGenerateUUIDIfUUIDEmpty() throws Exception {
         Message msg = new MessageBuilder(Message.Type.APP, AGENT_IDEN, CLOUD_IDEN).make();
         assertNotNull(msg.getUuid());
+    }
+
+    @Test
+    public void shouldProvidePongPayloadOnPong() {
+        Message msg = new MessageBuilder(Message.Type.PON, CLOUD_IDEN, AGENT_IDEN).make();
+        assertNotNull(msg.getData());
+        assertEquals(PongPayload.class, msg.getData().getClass());
+    }
+
+    @Test
+    public void shouldProvideTracePayloadOnTrace() {
+        Message msg = new MessageBuilder(Message.Type.TRC, CLOUD_IDEN, AGENT_IDEN).make();
+        assertNotNull(msg.getData());
+        assertEquals(TracePayload.class, msg.getData().getClass());
     }
 }

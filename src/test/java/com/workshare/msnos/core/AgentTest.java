@@ -1,6 +1,7 @@
 package com.workshare.msnos.core;
 
 import static com.workshare.msnos.core.CoreHelper.asSet;
+import static com.workshare.msnos.core.CoreHelper.fakeSystemTime;
 import static com.workshare.msnos.core.Message.Type.PIN;
 import static com.workshare.msnos.core.Message.Type.PON;
 import static com.workshare.msnos.core.Message.Type.PRS;
@@ -183,13 +184,5 @@ public class AgentTest {
         ArgumentCaptor<Cloud.Listener> cloudListener = ArgumentCaptor.forClass(Cloud.Listener.class);
         verify(cloud, atLeastOnce()).addListener(cloudListener.capture());
         cloudListener.getValue().onMessage(message);
-    }
-
-    private void fakeSystemTime(final long time) {
-        SystemTime.setTimeSource(new SystemTime.TimeSource() {
-            public long millis() {
-                return time;
-            }
-        });
     }
 }

@@ -11,6 +11,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import static java.lang.Math.min;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,15 +23,16 @@ import com.workshare.msnos.core.Message;
 import com.workshare.msnos.core.Message.Payload;
 import com.workshare.msnos.core.Message.Status;
 import com.workshare.msnos.core.Receipt;
-import com.workshare.msnos.core.SingleReceipt;
 import com.workshare.msnos.core.protocols.ip.Endpoint.Type;
 import com.workshare.msnos.core.protocols.ip.Endpoint;
 import com.workshare.msnos.core.protocols.ip.Endpoints;
 import com.workshare.msnos.core.protocols.ip.MulticastSocketFactory;
 import com.workshare.msnos.core.protocols.ip.Network;
 import com.workshare.msnos.core.protocols.ip.BaseEndpoint;
+import com.workshare.msnos.core.receipts.SingleReceipt;
 import com.workshare.msnos.core.serializers.WireSerializer;
 import com.workshare.msnos.soup.threading.Multicaster;
+import com.workshare.msnos.soup.time.SystemTime;
 
 public class UDPGateway implements Gateway {
 
@@ -39,6 +42,7 @@ public class UDPGateway implements Gateway {
     public static final String SYSP_PORT_WIDTH = "com.ws.nsnos.udp.port.width";
     public static final String SYSP_UDP_GROUP = "com.ws.nsnos.udp.group";
     public static final String SYSP_UDP_PACKET_SIZE = "com.ws.nsnos.udp.packet.size";
+    public static final String SYSP_RETRY_TIMES = "com.ws.nsnos.udp.group.retry.times";
 
     public static final String SYSP_NET_IPV6ALSO = "com.ws.msnos.network.ipv6also";
     public static final String SYSP_NET_VIRTUAL = "com.ws.msnos.network.includevirtual";
@@ -50,12 +54,15 @@ public class UDPGateway implements Gateway {
     private final Multicaster<Listener, Message> caster;
     private final WireSerializer sz;
     private final int packetSize;
+    private final int retries;
     private final Endpoints endpoints;
     private final UDPServer server;
+
 
     public UDPGateway(MulticastSocketFactory sockets, UDPServer aServer, Multicaster<Listener, Message> caster) throws IOException {
         this.caster = caster;
         this.sz = aServer.serializer();
+        this.retries = Integer.getInteger(SYSP_RETRY_TIMES, 3);
         this.packetSize = Integer.getInteger(SYSP_UDP_PACKET_SIZE, 512);
         this.endpoints = createEndpoints();
         this.server = aServer;
@@ -145,11 +152,37 @@ public class UDPGateway implements Gateway {
                         payload.length,
                         group,
                         port);
-                socket.send(packet);
+                doSend(packet);
             }
         }
 
         return new SingleReceipt(this, Status.PENDING, message);
+    }
+
+    private void doSend(DatagramPacket packet) throws IOException {
+        int count = retries;
+        long wait = 0;
+        
+        while(count-- > 1) {
+            try {
+                socket.send(packet);
+                return;
+            }
+            catch (IOException ex) {
+                logger.debug("Temporary unable to send the packet trough UDP - retrying...");
+            }
+            
+            wait = min(5, wait + (retries-count));
+            logger.debug("Enforcing transport pacing, wait for {} milliseconds before next try");
+            sleep(min(5, wait));
+        }
+        
+        socket.send(packet);
+    }
+
+    private void sleep(long waitInMillis) {
+        try { SystemTime.sleep(waitInMillis);}
+        catch (InterruptedException ex) {Thread.interrupted();}
     }
 
     private List<Payload> getSplitPayloads(List<Payload> payloads, Payload payload, int msgLength) throws IOException {

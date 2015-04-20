@@ -21,12 +21,15 @@ import org.slf4j.LoggerFactory;
 import com.workshare.msnos.core.MsnosException.Code;
 import com.workshare.msnos.core.cloud.AgentWatchdog;
 import com.workshare.msnos.core.cloud.IdentifiablesList;
+import com.workshare.msnos.core.cloud.MessageValidators;
 import com.workshare.msnos.core.cloud.Multicaster;
 import com.workshare.msnos.core.payloads.FltPayload;
 import com.workshare.msnos.core.payloads.Presence;
 import com.workshare.msnos.core.protocols.ip.Endpoint;
 import com.workshare.msnos.core.protocols.ip.HttpEndpoint;
 import com.workshare.msnos.core.protocols.ip.http.HttpGateway;
+import com.workshare.msnos.core.receipts.SingleReceipt;
+import com.workshare.msnos.core.routing.Router;
 import com.workshare.msnos.core.security.Signer;
 import com.workshare.msnos.soup.ShutdownHooks;
 import com.workshare.msnos.soup.ShutdownHooks.Hook;
@@ -60,6 +63,7 @@ public class Cloud implements Identifiable {
     transient private final Sender sender;
     transient private final Receiver receiver;
     transient private final Map<UUID, Iden> enquiries;
+    transient private final MessageValidators validators;
 
     public class Internal {
         public IdentifiablesList<LocalAgent> localAgents() {
@@ -92,10 +96,10 @@ public class Cloud implements Identifiable {
     }
 
     public Cloud(UUID uuid, String signid, Set<Gateway> gates) {
-        this(uuid, signid, new Signer(), new Sender(), gates, new Multicaster(), DEFAULT_SCHEDULER);
+        this(uuid, signid, new Signer(), null, null, gates, new Multicaster(), DEFAULT_SCHEDULER);
     }
 
-    Cloud(final UUID uuid, String signid, Signer signer, Sender sender, Set<Gateway> gates, Multicaster multicaster, ScheduledExecutorService executor) {
+    Cloud(final UUID uuid, String signid, Signer signer, Sender sender, Receiver receiver, Set<Gateway> gates, Multicaster multicaster, ScheduledExecutorService executor) {
         this.iden = new Iden(Iden.Type.CLD, uuid);
 
         this.enquiries = ExpiringMap.builder().expiration(ENQUIRY_EXPIRE, TimeUnit.SECONDS).build();
@@ -111,9 +115,11 @@ public class Cloud implements Identifiable {
         this.signer = signer;
         this.signid = signid;
         this.ring = calculateRing(gates);
-
-        this.sender = sender;
-        this.receiver = new Receiver(this, gates, multicaster);
+        this.validators = new MessageValidators(this.internal);
+        
+        final Router router = new Router(this, gates);
+        this.sender = (sender != null) ? sender : new Sender(router);
+        this.receiver = (receiver != null) ? receiver : new Receiver(this, gates, multicaster, router);
 
         new AgentWatchdog(this, executor).start();
 
@@ -177,6 +183,10 @@ public class Cloud implements Identifiable {
         return iden;
     }
 
+    public MessageValidators validators() {
+        return validators;
+    }
+    
     public boolean containsAgent(Iden iden) {
         return remoteAgents.containsKey(iden) || containsLocalAgent(iden);
     }
@@ -191,6 +201,10 @@ public class Cloud implements Identifiable {
 
     public RemoteAgent getRemoteAgent(final Iden iden) {
         return remoteAgents.get(iden);
+    }
+
+    public LocalAgent getLocalAgent(final Iden iden) {
+        return localAgents.get(iden);
     }
 
     public Collection<RemoteAgent> getRemoteAgents() {
@@ -213,7 +227,7 @@ public class Cloud implements Identifiable {
     public Receipt sendSync(Message message) throws MsnosException {
         checkCloudAlive();
 
-        final MultiReceipt receipt = new MultiReceipt(message);
+        final SingleReceipt receipt = SingleReceipt.unknown(message);
         sender.sendSync(this, sign(message), receipt);
         return receipt;
     }

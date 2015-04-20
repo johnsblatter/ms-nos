@@ -1,18 +1,17 @@
 package com.workshare.msnos.core.routing;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.workshare.msnos.core.Iden.Type;
 import com.workshare.msnos.core.Message;
-import com.workshare.msnos.core.MultiReceipt;
 import com.workshare.msnos.core.Receipt;
 import com.workshare.msnos.core.RemoteAgent;
-import com.workshare.msnos.core.Iden.Type;
 import com.workshare.msnos.core.Ring;
+import com.workshare.msnos.core.receipts.MultiReceipt;
 
 public class CloudRouteBroadcast extends Route {
 
@@ -26,7 +25,7 @@ public class CloudRouteBroadcast extends Route {
     }
 
     @Override
-    public Receipt send(Message message) throws IOException {
+    public Receipt send(Message message)  {
         if (message.getTo().getType() != Type.CLD)
             return null;
 
@@ -37,7 +36,7 @@ public class CloudRouteBroadcast extends Route {
         return new MultiReceipt(message, receipts);
     }
 
-    private void sendViaHTTP(Message message, List<Receipt> receipts) throws IOException {
+    private void sendViaHTTP(Message message, List<Receipt> receipts) {
 
         RingCounter rings = new RingCounter();
         
@@ -58,7 +57,7 @@ public class CloudRouteBroadcast extends Route {
         }
     }
 
-    private void sendViaUDP(Message message, List<Receipt> receipts) throws IOException {
+    private void sendViaUDP(Message message, List<Receipt> receipts) {
         receipts.add(router.sendViaUDP(message, maximumHops, "UDP-BROADCAST"));
     }
     
