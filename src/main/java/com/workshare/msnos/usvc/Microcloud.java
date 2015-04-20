@@ -305,4 +305,22 @@ public class Microcloud {
             return super.toString();
         }
     }
+
+    public void update(final long amount, final TimeUnit unit) throws MsnosException {
+        
+        final Message[] messages = new Message[] {
+            new MessageBuilder(Message.Type.DSC, cloud, cloud).make(),
+            new MessageBuilder(Message.Type.ENQ, cloud, cloud).make(),
+        };
+        
+        long allotted = amount/messages.length;
+        for (Message message : messages) {
+            Receipt receipt = cloud.sendSync(message);
+            try {
+                receipt.waitForDelivery(allotted, unit);
+            } catch (InterruptedException e) {
+                Thread.interrupted();
+            }
+        }
+    }
 }
