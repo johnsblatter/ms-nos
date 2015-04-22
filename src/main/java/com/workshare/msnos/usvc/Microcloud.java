@@ -248,6 +248,10 @@ public class Microcloud {
         }
     }
 
+    public RemoteMicroservice getRemoteMicroService(Iden iden) {
+        return remoteServices.get(iden);
+    }
+
     void publish(Microservice microservice, RestApi... apis) throws MsnosException {
         LocalAgent agent = microservice.getAgent();
 
