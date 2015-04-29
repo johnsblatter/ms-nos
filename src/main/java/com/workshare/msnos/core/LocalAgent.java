@@ -74,11 +74,12 @@ public class LocalAgent implements Agent {
     }
 
     public LocalAgent join(Cloud cloud) throws MsnosException {
-        this.cloud = cloud;
         this.endpoints.addAll(Gateways.allPublicEndpoints());
         this.ring = cloud.getRing();
+        this.cloud = cloud;
 
         cloud.onJoin(this);
+
         log.debug("Joined: {} as Agent: {}", getCloud(), this);
         listener = cloud.addListener(new Listener() {
             @Override

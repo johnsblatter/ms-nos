@@ -70,7 +70,6 @@ public class PresencePayloadTest {
         assertEquals(expected, current);
     }
     
-    // FIXME now working on agents endpoints, not on Gateway's'/
     @Test
     public void shouldLoadNoGatewaysWhenPresenceFalse() throws MsnosException {
         PowerMockito.mockStatic(Gateways.class);
