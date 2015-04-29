@@ -11,7 +11,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
 
 import net.jodah.expiringmap.ExpiringMap;
 
@@ -35,7 +34,6 @@ import com.workshare.msnos.soup.ShutdownHooks;
 import com.workshare.msnos.soup.ShutdownHooks.Hook;
 import com.workshare.msnos.soup.json.Json;
 import com.workshare.msnos.soup.threading.ExecutorServices;
-import com.workshare.msnos.soup.time.SystemTime;
 
 public class Cloud implements Identifiable {
 
@@ -54,7 +52,6 @@ public class Cloud implements Identifiable {
     private final IdentifiablesList<LocalAgent> localAgents;
     private final IdentifiablesList<RemoteAgent> remoteAgents;
     private final IdentifiablesList<RemoteEntity> remoteClouds;
-    private final AtomicLong seq;
 
     transient private final Set<Gateway> gates;
     transient private final Ring ring;
@@ -108,7 +105,6 @@ public class Cloud implements Identifiable {
         this.remoteAgents = new IdentifiablesList<RemoteAgent>();
         this.remoteClouds = new IdentifiablesList<RemoteEntity>();
 
-        this.seq = new AtomicLong(SystemTime.asMillis());
         this.gates = Collections.unmodifiableSet(gates);
         this.internal = new Internal();
 
@@ -121,52 +117,9 @@ public class Cloud implements Identifiable {
         this.sender = (sender != null) ? sender : new Sender(router);
         this.receiver = (receiver != null) ? receiver : new Receiver(this, gates, multicaster, router);
 
-        new AgentWatchdog(this, executor).start();
+        addShutdownHook(uuid);
 
-        ShutdownHooks.addHook(new Hook() {
-            @Override
-            public void run() {
-                log.info("Asking all agents to leave...");
-                try {
-                    for (LocalAgent agent : localAgents.list()) {
-                        ensureLeft(agent);
-                    }
-                } finally {
-                    log.info("done!");
-                }
-            }
-
-            private void ensureLeft(LocalAgent agent) {
-                if (agent.getCloud() != null)
-                    try {
-                        log.debug("- agent {} is leaving...", agent.getIden().getUUID());
-                        agent.leave();
-                    } catch (Throwable ex) {
-                        log.warn("Unexpected exception while enforcing agent to leave the cloud", ex);
-                    }
-            }
-
-            @Override
-            public String name() {
-                return "Ensure all agents left the cloud " + uuid;
-            }
-
-            @Override
-            public int priority() {
-                return 0;
-            }
-        });
-    }
-
-    private Ring calculateRing(Set<Gateway> gateways) {
-        HashSet<Endpoint> endpoints = new HashSet<Endpoint>();
-        for (Gateway gate : gateways) {
-            final Set<? extends Endpoint> points = gate.endpoints().all();
-            if (points != null)
-                endpoints.addAll(points);
-        }
-
-        return Ring.make(endpoints);
+        startAgentWatchdog(executor);
     }
 
     @Override
@@ -193,10 +146,6 @@ public class Cloud implements Identifiable {
 
     public boolean containsLocalAgent(Iden iden) {
         return localAgents.containsKey(iden);
-    }
-
-    public Long getNextSequence() {
-        return seq.incrementAndGet();
     }
 
     public RemoteAgent getRemoteAgent(final Iden iden) {
@@ -272,6 +221,10 @@ public class Cloud implements Identifiable {
 
     public void removeListener(com.workshare.msnos.core.Cloud.Listener listener) {
         receiver.caster().removeListener(listener);
+    }
+
+    public Listener addSynchronousListener(com.workshare.msnos.core.Cloud.Listener listener) {
+        return receiver.caster().addSynchronousListener(listener);
     }
 
     private void enquiryAgentIfNecessary(Message message) {
@@ -389,4 +342,57 @@ public class Cloud implements Identifiable {
     Internal internal() {
         return internal;
     }
+    
+    private void startAgentWatchdog(ScheduledExecutorService executor) {
+        new AgentWatchdog(this, executor).start();
+    }
+
+    private Ring calculateRing(Set<Gateway> gateways) {
+        HashSet<Endpoint> endpoints = new HashSet<Endpoint>();
+        for (Gateway gate : gateways) {
+            final Set<? extends Endpoint> points = gate.endpoints().all();
+            if (points != null)
+                endpoints.addAll(points);
+        }
+
+        return Ring.make(endpoints);
+    }
+
+    private void addShutdownHook(final UUID uuid) {
+        ShutdownHooks.addHook(new Hook() {
+            @Override
+            public void run() {
+                log.info("Asking all agents to leave...");
+                try {
+                    for (LocalAgent agent : localAgents.list()) {
+                        ensureLeft(agent);
+                    }
+                } finally {
+                    log.info("done!");
+                }
+            }
+
+            private void ensureLeft(LocalAgent agent) {
+                if (agent.getCloud() != null)
+                    try {
+                        log.debug("- agent {} is leaving...", agent.getIden().getUUID());
+                        agent.leave();
+                    } catch (Throwable ex) {
+                        log.warn("Unexpected exception while enforcing agent to leave the cloud", ex);
+                    }
+            }
+
+            @Override
+            public String name() {
+                return "Ensure all agents left the cloud " + uuid;
+            }
+
+            @Override
+            public int priority() {
+                return 0;
+            }
+        });
+    }
+
+
 }

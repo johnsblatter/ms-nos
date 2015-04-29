@@ -33,6 +33,7 @@ import com.workshare.msnos.core.protocols.ip.Network;
 import com.workshare.msnos.core.protocols.ip.BaseEndpoint;
 import com.workshare.msnos.core.protocols.ip.NullGateway;
 import com.workshare.msnos.usvc.api.RestApi;
+import com.workshare.msnos.usvc.api.RestApi.Type;
 
 public class WireJsonSerializerTest {
 
@@ -221,6 +222,14 @@ public class WireJsonSerializerTest {
 
         assertEquals(source.getData(), decoded.getData());
     }
+
+    @Test
+    public void shouldSerializeRestAPI() throws Exception {
+        RestApi expected = new RestApi("/path", 88, "host", Type.HEALTHCHECK, false, 100);
+        RestApi current = sz.fromText(sz.toText(expected), RestApi.class);
+        assertEquals(expected, current);
+    }
+
 
     private String toShortString(UUID uuid) {
         return uuid.toString().replaceAll("-", "");

@@ -1,5 +1,6 @@
 package com.workshare.msnos.soup.threading;
 
+import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -23,6 +24,15 @@ public class ExecutorServices {
             thread.setDaemon(true);
         }});
     
+
+    public static Executor newSynhcronousExecutor() {
+        return new Executor() {
+            @Override
+            public void execute(Runnable command) {
+                command.run();
+            }};
+    }
+
 
     public static ExecutorService newFixedDaemonThreadPool(final int size) {
         return new ThreadPoolExecutor(size, size,

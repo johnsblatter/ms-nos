@@ -60,7 +60,7 @@ public class Microcloud {
 
     public Microcloud(Cloud cloud, ScheduledExecutorService executor) {
         this.cloud = cloud;
-        this.cloud.addListener(new Cloud.Listener() {
+        this.cloud.addSynchronousListener(new Cloud.Listener() {
             @Override
             public void onMessage(Message message) {
                 try {

@@ -74,6 +74,8 @@ public class WWWGateway implements Gateway {
     private final AtomicInteger syncing = new AtomicInteger(0);
     private int consecutiveRxErrors;
 
+    private volatile boolean logNextException = true;
+
     public WWWGateway(HttpClient client, ScheduledExecutorService scheduler, WireSerializer serializer, Multicaster<Listener, Message> caster) throws IOException {
         this(client, new WWWSynchronizer(caster), scheduler, serializer, caster);
     }
@@ -167,9 +169,10 @@ public class WWWGateway implements Gateway {
     private void doSync(Set<Sync> syncs) {
         if (syncs.contains(Sync.TX))
             try {
-                syncTx();
+                if (syncTx())
+                    logNextException = true;
             } catch (HttpHostConnectException ex) {
-                warnIfNecessary(ex);
+                logIfNecessary(ex);
                 return;
             } catch (Exception ex) {
                 log.warn("Unexpected exception during sync (TX)", ex);
@@ -179,13 +182,21 @@ public class WWWGateway implements Gateway {
             try {
                 syncRx();
                 noRxError();
+                logNextException = true;
             } catch (HttpHostConnectException ex) {
                 onRxError();
-                warnIfNecessary(ex);
+                logIfNecessary(ex);
             } catch (Exception ex) {
                 onRxError();
                 log.warn("Unexpected exception during sync (RX)", ex);
             }
+    }
+
+    private void logIfNecessary(HttpHostConnectException ex) {
+        if (logNextException) {
+            log.warn("Unexpected exception while connecting to WWW gateway");
+            logNextException = false;
+        }
     }
 
     private void noRxError() {
@@ -194,7 +205,7 @@ public class WWWGateway implements Gateway {
 
     private void onRxError() {
         if (++consecutiveRxErrors >= MAX_TOTAL_CONSECUTIVE_ERRORS) {
-            log.warn("Too many consecutive errors: resetting all gates!");
+            log.debug("Too many consecutive errors: resetting all gates!");
             consecutiveRxErrors = 0;
             Set<Cloud> clouds = cloudListeners.keySet();
             for (Cloud cloud : clouds) {
@@ -252,10 +263,10 @@ public class WWWGateway implements Gateway {
         }
     }
 
-    private void syncTx() throws IOException {
+    private boolean syncTx() throws IOException {
         if (cloudMessages.size() == 0) {
             log.debug("No messages to send so far");
-            return;
+            return false;
         }
 
         Set<Cloud> clouds = new HashSet<Cloud>(cloudMessages.keySet());
@@ -269,6 +280,8 @@ public class WWWGateway implements Gateway {
             HttpResponse res = client.execute(request);
             EntityUtils.consume(res.getEntity());
         }
+
+        return true;
     }
 
     private InputStreamEntity toInputStreamEntity(final Queue<Message> messages) {
@@ -277,14 +290,5 @@ public class WWWGateway implements Gateway {
 
     private static Long loadSyncPeriod() {
         return Long.getLong(SYSP_SYNC_PERIOD, 5000L);
-    }
-
-    private short warn = 0;
-
-    public void warnIfNecessary(HttpHostConnectException ex) {
-        if (warn-- == 0) {
-            warn = 10;
-            log.warn(ex.getMessage());
-        }
     }
 }

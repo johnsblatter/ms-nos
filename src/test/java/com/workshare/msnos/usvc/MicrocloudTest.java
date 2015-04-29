@@ -413,7 +413,7 @@ public class MicrocloudTest {
 
     private Message simulateMessageFromCloud(final Message message) {
         ArgumentCaptor<Cloud.Listener> cloudListener = ArgumentCaptor.forClass(Cloud.Listener.class);
-        verify(cloud, atLeastOnce()).addListener(cloudListener.capture());
+        verify(cloud, atLeastOnce()).addSynchronousListener(cloudListener.capture());
         for (Listener listener : cloudListener.getAllValues()) {
             listener.onMessage(message);
                        

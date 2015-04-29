@@ -9,6 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.gson.JsonObject;
+import com.google.gson.annotations.SerializedName;
 import com.workshare.msnos.core.Agent;
 import com.workshare.msnos.core.protocols.ip.Endpoint;
 import com.workshare.msnos.core.protocols.ip.Network;
@@ -18,15 +19,30 @@ public class RestApi {
 
     private static final Logger log = LoggerFactory.getLogger(RestApi.class);
 
-    public enum Type {PUBLIC, INTERNAL, HEALTHCHECK, MSNOS_HTTP}
+    public enum Type {
+        @SerializedName("PUB")
+        PUBLIC, 
+        @SerializedName("INT")
+        INTERNAL, 
+        @SerializedName("HCK")
+        HEALTHCHECK, 
+        @SerializedName("MHT")
+        MSNOS_HTTP
+    }
 
     private static final AtomicLong NEXT_ID = new AtomicLong(0);
 
+    @SerializedName("pa")
     private final String path;
+    @SerializedName("ho")
     private final String host;
+    @SerializedName("po")
     private final int port;
+    @SerializedName("st")
     private final boolean sticky;
+    @SerializedName("ty")
     private final Type type;
+    @SerializedName("pri")
     private final int priority;
 
     private final transient AtomicInteger tempFaults;
