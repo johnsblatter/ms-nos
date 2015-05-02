@@ -269,6 +269,7 @@ public class WWWGateway implements Gateway {
             return false;
         }
 
+        boolean sent = false;
         Set<Cloud> clouds = new HashSet<Cloud>(cloudMessages.keySet());
         for (Cloud cloud : clouds) {
             Queue<Message> messages = cloudMessages.get(cloud);
@@ -279,9 +280,10 @@ public class WWWGateway implements Gateway {
             request.setEntity(toInputStreamEntity(messages));
             HttpResponse res = client.execute(request);
             EntityUtils.consume(res.getEntity());
+            sent = true;
         }
 
-        return true;
+        return sent;
     }
 
     private InputStreamEntity toInputStreamEntity(final Queue<Message> messages) {

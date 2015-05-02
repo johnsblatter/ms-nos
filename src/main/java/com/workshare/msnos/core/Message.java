@@ -7,7 +7,6 @@ import java.util.UUID;
 import com.workshare.msnos.core.payloads.NullPayload;
 import com.workshare.msnos.core.payloads.PongPayload;
 import com.workshare.msnos.core.payloads.TracePayload;
-import com.workshare.msnos.core.protocols.ip.Endpoint;
 import com.workshare.msnos.soup.json.Json;
 import com.workshare.msnos.soup.time.SystemTime;
 
@@ -35,8 +34,6 @@ public class Message {
 
     private final String sig;
     private final String rnd;
-
-    private transient Endpoint.Type endpoint;
 
     private static final SecureRandom random = new SecureRandom();
 
@@ -158,13 +155,5 @@ public class Message {
     public Message signed(String keyId, String signature) {
         String sign = keyId + ":" + signature;
         return new Message(type, from, to, hops, reliable, data, uuid, sign, rnd, when);
-    }
-
-    public Endpoint.Type getEndpoint() {
-        return endpoint;
-    }
-
-    public void setEndpoint(Endpoint.Type endpoint) {
-        this.endpoint = endpoint;
     }
 }

@@ -91,12 +91,7 @@ public class Presence implements Message.Payload {
         Iden from = message.getFrom();
 
         if (isPresent()) {
-            RemoteAgent agent;
-            if (message.getEndpoint() == Endpoint.Type.UDP) 
-                agent = new RemoteAgent(from.getUUID(), internal.cloud(), extractEndpoints(from), internal.cloud().getRing());
-            else
-                agent = new RemoteAgent(from.getUUID(), internal.cloud(), extractEndpoints(from));
-                
+            RemoteAgent agent = new RemoteAgent(from.getUUID(), internal.cloud(), extractEndpoints(from));
             log.debug("Discovered new agent from network: {}", agent.toString());
             internal.remoteAgents().add(agent);
         } else {

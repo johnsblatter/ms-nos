@@ -1,5 +1,7 @@
 package com.workshare.msnos.core.protocols.ip.udp;
 
+import static java.lang.Math.min;
+
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
@@ -11,8 +13,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import static java.lang.Math.min;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,12 +23,11 @@ import com.workshare.msnos.core.Message;
 import com.workshare.msnos.core.Message.Payload;
 import com.workshare.msnos.core.Message.Status;
 import com.workshare.msnos.core.Receipt;
+import com.workshare.msnos.core.protocols.ip.BaseEndpoint;
 import com.workshare.msnos.core.protocols.ip.Endpoint.Type;
-import com.workshare.msnos.core.protocols.ip.Endpoint;
 import com.workshare.msnos.core.protocols.ip.Endpoints;
 import com.workshare.msnos.core.protocols.ip.MulticastSocketFactory;
 import com.workshare.msnos.core.protocols.ip.Network;
-import com.workshare.msnos.core.protocols.ip.BaseEndpoint;
 import com.workshare.msnos.core.receipts.SingleReceipt;
 import com.workshare.msnos.core.serializers.WireSerializer;
 import com.workshare.msnos.soup.threading.Multicaster;
@@ -88,7 +87,6 @@ public class UDPGateway implements Gateway {
         server.addListener(new Listener() {
             @Override
             public void onMessage(Message message) {
-                message.setEndpoint(Endpoint.Type.UDP);
                 caster.dispatch(message);
             }
         });

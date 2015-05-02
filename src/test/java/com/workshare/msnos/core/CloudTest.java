@@ -450,23 +450,10 @@ public class CloudTest {
     }
 
     @Test
-    public void shouldAssingCloudRingToRemoteAgentWhenJoiningTroughUDP() throws Exception {
+    public void shouldAssingComputedRingToRemoteAgent() throws Exception {
         RemoteAgent frank = newRemoteAgent(thisCloud);
         
         Message message = new MessageBuilder(Message.Type.PRS, frank, thisCloud).with(new Presence(true, frank)).make();
-        message.setEndpoint(Endpoint.Type.UDP);
-        simulateMessageFromNetwork(message);
-
-        frank = getRemoteAgent(thisCloud, frank.getIden());
-        assertEquals(thisCloud.getRing(), frank.getRing());
-    }
-
-    @Test
-    public void shouldAssingComputedRingToRemoteAgentWhenJoiningNotTroughUDP() throws Exception {
-        RemoteAgent frank = newRemoteAgent(thisCloud);
-        
-        Message message = new MessageBuilder(Message.Type.PRS, frank, thisCloud).with(new Presence(true, frank)).make();
-        message.setEndpoint(Endpoint.Type.HTTP);
         simulateMessageFromNetwork(message);
 
         frank = getRemoteAgent(thisCloud, frank.getIden());

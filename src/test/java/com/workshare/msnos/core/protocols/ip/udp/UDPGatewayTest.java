@@ -39,7 +39,6 @@ import com.workshare.msnos.core.Message;
 import com.workshare.msnos.core.Message.Status;
 import com.workshare.msnos.core.MessageBuilder;
 import com.workshare.msnos.core.Receipt;
-import com.workshare.msnos.core.protocols.ip.Endpoint;
 import com.workshare.msnos.core.protocols.ip.MulticastSocketFactory;
 import com.workshare.msnos.core.serializers.WireJsonSerializer;
 
@@ -188,17 +187,6 @@ public class UDPGatewayTest {
         simulateMessageFromNetwork(message);
 
         assertMessageReceived(message);
-    }
-
-    @Test
-    public void shouldStampMessageReceivedAsUDP() throws Exception {
-        addListenerToGateway();
-
-        Message message = newSampleMessage(SOMEONE, ME);
-        simulateMessageFromNetwork(message);
-
-        Message received = assertMessageReceived(message);
-        assertEquals(Endpoint.Type.UDP, received.getEndpoint());
     }
 
     @Test

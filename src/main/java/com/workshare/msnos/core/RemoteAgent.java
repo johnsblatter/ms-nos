@@ -23,7 +23,7 @@ public class RemoteAgent extends RemoteEntity implements Agent {
         this(uuid, cloud, endpoints, Ring.make(endpoints));
     }
 
-    public RemoteAgent(UUID uuid, Cloud cloud, Set<Endpoint> endpoints, Ring ring) {
+    private RemoteAgent(UUID uuid, Cloud cloud, Set<Endpoint> endpoints, Ring ring) {
         super(new Iden(Iden.Type.AGT, uuid), cloud);
         this.ring = ring;
         update(endpoints);
