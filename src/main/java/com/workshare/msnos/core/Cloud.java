@@ -187,8 +187,8 @@ public class Cloud implements Identifiable {
         log.debug("Local agent joined: {}", agent);
         localAgents.add(agent);
 
-        Receipt receipt = send(new MessageBuilder(Message.Type.PRS, agent, this).with(new Presence(true, agent)).make());
-        waitForDelivery(receipt, 2, TimeUnit.SECONDS);
+        Receipt receipt = sendSync(new MessageBuilder(Message.Type.PRS, agent, this).with(new Presence(true, agent)).make());
+        waitForDelivery(receipt, 1, TimeUnit.SECONDS);
         
         sendSync(new MessageBuilder(Message.Type.DSC, agent, this).make());
     }
@@ -200,7 +200,7 @@ public class Cloud implements Identifiable {
             Thread.interrupted();
             throw new MsnosException(e.getMessage(), Code.SEND_FAILED);
         }
-    }
+   }
 
     void onLeave(LocalAgent agent) throws MsnosException {
         checkCloudAlive();

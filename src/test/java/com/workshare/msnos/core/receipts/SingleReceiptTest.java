@@ -38,15 +38,7 @@ public class SingleReceiptTest {
     @Test
     public void shouldAwaitReturnFalseForUnknownStatus() throws Exception {
         Receipt receipt = new SingleReceipt(gate, Status.UNKNOWN, MESSAGE);
-        assertFalse(receipt.waitForDelivery(1, TimeUnit.SECONDS));
-    }
-
-    @Test
-    public void shouldAwaitReturnImmediatelyForUnknownStatus() throws Exception {
-        Receipt receipt = new SingleReceipt(gate, Status.UNKNOWN, MESSAGE);
-        long now = System.currentTimeMillis();
-        receipt.waitForDelivery(1, TimeUnit.SECONDS);
-        assertEquals(now/10, System.currentTimeMillis()/10, 0.1);
+        assertFalse(receipt.waitForDelivery(100, TimeUnit.MILLISECONDS));
     }
     
     @Test
@@ -88,6 +80,16 @@ public class SingleReceiptTest {
     }
 
     @Test
+    public void shouldAwaitReturnAfterTimeoutForStillUnknownStatus() throws Exception {
+        Receipt receipt = new SingleReceipt(gate, Status.UNKNOWN, MESSAGE);
+        final long now = System.currentTimeMillis();
+        final long expected = now+100;
+        receipt.waitForDelivery(100, TimeUnit.MILLISECONDS);
+        final long current = System.currentTimeMillis();
+        assertTrue("expected "+expected+" - current: "+current, current >= expected);
+    }
+
+    @Test
     public void shouldReturnBeforeTimeoutIfStatusChangedToDelivered() throws Exception {
         SingleReceipt receipt = new SingleReceipt(gate, Status.PENDING, MESSAGE);
         final long now = System.currentTimeMillis();
@@ -95,6 +97,16 @@ public class SingleReceiptTest {
         receipt.waitForDelivery(5, TimeUnit.SECONDS);
 
         assertTrue(System.currentTimeMillis() < now+1000);
+    }
+
+    @Test
+    public void shouldNOTReturnBeforeTimeoutIfStatusChangedToOPending() throws Exception {
+        SingleReceipt receipt = new SingleReceipt(gate, Status.UNKNOWN, MESSAGE);
+        final long now = System.currentTimeMillis();
+        simulateMessageChange(receipt, 50, Status.PENDING);
+        receipt.waitForDelivery(200, TimeUnit.MILLISECONDS);
+
+        assertTrue(System.currentTimeMillis() >= now+200);
     }
 
     @Test

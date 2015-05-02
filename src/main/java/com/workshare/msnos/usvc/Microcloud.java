@@ -44,6 +44,8 @@ import com.workshare.msnos.usvc.api.routing.ApiRepository;
 
 public class Microcloud {
 
+    private static final ScheduledExecutorService DEFAULT_EXECUTOR = ExecutorServices.newSingleThreadScheduledExecutor();
+
     private static final Long ENQUIRY_EXPIRE = Long.getLong("com.ws.msnos.microservice.enquiry.timeout", 60);
 
     private static final Logger log = LoggerFactory.getLogger("STANDARD");
@@ -53,9 +55,10 @@ public class Microcloud {
     private final ApiRepository apis;
     private final Cloud cloud;
     private final Map<UUID, Iden> enquiries;
+    private final ScheduledExecutorService executor;
 
     public Microcloud(Cloud cloud) {
-        this(cloud, ExecutorServices.newSingleThreadScheduledExecutor());
+        this(cloud, DEFAULT_EXECUTOR);
     }
 
     public Microcloud(Cloud cloud, ScheduledExecutorService executor) {
@@ -75,6 +78,7 @@ public class Microcloud {
         passiveServices = new ConcurrentHashMap<UUID, PassiveService>();
         apis = new ApiRepository();
 
+        this.executor = executor;
         this.enquiries = ExpiringMap.builder().expiration(ENQUIRY_EXPIRE, TimeUnit.SECONDS).build();
 
         Healthchecker healthcheck = new Healthchecker(this, executor);
@@ -164,14 +168,26 @@ public class Microcloud {
         enquiryMicroserviceIfUnknown(message);
     }
 
-    private void enquiryMicroserviceIfUnknown(Message message) throws MsnosException {
+    private void enquiryMicroserviceIfUnknown(final Message message) {
         final Iden from = message.getFrom();
         if (!remoteServices.containsKey(from)) {
             if (from.getType() == Iden.Type.AGT && message.getType() != PRS)
                 if (enquiries.get(from.getUUID()) == null) {
                     enquiries.put(from.getUUID(), from);
-                    log.warn("Enquiring unknown microservice {} on message {} received", from, message.getType());
-                    send(new MessageBuilder(Message.Type.ENQ, cloud, from).make());
+                    executor.schedule(new Runnable(){
+                        @Override
+                        public void run() {
+                            if (!remoteServices.containsKey(from)) {
+                                log.warn("Enquiring unknown microservice {} on message {} received", from, message.getType());
+                                try {
+                                    send(new MessageBuilder(Message.Type.ENQ, cloud, from).make());
+                                } catch (MsnosException e) {
+                                    log.warn("Unexpected exception while enquiring "+from, e);
+                                }
+                            } else {
+                                log.debug("No need to enquiry microservice {} on message {} received", from, message.getType());
+                            }
+                        }}, ENQUIRY_EXPIRE/5, TimeUnit.SECONDS);
                 }
         }
     }

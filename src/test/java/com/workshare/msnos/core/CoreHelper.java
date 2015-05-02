@@ -1,18 +1,25 @@
 package com.workshare.msnos.core;
 
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyLong;
+import static org.mockito.Mockito.atMost;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.Callable;
 import java.util.concurrent.Executor;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.mockito.ArgumentCaptor;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
@@ -212,5 +219,31 @@ public class CoreHelper {
     
     public static Cloud.Internal getCloudInternal(Cloud cloud) {
         return cloud.internal();
+    }
+    
+    @SuppressWarnings("rawtypes")
+    public static void runScheduledTasks(ScheduledExecutorService executor) throws Exception {
+        for (Callable callable : extractCallables(executor)) {
+            callable.call();
+        }
+        
+        for (Runnable runnable : extractRunnables(executor)) {
+            runnable.run();
+        }
+    }
+
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    private static List<Callable> extractCallables(ScheduledExecutorService executor) {
+        ArgumentCaptor<Callable> captor = ArgumentCaptor.forClass(Callable.class);
+        verify(executor, atMost(9999)).schedule(captor.capture(), anyLong(), any(TimeUnit.class));
+        return captor.getAllValues();
+    }
+
+    private static List<Runnable> extractRunnables(ScheduledExecutorService executor) {
+        ArgumentCaptor<Runnable> captor = ArgumentCaptor.forClass(Runnable.class);
+        verify(executor, atMost(9999)).schedule(captor.capture(), anyLong(), any(TimeUnit.class));
+        verify(executor, atMost(9999)).scheduleAtFixedRate(captor.capture(), anyLong(), anyLong(), any(TimeUnit.class));
+        verify(executor, atMost(9999)).scheduleWithFixedDelay(captor.capture(), anyLong(), anyLong(), any(TimeUnit.class));
+        return captor.getAllValues();
     }
 }

@@ -5,6 +5,7 @@ import static com.workshare.msnos.core.CoreHelper.asSet;
 import static com.workshare.msnos.core.CoreHelper.fakeSystemTime;
 import static com.workshare.msnos.core.CoreHelper.newAgentIden;
 import static com.workshare.msnos.core.CoreHelper.randomUUID;
+import static com.workshare.msnos.core.CoreHelper.runScheduledTasks;
 import static com.workshare.msnos.core.MessagesHelper.newAPPMessage;
 import static com.workshare.msnos.core.MessagesHelper.newFaultMessage;
 import static com.workshare.msnos.core.MessagesHelper.newHCKMessage;
@@ -62,6 +63,7 @@ public class MicrocloudTest {
     private Microcloud microcloud;
     private Cloud cloud;
     private Microservice local;
+    private ScheduledExecutorService executor;
 
 
     @BeforeClass
@@ -79,7 +81,8 @@ public class MicrocloudTest {
         cloud = Mockito.mock(Cloud.class);
         when(cloud.getIden()).thenReturn(new Iden(Iden.Type.CLD, new UUID(111, 111)));
         when(cloud.getRing()).thenReturn(Ring.random());
-        microcloud = new Microcloud(cloud, Mockito.mock(ScheduledExecutorService.class));
+        executor = Mockito.mock(ScheduledExecutorService.class);
+        microcloud = new Microcloud(cloud, executor);
 
         LocalAgent agent = mock(LocalAgent.class);
         when(agent.getIden()).thenReturn(newAgentIden());        
@@ -307,9 +310,10 @@ public class MicrocloudTest {
         RestApi restApi = createRestApi("name", "/foo");
         Endpoint ep = new BaseEndpoint(Type.UDP, asPublicNetwork("24.24.24.24"));
         RemoteAgent agent = new RemoteAgent(randomUUID(), cloud, asSet(ep));
-        RemoteMicroservice remote = new RemoteMicroservice("name", agent, toSet(restApi));
+        RemoteMicroservice remote = new RemoteMicroservice("name", agent, asSet(restApi));
 
         simulateMessageFromCloud(newAPPMessage(remote, cloud));
+        runScheduledTasks(executor);
         
         Message message = sentMessages().get(0);
         assertEquals(Message.Type.ENQ, message.getType());
@@ -322,7 +326,7 @@ public class MicrocloudTest {
         RestApi restApi = createRestApi("name", "/foo");
         Endpoint ep = new BaseEndpoint(Type.UDP, asPublicNetwork("24.24.24.24"));
         RemoteAgent agent = new RemoteAgent(randomUUID(), cloud, asSet(ep));
-        RemoteMicroservice remote = new RemoteMicroservice("name", agent, toSet(restApi));
+        RemoteMicroservice remote = new RemoteMicroservice("name", agent, asSet(restApi));
 
         simulateMessageFromCloud(newAPPMessage(remote, cloud));
         simulateMessageFromCloud(newAPPMessage(remote, cloud));
@@ -406,7 +410,7 @@ public class MicrocloudTest {
         RemoteAgent agent = new RemoteAgent(uuid, cloud, asSet(ep));
         putRemoteAgentInCloudAgentsList(agent);
 
-        RemoteMicroservice remote = new RemoteMicroservice(name, agent, toSet(restApi));
+        RemoteMicroservice remote = new RemoteMicroservice(name, agent, asSet(restApi));
         simulateMessageFromCloud(newQNEMessage(remote.getAgent(), name, restApi));
         return remote;
     }
@@ -461,10 +465,6 @@ public class MicrocloudTest {
 
     private void assertAgentInMicroserviceList(Agent remoteAgent) {
         assertEquals(remoteAgent, microcloud.getMicroServices().iterator().next().getAgent());
-    }
-
-    private Set<RestApi> toSet(RestApi... restApi) {
-        return new HashSet<RestApi>(Arrays.asList(restApi));
     }
 
 }

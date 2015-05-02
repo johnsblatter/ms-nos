@@ -3,6 +3,7 @@ package com.workshare.msnos.core;
 import static com.workshare.msnos.soup.Shorteners.shorten;
 
 import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,6 +14,8 @@ import com.workshare.msnos.soup.json.Json;
 import com.workshare.msnos.soup.threading.ExecutorServices;
 
 public class Sender {
+
+    private static final ExecutorService DEFAULT_EXECUTOR_SERVICE = ExecutorServices.newFixedDaemonThreadPool(getThreadNum());
 
     public static final String SYSP_SENDER_THREADS_NUM = "com.ws.msnos.sender.threads.num";
     
@@ -53,7 +56,7 @@ public class Sender {
     private final Router router;
 
     Sender(Router router) {
-        this(router, ExecutorServices.newFixedDaemonThreadPool(getThreadNum()));
+        this(router, DEFAULT_EXECUTOR_SERVICE);
     }
 
     Sender(Router router, Executor executor) {

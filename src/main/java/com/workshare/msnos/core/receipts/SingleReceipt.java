@@ -8,6 +8,7 @@ import com.workshare.msnos.core.Message;
 import com.workshare.msnos.core.Message.Status;
 import com.workshare.msnos.core.protocols.ip.NullGateway;
 import com.workshare.msnos.core.Receipt;
+import com.workshare.msnos.soup.time.SystemTime;
 
 public class SingleReceipt implements Receipt {
 
@@ -52,14 +53,26 @@ public class SingleReceipt implements Receipt {
                 return true;
 
             case FAILED:
-            case UNKNOWN:
                 return false;
 
             default:
-                final long tt = unit.toMillis(amount);
-                this.wait(tt);
+                doWaitForDelivery(amount, unit);
                 return status == Status.DELIVERED;
         }
+    }
+
+    private void doWaitForDelivery(long amount, TimeUnit unit) throws InterruptedException {
+        final long start = SystemTime.asMillis();
+        final long total = unit.toMillis(amount);
+        while(elapsedFrom(start) < total) {
+            this.wait(total);
+            if (status == Status.DELIVERED || status == Status.FAILED)
+                return;
+        }
+    }
+
+    private final long elapsedFrom(long start) {
+        return SystemTime.asMillis() - start;
     }
 
     @Override
