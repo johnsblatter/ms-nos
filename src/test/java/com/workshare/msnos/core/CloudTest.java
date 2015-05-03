@@ -5,6 +5,7 @@ import static com.workshare.msnos.core.CoreHelper.asPublicNetwork;
 import static com.workshare.msnos.core.CoreHelper.asSet;
 import static com.workshare.msnos.core.CoreHelper.fakeElapseTime;
 import static com.workshare.msnos.core.CoreHelper.fakeSystemTime;
+import static com.workshare.msnos.core.CoreHelper.getCloudInternal;
 import static com.workshare.msnos.core.CoreHelper.randomUUID;
 import static com.workshare.msnos.core.CoreHelper.synchronousCloudMulticaster;
 import static com.workshare.msnos.core.Message.Type.APP;
@@ -32,6 +33,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -45,6 +47,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
+import com.workshare.msnos.core.Cloud.Internal;
 import com.workshare.msnos.core.Message.Status;
 import com.workshare.msnos.core.Message.Type;
 import com.workshare.msnos.core.cloud.Multicaster;
@@ -330,7 +333,7 @@ public class CloudTest {
     }
 
     @Test
-    public void shouldRegisterMsnosEndpointsOnHttpGateway() throws Exception {
+    public void shouldUpdateHttpGatewayOnRegisterMsnosEndpoints() throws Exception {
         HttpEndpoint endpoint = mock(HttpEndpoint.class);
         when(endpoint.getTarget()).thenReturn(new Iden(Iden.Type.AGT, UUID.randomUUID()));
         thisCloud.registerRemoteMsnosEndpoint(endpoint);
@@ -338,7 +341,7 @@ public class CloudTest {
     }
 
     @Test
-    public void shouldRegisterMsnosEndpointsOnRemoteAgent() throws Exception {
+    public void shouldUpdateRemoteAgentOnRegisterMsnosEndpoints() throws Exception {
         RemoteAgent frank = newRemoteAgent(thisCloud);
         simulateAgentJoiningCloud(frank, thisCloud);
 
@@ -351,7 +354,7 @@ public class CloudTest {
     }
 
     @Test
-    public void shouldRegisterMsnosEndpointsOnLocalAgent() throws Exception {
+    public void shouldUpdateLocalAgentOnRegisterLocalMsnosEndpoints() throws Exception {
         LocalAgent smith = new LocalAgent(UUID.randomUUID());
         smith.join(thisCloud);
 
@@ -363,6 +366,39 @@ public class CloudTest {
         assertTrue(agent.getEndpoints().contains(endpoint));
     }
 
+    // TODO FIXME
+//    public void shouldUpdateHttpGatewayOnUnregisterMsnosEndpoints() throws Exception {
+
+    // TODO FIXME
+//    public void shouldUpdateRemoteAgentOnUnregisterMsnosEndpoints() throws Exception {
+
+    // TODO FIXME
+//    public void shouldUpdateLocalAgentOnUnregisterLocalMsnosEndpoints() throws Exception {
+        
+    
+    @Test
+    public void shouldInstallMsnosEndpointWhenRemoteAgentAdded() throws MsnosException {
+        HttpEndpoint endpoint = new HttpEndpoint(asPublicNetwork("25.25.25.25"), "http://foo.com");
+        RemoteAgent remote = newRemoteAgent(thisCloud, endpoint);
+        
+        Internal internal = getCloudInternal(thisCloud);
+        internal.remoteAgents().add(remote);
+        
+        verify(httpGate.endpoints()).install(endpoint);
+    }
+    
+    @Test
+    public void shouldUninstallMsnosEndpointWhenRemoteAgentRemoved() throws MsnosException {
+        Internal internal = getCloudInternal(thisCloud);
+        HttpEndpoint endpoint = new HttpEndpoint(asPublicNetwork("25.25.25.25"), "http://foo.com");
+        RemoteAgent remote = newRemoteAgent(thisCloud, endpoint);
+        internal.remoteAgents().add(remote);
+        
+        internal.remoteAgents().remove(remote.getIden());
+        
+        verify(httpGate.endpoints()).remove(endpoint);
+    }
+    
     @Test
     public void shouldProcessExternalMessage() throws MsnosException {
         RemoteAgent agent = newRemoteAgent(thisCloud);
@@ -569,7 +605,8 @@ public class CloudTest {
             assertEquals(Json.toJsonString(data), Json.toJsonString(message.getData()));
     }
 
-    private RemoteAgent newRemoteAgent(Cloud cloud) {
-        return new RemoteAgent(UUID.randomUUID(), cloud, Collections.<Endpoint> emptySet());
+    private RemoteAgent newRemoteAgent(Cloud cloud, final Endpoint... endpoints) {
+        Set<Endpoint> endpointset = new HashSet<Endpoint>(Arrays.asList(endpoints));
+        return new RemoteAgent(UUID.randomUUID(), cloud, endpointset );
     }
 }

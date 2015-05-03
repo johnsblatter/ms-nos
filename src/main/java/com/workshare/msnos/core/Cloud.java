@@ -20,6 +20,7 @@ import org.slf4j.LoggerFactory;
 import com.workshare.msnos.core.MsnosException.Code;
 import com.workshare.msnos.core.cloud.AgentWatchdog;
 import com.workshare.msnos.core.cloud.IdentifiablesList;
+import com.workshare.msnos.core.cloud.IdentifiablesList.Callback;
 import com.workshare.msnos.core.cloud.MessageValidators;
 import com.workshare.msnos.core.cloud.Multicaster;
 import com.workshare.msnos.core.payloads.FltPayload;
@@ -102,7 +103,7 @@ public class Cloud implements Identifiable {
         this.enquiries = ExpiringMap.builder().expiration(ENQUIRY_EXPIRE, TimeUnit.SECONDS).build();
 
         this.localAgents = new IdentifiablesList<LocalAgent>();
-        this.remoteAgents = new IdentifiablesList<RemoteAgent>();
+        this.remoteAgents = new IdentifiablesList<RemoteAgent>(onRemoteAgentsChange());
         this.remoteClouds = new IdentifiablesList<RemoteEntity>();
 
         this.gates = Collections.unmodifiableSet(gates);
@@ -264,21 +265,6 @@ public class Cloud implements Identifiable {
             receiver.caster().dispatch(new MessageBuilder(Message.Type.FLT, this, this).with(new FltPayload(agent.getIden())).make());
     }
 
-    public void registerRemoteMsnosEndpoint(HttpEndpoint endpoint) throws MsnosException {
-        log.debug("Registering remote HTTP endpoint: {}", endpoint);
-        for (Gateway gate : gates) {
-            if (gate instanceof HttpGateway) {
-                gate.endpoints().install(endpoint);
-                updateRemoteAgent(endpoint);
-                endpoint = null;
-            }
-        }
-
-        if (endpoint != null) {
-            log.warn("Warning: unable to install endpoint, HTTP gateway not found!");
-        }
-    }
-
     public void registerLocalMsnosEndpoint(HttpEndpoint endpoint) {
         log.debug("Registering local HTTP endpoint: {}", endpoint);
         LocalAgent agent = localAgents.get(endpoint.getTarget());
@@ -291,13 +277,43 @@ public class Cloud implements Identifiable {
         log.debug("Agent {} updated, added endpoints {}", agent.getIden().getUUID(), endpoint);
     }
 
-    private void updateRemoteAgent(HttpEndpoint endpoint) {
+    public void unregisterRemoteMsnosEndpoint(HttpEndpoint endpoint) throws MsnosException {
+        log.debug("Unregistering remote HTTP endpoint: {}", endpoint);
+        unregisterFromHttpGateway(endpoint);
+    }
+
+    private void unregisterFromHttpGateway(HttpEndpoint endpoint) throws MsnosException {
+        for (Gateway gate : gates) {
+            if (gate instanceof HttpGateway) {
+                gate.endpoints().remove(endpoint);
+            }
+        }
+    }
+
+    public void registerRemoteMsnosEndpoint(HttpEndpoint endpoint) throws MsnosException {
+        log.debug("Registering remote HTTP endpoint: {}", endpoint);
+        registerOnHttpGateway(endpoint);
+        registerOnRemoteAgent(endpoint);
+    }
+
+    private void registerOnHttpGateway(HttpEndpoint endpoint) throws MsnosException {
+        for (Gateway gate : gates) {
+            if (gate instanceof HttpGateway) {
+                gate.endpoints().install(endpoint);
+            }
+        }
+    }
+
+    private void registerOnRemoteAgent(HttpEndpoint endpoint) {
         RemoteAgent agent = getRemoteAgent(endpoint.getTarget());
         if (agent == null) {
             log.warn("Weird... a remote agent registered an httpendpoint, but I do not know him");
             return;
         }
 
+        if (agent.getEndpoints(Endpoint.Type.HTTP).contains(endpoint))
+            return;
+            
         agent.update(newEndpoints(endpoint, agent));
         log.debug("Agent {} updated, new endpoints are {}", agent, newEndpoints(endpoint, agent));
     }
@@ -392,6 +408,31 @@ public class Cloud implements Identifiable {
                 return 0;
             }
         });
+    }
+
+    private Callback<RemoteAgent> onRemoteAgentsChange() {
+        return new Callback<RemoteAgent>() {
+            @Override
+            public void onAdd(RemoteAgent agent) {
+                for(Endpoint endpoint : agent.getEndpoints(Endpoint.Type.HTTP)) {
+                    try {
+                        registerRemoteMsnosEndpoint((HttpEndpoint) endpoint);
+                    } catch (Exception e) {
+                        log.error("wtf - unable to register http endpoint", e);
+                    }
+                }
+            }
+
+            @Override
+            public void onRemove(RemoteAgent agent) {
+                for(Endpoint endpoint : agent.getEndpoints(Endpoint.Type.HTTP)) {
+                    try {
+                        unregisterRemoteMsnosEndpoint((HttpEndpoint) endpoint);
+                    } catch (Exception e) {
+                        log.error("wtf - unable to register http endpoint", e);
+                    }
+                }
+            }};
     }
 
 

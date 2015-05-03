@@ -217,6 +217,17 @@ public class CoreHelper {
         return cloud;
     }
     
+    public static Agent createMockAgent() {
+        return createMockAgent(newAgentIden());
+    }
+    
+    public static Agent createMockAgent(final Iden iden) {
+        Agent agent = mock(Agent.class);
+        when(agent.getIden()).thenReturn(iden);
+        when(agent.toString()).thenReturn(iden.toString());
+        return agent;
+    }
+    
     public static Cloud.Internal getCloudInternal(Cloud cloud) {
         return cloud.internal();
     }
