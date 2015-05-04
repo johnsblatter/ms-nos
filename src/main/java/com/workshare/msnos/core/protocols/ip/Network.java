@@ -209,14 +209,23 @@ public class Network {
     
     public static boolean isValidDottedIpv4Address(String address) {
         String[] nibbles = address.trim().split("\\.");
-        if (nibbles.length == 4) {
-            for (int i=0; i<4; i++) {
-                int ival = Integer.valueOf(nibbles[i]);
-                if (ival < 0 && ival > 255)
-                    return false;
-            }
+        if (nibbles.length != 4)
+            return false;
+
+        for (int i=0; i<4; i++) {
+            int ival = toInt(nibbles[i], -1);
+            if (ival < 0 || ival > 255)
+                return false;
         }
-        
+
         return true;
+    }
+
+    private static int toInt(final String sval, int defval) {
+        try {
+            return Integer.valueOf(sval);
+        } catch (Exception any) {
+            return defval;
+        }
     }
 }

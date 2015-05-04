@@ -234,6 +234,18 @@ public class NetworkTest {
         assertEquals(IPV4_ADDRESS1, res.iterator().next().getAddress());
     }
     
+    @Test
+    public void shouldReturnTrueOnValidIPV4DottedAddress() {
+        assertTrue(Network.isValidDottedIpv4Address("25.25.25.25"));
+    }
+    
+    @Test
+    public void shouldReturnFalseOnInvalidIPV4DottedAddress() {
+      assertFalse(Network.isValidDottedIpv4Address("foo.25.25.25"));
+      assertFalse(Network.isValidDottedIpv4Address("25.256.25.25"));
+      assertFalse(Network.isValidDottedIpv4Address("25.25.25.25.25"));
+    }
+
     private Enumeration<NetworkInterface> asEnumeration(NetworkInterface... nics) {
         final List<NetworkInterface> data = new ArrayList<NetworkInterface>(Arrays.asList(nics));
         return new Enumeration<NetworkInterface>() {
