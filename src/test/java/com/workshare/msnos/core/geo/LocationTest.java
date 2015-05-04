@@ -20,7 +20,7 @@ import com.workshare.msnos.core.geo.Location.Match;
 import com.workshare.msnos.core.geo.Location.Place;
 
 @RunWith(PowerMockRunner.class)
-@PrepareForTest({OmniResponse.class, Continent.class, City.class, Country.class, Subdivision.class})
+@PrepareForTest({OmniResponse.class, Continent.class, City.class, Country.class, Subdivision.class, com.maxmind.geoip2.record.Location.class})
 public class LocationTest {
 
     public static final Continent NORTH_AMERICA = mockContinent("NA", "North America");
@@ -83,6 +83,15 @@ public class LocationTest {
         assertEquals(Place.Type.CITY, location.getCity().getType());
         assertEquals(SYRACUSE.getGeoNameId().toString(), location.getCity().getCode());
         assertEquals(SYRACUSE.getName(), location.getCity().getName());
+    }
+
+    @Test
+    public void shouldRecordGPSLocation() {
+        Location location = new Location (response(0.2, 0.5, 99));
+        
+        assertEquals(0.2, location.getGPS().getLatitude(), 0.01);
+        assertEquals(0.5, location.getGPS().getLongitude(), 0.01);
+        assertEquals(99, location.getGPS().getAccuracy().intValue());
     }
 
     @Test
@@ -212,6 +221,18 @@ public class LocationTest {
     
     private OmniResponse response() {
         return response(null, null, null, null);
+    }
+    
+    private OmniResponse response(double latitude, double longitude, int accuracy) {
+        
+        com.maxmind.geoip2.record.Location location = mock(com.maxmind.geoip2.record.Location.class);
+        when(location.getLatitude()).thenReturn(latitude);
+        when(location.getLongitude()).thenReturn(longitude);
+        when(location.getAccuracyRadius()).thenReturn(accuracy);
+        
+        OmniResponse response = mock(OmniResponse.class);
+        when(response.getLocation()).thenReturn(location);
+        return response;
     }
     
     private OmniResponse response(Continent continent, Country country, Subdivision region, City city) {

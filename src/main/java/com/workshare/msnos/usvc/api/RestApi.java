@@ -32,20 +32,15 @@ public class RestApi {
 
     private static final AtomicLong NEXT_ID = new AtomicLong(0);
 
-    @SerializedName("pa")
     private final String path;
-    @SerializedName("ho")
     private final String host;
-    @SerializedName("po")
     private final int port;
-    @SerializedName("st")
     private final boolean sticky;
-    @SerializedName("ty")
     private final Type type;
-    @SerializedName("pri")
     private final int priority;
+    
+    private final AtomicInteger tempFaults;
 
-    private final transient AtomicInteger tempFaults;
     private final transient long id;
 
     private transient boolean faulty;

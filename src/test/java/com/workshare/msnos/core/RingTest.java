@@ -47,13 +47,19 @@ public class RingTest {
     }
 
     @Test
-    public void shouldLocationBeUpdatedWhenMicroserviceJoin() {
+    public void shouldLocationBeUpdatedWhenMicroserviceJoinWithLocation() {
+        Ring ring = Ring.random();
+
         Location location = mock(Location.class);
         when(location.getPrecision()).thenReturn(100);
         IMicroservice uservice = mock(IMicroservice.class);
         when(uservice.getLocation()).thenReturn(location);
+        ring.onMicroserviceJoin(uservice);
         
-        Ring ring = Ring.random();
+        assertEquals(location, ring.location());
+
+        IMicroservice nowhereman = mock(IMicroservice.class);
+        when(nowhereman.getLocation()).thenReturn(Location.UNKNOWN);
         ring.onMicroserviceJoin(uservice);
         
         assertEquals(location, ring.location());

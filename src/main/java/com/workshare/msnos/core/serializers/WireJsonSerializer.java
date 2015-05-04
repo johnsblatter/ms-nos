@@ -1,25 +1,44 @@
 package com.workshare.msnos.core.serializers;
 
-import com.google.gson.*;
+import java.io.Reader;
+import java.lang.reflect.Type;
+import java.nio.charset.Charset;
+import java.util.UUID;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonDeserializationContext;
+import com.google.gson.JsonDeserializer;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParseException;
+import com.google.gson.JsonPrimitive;
+import com.google.gson.JsonSerializationContext;
+import com.google.gson.JsonSerializer;
+import com.google.gson.JsonSyntaxException;
 import com.workshare.msnos.core.Iden;
 import com.workshare.msnos.core.Message;
 import com.workshare.msnos.core.Message.Payload;
 import com.workshare.msnos.core.MessageBuilder;
 import com.workshare.msnos.core.Version;
-import com.workshare.msnos.core.payloads.*;
+import com.workshare.msnos.core.payloads.FltPayload;
+import com.workshare.msnos.core.payloads.GenericPayload;
+import com.workshare.msnos.core.payloads.HealthcheckPayload;
+import com.workshare.msnos.core.payloads.NullPayload;
+import com.workshare.msnos.core.payloads.PongPayload;
+import com.workshare.msnos.core.payloads.Presence;
+import com.workshare.msnos.core.payloads.QnePayload;
+import com.workshare.msnos.core.payloads.TracePayload;
+import com.workshare.msnos.core.protocols.ip.BaseEndpoint;
 import com.workshare.msnos.core.protocols.ip.Endpoint;
 import com.workshare.msnos.core.protocols.ip.HttpEndpoint;
 import com.workshare.msnos.core.protocols.ip.Network;
-import com.workshare.msnos.core.protocols.ip.BaseEndpoint;
 import com.workshare.msnos.soup.json.Json;
 import com.workshare.msnos.soup.json.ThreadSafeGson;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.io.Reader;
-import java.lang.reflect.Type;
-import java.nio.charset.Charset;
-import java.util.UUID;
+import com.workshare.msnos.usvc.api.RestApi;
 
 public class WireJsonSerializer implements WireSerializer {
 
@@ -201,6 +220,36 @@ public class WireJsonSerializer implements WireSerializer {
         }
     };
 
+    private static final JsonSerializer<RestApi> ENC_RESTAPI = new JsonSerializer<RestApi>() {
+        @Override
+        public JsonElement serialize(RestApi api, Type typeOfSrc, JsonSerializationContext context) {
+            final JsonObject res = new JsonObject();
+            res.add("ty", context.serialize(api.getType()));
+            res.addProperty("pa", api.getPath());
+            res.addProperty("ho", api.getHost());
+            res.addProperty("po", api.getPort());
+            res.addProperty("st", api.hasAffinity());
+            res.addProperty("xp", api.getPriority());
+            return res;
+        }
+    };
+
+    private static final JsonDeserializer<RestApi> DEC_RESTAPI = new JsonDeserializer<RestApi>() {
+        @Override
+        public RestApi deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
+            final JsonObject obj = json.getAsJsonObject();
+            
+            RestApi.Type type = context.deserialize(obj.get("ty"), RestApi.Type.class);
+            boolean sticky = obj.get("st").getAsBoolean();
+            int priority = obj.get("xp").getAsInt();
+            String path = getString(obj,"pa");
+            String host = getString(obj,"ho");
+            int port = obj.get("po").getAsInt();
+            
+            return new RestApi(path, port, host, type, sticky, priority);
+        }
+    };
+
     private static final JsonSerializer<Message> ENC_MESSAGE = new JsonSerializer<Message>() {
         @Override
         public JsonElement serialize(Message msg, Type typeof, JsonSerializationContext context) {
@@ -237,8 +286,8 @@ public class WireJsonSerializer implements WireSerializer {
             final Iden to = context.deserialize(obj.get("to").getAsJsonPrimitive(), Iden.class);
             final int hops = obj.get("hp").getAsInt();
             final Boolean reliable = context.deserialize(obj.get("rx"), Boolean.class);
-            final String sig = getNullableString(obj, "ss");
-            final String rnd = getNullableString(obj, "rr");
+            final String sig = getString(obj, "ss");
+            final String rnd = getString(obj, "rr");
             final long when = obj.get("ts").getAsLong();
 
             Payload data = null;
@@ -311,6 +360,9 @@ public class WireJsonSerializer implements WireSerializer {
             builder.registerTypeAdapter(Message.class, ENC_MESSAGE);
             builder.registerTypeAdapter(Message.class, DEC_MESSAGE);
 
+            builder.registerTypeAdapter(RestApi.class, ENC_RESTAPI);
+            builder.registerTypeAdapter(RestApi.class, DEC_RESTAPI);
+
             builder.registerTypeAdapter(Endpoint.class, DEC_ENDPOINT);
             builder.registerTypeAdapter(Endpoint.class, ENC_ENDPOINT);
             builder.registerTypeAdapter(BaseEndpoint.class, ENC_ENDPOINT);
@@ -361,7 +413,7 @@ public class WireJsonSerializer implements WireSerializer {
         }
     }
 
-    private static final String getNullableString(final JsonObject obj, final String memberName) {
+    private static final String getString(final JsonObject obj, final String memberName) {
         final JsonElement jsonElement = obj.get(memberName);
         return (jsonElement == null) ? null : jsonElement.getAsString();
     }

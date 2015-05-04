@@ -5,6 +5,7 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.maxmind.geoip2.model.OmniResponse;
 import com.maxmind.geoip2.record.AbstractNamedRecord;
 import com.maxmind.geoip2.record.City;
@@ -20,6 +21,71 @@ public class Location {
 
     public static Location UNKNOWN = new Location(Place.NOWHERE, Place.NOWHERE, Place.NOWHERE, Place.NOWHERE);
 
+    public class Match {
+
+        private final int value;
+        private final Location source;
+        private final Location target;
+
+        public Match(Location source, Location target) {
+            this.source = source;
+            this.target = target;
+            this.value = calculateValue(source, target);
+        }
+
+        private int calculateValue(Location source, Location target) {
+            int total = 0;
+            total += source.continent.equals(target.continent) ? 1 : 0;
+            total += source.country.equals(target.country) ? 2 : 0;
+            total += source.region.equals(target.region) ? 4 : 0;
+            total += source.city.equals(target.city) ? 8 : 0;
+            return total;
+        }
+
+        public Location getSource() {
+            return source;
+        }
+
+        public Location getTarget() {
+            return target;
+        }
+
+        public int value() {
+            return value;
+        }
+        
+        public String toString() {
+            return "match: "+Integer.toString(value);
+        }
+    }
+
+    public static class GPS {
+        @JsonProperty("lat")
+        private final Double latitude;
+        @JsonProperty("lon")
+        private final Double longitude;
+        @JsonProperty("acc")
+        private final Integer accuracy;
+        
+        public GPS(com.maxmind.geoip2.record.Location maxlocation) {
+            this.latitude = maxlocation.getLatitude();
+            this.longitude = maxlocation.getLongitude();
+            this.accuracy = maxlocation.getAccuracyRadius();
+        }
+
+        public Double getLatitude() {
+            return latitude;
+        }
+
+        public Double getLongitude() {
+            return longitude;
+        }
+
+        public Integer getAccuracy() {
+            return accuracy;
+        }
+    }
+    
     public static class Place {
         public enum Type {
             CONTINENT, COUNTRY, REGION, CITY
@@ -88,65 +154,34 @@ public class Location {
         }
     }
 
-    public class Match {
-
-        private final int value;
-        private final Location source;
-        private final Location target;
-
-        public Match(Location source, Location target) {
-            this.source = source;
-            this.target = target;
-            this.value = calculateValue(source, target);
-        }
-
-        private int calculateValue(Location source, Location target) {
-            int total = 0;
-            total += source.continent.equals(target.continent) ? 1 : 0;
-            total += source.country.equals(target.country) ? 2 : 0;
-            total += source.region.equals(target.region) ? 4 : 0;
-            total += source.city.equals(target.city) ? 8 : 0;
-            return total;
-        }
-
-        public Location getSource() {
-            return source;
-        }
-
-        public Location getTarget() {
-            return target;
-        }
-
-        public int value() {
-            return value;
-        }
-        
-        public String toString() {
-            return "match: "+Integer.toString(value);
-        }
-    }
-
     private final Place continent;
     private final Place country;
     private final Place region;
     private final Place city;
     private final int precision;
+    private final GPS gps;
 
     public Location(OmniResponse response) {
         this(
             makeContinent(response.getContinent()),
             makeCountry(response.getCountry()),
             makeRegion(response.getMostSpecificSubdivision()),
-            makeCity(response.getCity())
+            makeCity(response.getCity()),
+            makeGps(response)
             );
     }
 
     public Location(Place continent, Place country, Place region, Place city) {
+        this(continent, country, region, city, null);
+    }
+    
+    public Location(Place continent, Place country, Place region, Place city, GPS gps) {
         this.continent =  parseNull(continent);
         this.country = parseNull(country);
         this.region = parseNull(region);
         this.city = parseNull(city);
         this.precision = computePrecision();
+        this.gps = gps;
     }
     
     private Place parseNull(Place place) {
@@ -176,6 +211,10 @@ public class Location {
 
     public Place getCity() {
         return city;
+    }
+
+    public GPS getGPS() {
+        return gps;
     }
 
     public int getPrecision() {
@@ -281,6 +320,11 @@ public class Location {
             code = where.getGeoNameId().toString();
             
         return newPlace(Place.Type.REGION, where.getName(), code);
+    }
+
+    private static GPS makeGps(OmniResponse response) {
+        com.maxmind.geoip2.record.Location location = response.getLocation();
+        return (location == null ? null : new GPS(location));
     }
 
     private static Place makeCity(final City where) {

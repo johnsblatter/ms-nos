@@ -7,6 +7,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import javax.annotation.concurrent.GuardedBy;
+
 import com.workshare.msnos.core.protocols.ip.Endpoint;
 import com.workshare.msnos.core.protocols.ip.Endpoint.Type;
 import com.workshare.msnos.soup.json.Json;
@@ -16,8 +18,11 @@ public class RemoteAgent extends RemoteEntity implements Agent {
     public static final Set<Endpoint> NO_ENDPOINTS = Collections.emptySet();
 
     private final Ring ring;
-    private volatile Set<Endpoint> endpointsSet;
-    private volatile Map<Type, Set<Endpoint>> endpointsByType;
+
+    @GuardedBy("this")
+    private Set<Endpoint> endpoints;
+    @GuardedBy("this") 
+    private transient Map<Type, Set<Endpoint>> endpointsByType;
 
     public RemoteAgent(UUID uuid, Cloud cloud, Set<Endpoint> endpoints) {
         this(uuid, cloud, endpoints, Ring.make(endpoints));
@@ -31,7 +36,7 @@ public class RemoteAgent extends RemoteEntity implements Agent {
 
     @Override
     public synchronized Set<Endpoint> getEndpoints() {
-        return endpointsSet;
+        return endpoints;
     }
 
     public synchronized Set<Endpoint> getEndpoints(Type type) {
@@ -66,8 +71,8 @@ public class RemoteAgent extends RemoteEntity implements Agent {
         touch();
 
         synchronized(this) {
-            this.endpointsSet = createImmutableSet(newEndpoints);
-            this.endpointsByType = createImmutableByTypeMap(endpointsSet);
+            this.endpoints = createImmutableSet(newEndpoints);
+            this.endpointsByType = createImmutableByTypeMap(endpoints);
         }
     }
 

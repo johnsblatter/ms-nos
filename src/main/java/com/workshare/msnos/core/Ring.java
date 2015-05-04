@@ -1,7 +1,11 @@
 package com.workshare.msnos.core;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+
+import javax.annotation.concurrent.GuardedBy;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,6 +21,8 @@ public class Ring {
     private static Logger log = LoggerFactory.getLogger(Ring.class);
 
     private final UUID uuid;
+ 
+    @GuardedBy("this")
     private Location location = Location.UNKNOWN;
 
     private Ring(UUID uuid) {
@@ -27,11 +33,11 @@ public class Ring {
         return uuid;
     }
     
-    public Location location() {
+    public synchronized Location location() {
         return location;
     }
     
-    public void onMicroserviceJoin(IMicroservice uservice) {
+    public synchronized void onMicroserviceJoin(IMicroservice uservice) {
         Location loc = uservice.getLocation();
         if (loc.getPrecision() > location.getPrecision()) {
             location = loc;
@@ -60,6 +66,8 @@ public class Ring {
         }
     }
 
+    private static Map<UUID, Ring> rings = new HashMap<UUID, Ring>();
+    
     public static Ring make(Set<Endpoint> endpoints) {
         Endpoint point = null;
         if (endpoints != null)
@@ -84,7 +92,15 @@ public class Ring {
             log.warn("Random ring is being generated as no endpoints are available: {}", endpoints);
         }
         
-        return new Ring(uid);
+        synchronized(rings) {
+            Ring ring = rings.get(uid);
+            if (ring == null) {
+                ring = new Ring(uid);
+                rings.put(uid, ring);
+                log.debug("Created new ring based on UUID {}", uid);
+            }
+            return ring;
+        }
     }
 
     public static Ring random() {
