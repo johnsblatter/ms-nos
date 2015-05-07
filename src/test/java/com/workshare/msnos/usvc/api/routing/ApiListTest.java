@@ -125,6 +125,34 @@ public class ApiListTest {
     }
 
     @Test
+    public void shouldRemoveAffinityWhenMicroserviceRemoved() {
+        RemoteMicroservice alfaMicro = newRemoteMicroservice();
+        RemoteMicroservice betaMicro = newRemoteMicroservice();
+        RestApi alfa = newRestApiWithAffinity("alfa");
+        RestApi beta = newRestApi("beta");
+        apiList().add(alfaMicro, alfa);
+        apiList().add(betaMicro, beta);
+        assertEquals(alfa, apiList().get(svc));
+        assertEquals(alfa, apiList().get(svc));
+
+        apiList().remove(alfaMicro);
+        
+        assertEquals(beta, apiList().get(svc));
+        assertEquals(beta, apiList().get(svc));
+    }
+
+    @Test
+    public void shouldMarkApiFaultyWhenMicroserviceRemoved_RequiredForCachingRoutingStrategy() {
+        RemoteMicroservice micro = newRemoteMicroservice();
+        RestApi alfa = newRestApi("alfa");
+        apiList().add(micro, alfa);
+
+        apiList().remove(micro);
+        
+        verify(alfa).markFaulty();
+    }
+
+    @Test
     public void shouldRemoveAffinityWhenFaulty() {
         RestApi alfa = newRestApi("alfa");
         RestApi beta = newRestApiWithAffinity("beta");

@@ -11,7 +11,6 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.workshare.msnos.soup.json.Json;
 import com.workshare.msnos.usvc.IMicroservice;
 import com.workshare.msnos.usvc.RemoteMicroservice;
 import com.workshare.msnos.usvc.api.RestApi;
@@ -58,8 +57,14 @@ public class ApiList {
         try {
             List<ApiEndpoint> newEndpoints = new ArrayList<ApiEndpoint>(endpointsList);
             for (int i = 0; i < newEndpoints.size(); i++) {
-                if (newEndpoints.get(i).service().equals(toRemove)) {
+                final ApiEndpoint endpoint = newEndpoints.get(i);
+                if (endpoint.service().equals(toRemove)) {
                     newEndpoints.remove(i);
+                    endpoint.api().markFaulty();
+                    if (affinite == endpoint.api()) {
+                        affinite = null;
+                    }
+                    
                     break;
                 }
             }
@@ -91,14 +96,17 @@ public class ApiList {
         if (endpointsList.size() == 0)
             return null;
 
-        if (affinite != null && !affinite.isFaulty())
+        if (affinite != null && !affinite.isFaulty()) {
             return affinite;
-
+        }
+        
         RestApi result = getUsingStrategies(from);
 
-        if (result != null && result.hasAffinity())
+        affinite = null;
+        if (result != null && result.hasAffinity()) {
             affinite = result;
-
+        }
+        
         return result;
     }
 
@@ -107,7 +115,7 @@ public class ApiList {
         try {
             res = routing.select(from, endpointsList).get(0);
         } catch (Throwable ex) {
-            log.warn("Unexpected error selecting API using round robin", ex);
+            log.warn("Unexpected error selecting API", ex);
             res = endpointsList.size() > 0 ? endpointsList.get(0) : null;
         }
         return res == null ? null : res.api();
@@ -116,7 +124,7 @@ public class ApiList {
 
     @Override
     public String toString() {
-        return Json.toJsonString(this.endpointsList);
+        return "endpoints="+this.endpointsList+", affinite="+affinite+",hashcode="+super.hashCode();
     }
 
     static RoutingStrategy defaultRoutingStrategy() {

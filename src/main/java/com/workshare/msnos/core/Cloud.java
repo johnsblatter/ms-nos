@@ -235,7 +235,7 @@ public class Cloud implements Identifiable {
                 if (enquiries.get(from.getUUID()) == null) {
                     enquiries.put(from.getUUID(), from);
                     try {
-                        log.warn("Enquiring unknown agent {}", from);
+                        log.info("Enquiring unknown agent {}", from);
                         final Cloud cloud = internal.cloud();
                         cloud.send(new MessageBuilder(Message.Type.DSC, cloud, from).make());
                     } catch (IOException e) {

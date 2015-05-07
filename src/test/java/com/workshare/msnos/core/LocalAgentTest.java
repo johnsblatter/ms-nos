@@ -34,7 +34,7 @@ import com.workshare.msnos.soup.time.SystemTime;
 
 @RunWith(PowerMockRunner.class)
 @PrepareForTest(Gateways.class)
-public class AgentTest {
+public class LocalAgentTest {
 
     private Cloud cloud;
     private LocalAgent karl;
@@ -60,6 +60,11 @@ public class AgentTest {
     @After
     public void after() throws Exception {
         SystemTime.reset();
+    }
+
+    @Test(expected = MsnosException.class)
+    public void agentCannotJoinTwice() throws MsnosException {
+        smith.join(cloud);
     }
 
     @Test
@@ -159,6 +164,7 @@ public class AgentTest {
         final Set<Endpoint> expected = asSet(mock(Endpoint.class));
         when(Gateways.allPublicEndpoints()).thenReturn(expected);
         
+        smith = new LocalAgent(UUID.randomUUID());
         smith.join(cloud);
 
         assertEquals(expected, smith.getEndpoints());

@@ -13,6 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.workshare.msnos.core.Cloud.Listener;
+import com.workshare.msnos.core.MsnosException.Code;
 import com.workshare.msnos.core.payloads.Presence;
 import com.workshare.msnos.core.protocols.ip.Endpoint;
 import com.workshare.msnos.soup.json.Json;
@@ -74,6 +75,9 @@ public class LocalAgent implements Agent {
     }
 
     public LocalAgent join(Cloud cloud) throws MsnosException {
+        if (this.cloud != null)
+            throw new MsnosException("The same agent cannot join different clouds!", Code.JOIN_FAILED);
+
         this.endpoints.addAll(Gateways.allPublicEndpoints());
         this.ring = cloud.getRing();
         this.cloud = cloud;
