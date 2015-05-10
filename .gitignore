@@ -8,5 +8,6 @@ tmp
 *.iml
 .idea
 spikes
+Spike*
 *~
 dependency-reduced-pom.xml

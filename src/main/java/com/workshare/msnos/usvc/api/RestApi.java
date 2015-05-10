@@ -32,6 +32,8 @@ public class RestApi {
 
     private static final AtomicLong NEXT_ID = new AtomicLong(0);
 
+    private final transient long id;
+
     private final String path;
     private final String host;
     private final int port;
@@ -40,10 +42,7 @@ public class RestApi {
     private final int priority;
     
     private final AtomicInteger tempFaults;
-
-    private final transient long id;
-
-    private transient boolean faulty;
+    private boolean faulty;
 
     public RestApi(String path, int port) {
         this(path, port, null);
