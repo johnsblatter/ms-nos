@@ -1,10 +1,5 @@
 package com.workshare.msnos.core.protocols.ip;
 
-import java.io.IOException;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-import java.util.Arrays;
-
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
@@ -13,68 +8,82 @@ import org.apache.http.util.EntityUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.workshare.msnos.core.protocols.ip.resolvers.CompositeIPResolver;
+import com.workshare.msnos.core.protocols.ip.resolvers.IPResolver;
+import com.workshare.msnos.core.protocols.ip.resolvers.IPResolverBySystemProperty;
+import com.workshare.msnos.core.protocols.ip.resolvers.IPResolverByURL;
+
 public class AddressResolver {
 
-    public static final String SYSP_PUBLIC_IP = "com.ws.msnos.public.ip";
-    public static final String SYSP_EXTERNAL_IP = "com.ws.msnos.external.ip";
+    public static final String SYSP_PUBLIC_IP = "com.ws.msnos.address.public.ip";
+    public static final String SYSP_ROUTER_IP = "com.ws.msnos.address.router.ip";
 
     // instance-data is usually 169.254.169.254
     public static final String AMAZON_IPV4_DISCOVERY_ENDPOINT = "http://instance-data/latest/meta-data/public-ipv4";
-    public static final String AMAZON_EXTERNAL_DISCOVERY_ENDPOINT = "http://checkip.amazonaws.com";
-    
+    public static final String ROUTER_DISCOVERY_ENDPOINT = "http://checkip.amazonaws.com";
+
+    public static IPResolver FOR_ROUTER_IP = new CompositeIPResolver(
+            new IPResolverBySystemProperty(SYSP_ROUTER_IP),
+            new IPResolverByURL(ROUTER_DISCOVERY_ENDPOINT)
+        );
+
+    public static IPResolver FOR_PUBLIC_IP = new CompositeIPResolver(
+            new IPResolverBySystemProperty(SYSP_PUBLIC_IP),
+            new IPResolverByURL(AMAZON_IPV4_DISCOVERY_ENDPOINT)
+        );
+
     private static Logger log = LoggerFactory.getLogger(AddressResolver.class);
 
     private final HttpClient httpClient;
+    private final IPResolver routerIpResolver;
+    private final IPResolver publicIpResolver;
 
     public AddressResolver() {
-        httpClient = HttpClientFactory.sharedHttpClient();
+        this(HttpClientFactory.sharedHttpClient(), FOR_ROUTER_IP, getPublicResolver());
     }
 
-    public AddressResolver(HttpClient httpClient) {
-        this.httpClient = httpClient;
-    }
-
-    public Network findExternalIP() throws IOException {
-        Network result = null;
-        if (System.getProperty(SYSP_EXTERNAL_IP) != null) {
-            result = new Network(createAddressFromString(System.getProperty(SYSP_EXTERNAL_IP)), (short) 32);
-            log.debug("external ip loaded from system property: {}", result);
-        } else {
-            result = newNetwork(getIPFromAWS(AMAZON_EXTERNAL_DISCOVERY_ENDPOINT));
-            log.debug("public ip loaded from amazon: {}", result);
+    private static IPResolver getPublicResolver() {
+        if ("router".equalsIgnoreCase(System.getProperty(SYSP_PUBLIC_IP))) {
+            log.info("Using router resolver for public IP as requested");
+            return FOR_ROUTER_IP;
         }
-
-        if (result == null)
-            log.info("Unable to collect public IP");
         else
-            log.info("Using public address {}", result);
+            return FOR_PUBLIC_IP;
+    }
+
+    public AddressResolver(HttpClient httpClient, IPResolver routerIpResolver, IPResolver publicIpResolver) {
+        this.httpClient = httpClient;
+        this.routerIpResolver = routerIpResolver;
+        this.publicIpResolver = publicIpResolver;
+    }
+
+    public HttpClient httpClient() {
+        return httpClient;
+    }
+    
+    public Network findRouterIP() {
+        return findIP(routerIpResolver, "external");
+    }
+
+    public Network findPublicIP() {
+        return findIP(publicIpResolver, "public");
+    }
+
+    private Network findIP(final IPResolver resolver, String type) {
+        Network result = newNetwork(resolver.resolve(this));
+        if (result == null)
+            log.debug("Unable to collect {} IP", type);
+        else
+            log.debug("Using {} address {}", type, result);
 
         return result;
     }
     
-    public Network findPublicIP() throws IOException {
-        Network result = null;
-        if (System.getProperty(SYSP_PUBLIC_IP) != null) {
-            result = new Network(createAddressFromString(System.getProperty(SYSP_PUBLIC_IP)), (short) 32);
-            log.debug("public ip loaded from system property: {}", result);
-        } else {
-            result = newNetwork(getIPFromAWS(AMAZON_IPV4_DISCOVERY_ENDPOINT));
-            log.debug("public ip loaded from amazon: {}", result);
-        }
-
-        if (result == null)
-            log.info("Unable to collect public IP");
-        else
-            log.info("Using public address {}", result);
-
-        return result;
-    }
-
     private Network newNetwork(byte[] ip) {
         return (ip != null) ? new Network(ip, (short) 32) : null;
     }
     
-    private byte[] getIPFromAWS(final String url) {
+    public byte[] getIPViaURL(final String url) {
         byte[] address = null;
         try {
             HttpEntity entity = null;
@@ -84,40 +93,26 @@ public class AddressResolver {
                 HttpResponse response = httpClient.execute(request);
                 if (response != null) {
                     entity = response.getEntity();
-                    address = (entity == null) ? null : createAddressFromString(EntityUtils.toString(entity));
+                    final String text = EntityUtils.toString(entity);
+                    log.debug("Get result: {}", text);
+                    address = (entity == null) ? null : Network.createAddressFromString(text);
+                    log.debug("Got address: {}", address);
                 }
             } finally {
                 EntityUtils.consume(entity);
             }
         } catch (Throwable ex) {
-            log.debug("Unable to resolve IP from AWS", ex);
+            log.debug("Unable to resolve IP from url "+url, ex);
         }
 
         return address;
     }
 
-    private byte[] createAddressFromString(String address) throws IOException {
-        try {
-            return InetAddress.getByName(address).getAddress();
-        } catch(UnknownHostException ex) {
-            log.debug("Failed to resolve host {} (DNS problem?) let's check if it's a x.y.z.k address", address);
-            if (Network.isValidDottedIpv4Address(address)) {
-                String[] nibbles = address.trim().split("\\.");
-                byte[] bytes = new byte[nibbles.length];
-                for (int i=0; i<nibbles.length; i++) {
-                    int ival = Integer.valueOf(nibbles[i]);
-                    bytes[i] = (byte)(ival&0xff);
-                }
+    protected IPResolver getRouterIpResolver() {
+        return routerIpResolver;
+    }
 
-                if (log.isDebugEnabled())
-                    log.debug("Address resolved to {}", Arrays.asList(bytes));
-
-                return bytes;
-            } else {
-                log.debug("Address {} NOT resolved :(", address);
-                return null;
-            }
-            
-        }
+    protected IPResolver getPublicIpResolver() {
+        return publicIpResolver;
     }
 }

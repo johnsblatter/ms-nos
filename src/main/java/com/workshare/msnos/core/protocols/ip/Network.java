@@ -6,6 +6,7 @@ import java.net.InterfaceAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashSet;
@@ -120,6 +121,34 @@ public class Network {
         }
     }
 
+    public static byte[] createAddressFromString(String address) throws IOException {
+        if (address == null)
+            return null;
+        
+        try {
+            return InetAddress.getByName(address).getAddress();
+        } catch(UnknownHostException ex) {
+            log.debug("Failed to resolve host {} (DNS problem?) let's check if it's a x.y.z.k address", address);
+            if (isValidDottedIpv4Address(address)) {
+                String[] nibbles = address.trim().split("\\.");
+                byte[] bytes = new byte[nibbles.length];
+                for (int i=0; i<nibbles.length; i++) {
+                    int ival = Integer.valueOf(nibbles[i]);
+                    bytes[i] = (byte)(ival&0xff);
+                }
+    
+                if (log.isDebugEnabled())
+                    log.debug("Address resolved to {}", Arrays.asList(bytes));
+    
+                return bytes;
+            } else {
+                log.debug("Address {} NOT resolved :(", address);
+                return null;
+            }
+            
+        }
+    }
+
     public static Set<Network> listAll(boolean ipv4only, boolean includeVirtual) {
         Enumeration<NetworkInterface> nics = null;
         try {
@@ -164,18 +193,16 @@ public class Network {
     }
 
     public static Set<Network> resolvePublicIPs(AddressResolver addresResolver) {
-        try {
-            log.debug("Trying to resolve a public address on the cloud...");
-            Network publicIP = addresResolver.findPublicIP();
-            if (publicIP != null)
-                return new SingleElementSet<Network>(publicIP);
-        } catch (IOException e) {
-            log.info("Unable to get a public IP for this machine", e);
-            if (log.isDebugEnabled())
-                log.debug("Unable to get a public IP", e);
+        log.debug("Trying to resolve a public address on the cloud...");
+        Network publicIP = addresResolver.findPublicIP();
+        if (publicIP != null) {
+            log.debug("Found! IP: {}", publicIP);
+            return new SingleElementSet<Network>(publicIP);
         }
-        
-        return Collections.emptySet();
+        else {
+            log.debug("Unable to found the public IP :(");
+            return Collections.emptySet();
+        }
     }
 
     public static Set<Network> list(NetworkInterface nic, boolean ipv4Only) {

@@ -17,16 +17,19 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
+
+// FIXME TODO refactor this test and remove the obsolete methods as now everythng 
+// is running trough resolvers
 public class AddressResolverTest {
 
-    AddressResolver resolver;
+    private AddressResolver resolver;
     private ArgumentCaptor<HttpGet> httpMethodCaptor;
 
     @After
     @Before
     public void tearDown() throws Exception {
         System.clearProperty(AddressResolver.SYSP_PUBLIC_IP);
-        System.clearProperty(AddressResolver.SYSP_EXTERNAL_IP);
+        System.clearProperty(AddressResolver.SYSP_ROUTER_IP);
     }
 
     @Test
@@ -44,32 +47,42 @@ public class AddressResolverTest {
     public void shouldUseHTTPClientToResolvePublicIP() throws Exception {
         HttpClient mockClient = setupMockHttpClientWithMockGetResponse();
 
-        resolver = new AddressResolver(mockClient);
+        resolver = new AddressResolver(mockClient, AddressResolver.FOR_ROUTER_IP, AddressResolver.FOR_PUBLIC_IP);
         resolver.findPublicIP();
 
         assertEquals(AddressResolver.AMAZON_IPV4_DISCOVERY_ENDPOINT, getInvokedUrl());
     }
 
     @Test
-    public void shouldUseSystemPropertyWhenDefinedOnExternalIP() throws Exception {
-        System.setProperty(AddressResolver.SYSP_EXTERNAL_IP, "231.132.1.9");
+    public void shouldUseSystemPropertyWhenDefinedOnRouterIP() throws Exception {
+        System.setProperty(AddressResolver.SYSP_ROUTER_IP, "231.132.1.9");
 
         resolver = new AddressResolver();
-        Network result = resolver.findExternalIP();
+        Network result = resolver.findRouterIP();
 
         assertNotNull(result);
         assertEquals("231.132.1.9", result.getHostString());
     }
 
     @Test
-    public void shouldUseHTTPClientToResolveExternalIP() throws Exception {
+    public void shouldUseHTTPClientToResolveRouterIP() throws Exception {
         HttpClient mockClient = setupMockHttpClientWithMockGetResponse();
 
-        resolver = new AddressResolver(mockClient);
-        resolver.findExternalIP();
+        resolver = new AddressResolver(mockClient, AddressResolver.FOR_ROUTER_IP, AddressResolver.FOR_PUBLIC_IP);
+        resolver.findRouterIP();
 
-        assertEquals(AddressResolver.AMAZON_EXTERNAL_DISCOVERY_ENDPOINT, getInvokedUrl());
+        assertEquals(AddressResolver.ROUTER_DISCOVERY_ENDPOINT, getInvokedUrl());
     }
+
+    @Test
+    public void shouldUseRouterResolverWhenRequestedForPublicIP() throws Exception {
+        System.setProperty(AddressResolver.SYSP_PUBLIC_IP, "router");
+
+        AddressResolver resolver = new AddressResolver();
+
+        assertEquals(AddressResolver.FOR_ROUTER_IP, resolver.getPublicIpResolver());
+    }
+
 
     private HttpClient setupMockHttpClientWithMockGetResponse() throws IOException {
         HttpClient mockClient = mock(HttpClient.class);
@@ -91,7 +104,8 @@ public class AddressResolverTest {
     }
 
     public static void main(String[] args) throws IOException {
-        System.out.println(new AddressResolver().findExternalIP());
+        System.out.println("Public: "+new AddressResolver().findPublicIP());
+        System.out.println("Router: "+new AddressResolver().findRouterIP());
     }
 
 }

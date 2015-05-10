@@ -74,7 +74,7 @@ public class Microservice implements IMicroservice {
         final Set<Endpoint> points = endpoints(agent);
 
         try {
-            Network externalIP = ADDRESS_RESOLVER.findExternalIP();
+            Network externalIP = ADDRESS_RESOLVER.findRouterIP();
             if (externalIP != null) {
                 points.add(new BaseEndpoint(Type.HTTP, externalIP));
             }
