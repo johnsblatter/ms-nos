@@ -4,24 +4,49 @@ import java.util.UUID;
 
 import com.workshare.msnos.soup.json.Json;
 
+/**
+ * A unique identifier for an entity in the msnos system. 
+ * It's composed by a type (AGT, CLD, MSG) and a unique id (an UUID)
+ * 
+ * @author bbossola
+ */
 public class Iden {
     
     public static final Iden NULL = new Iden(Type.NUL, new UUID(0,0));
-    
+   
+    /**
+     * enum of all entities type
+     */
     public enum Type {NUL, AGT, CLD, MSG}
 
     private final Type type;
     private final UUID uuid;
 
+    /**
+     * Creates an unique identifier
+     * 
+     * @param type  the type
+     * @param uuid  the uuid
+     */
     public Iden(Type type, UUID uuid) {
         this.type = type;
         this.uuid = uuid;       
     }
 
+    /**
+     * Returns the type of this identifier
+     * 
+     * @return  the type
+     */
     public Type getType() {
         return type;
     }
 
+    /**
+     * Returns the uuid of this identifier
+     * 
+     * @return  the uuid
+     */
     public UUID getUUID() {
         return uuid;
     }
