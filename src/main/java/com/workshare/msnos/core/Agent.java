@@ -11,8 +11,6 @@ public interface Agent extends Identifiable {
 
     Set<Endpoint> getEndpoints();
 
-    Long getNextSequence();
-
     long getAccessTime();
 
     void touch();

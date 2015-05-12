@@ -7,7 +7,6 @@ import java.util.Collections;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArraySet;
-import java.util.concurrent.atomic.AtomicLong;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,7 +23,6 @@ public class LocalAgent implements Agent {
     private static Logger log = LoggerFactory.getLogger(LocalAgent.class);
 
     private final Iden iden;
-    private final AtomicLong seq;
     private final Set<Endpoint> endpoints;
 
     transient private Listener listener;
@@ -37,7 +35,6 @@ public class LocalAgent implements Agent {
 
     LocalAgent(Iden iden, Set<Endpoint> endpoints) {
         this.iden = iden;
-        this.seq = new AtomicLong(SystemTime.asMillis());
         this.endpoints = new CopyOnWriteArraySet<Endpoint>(endpoints); 
     }
 
@@ -54,11 +51,6 @@ public class LocalAgent implements Agent {
     @Override
     public synchronized Cloud getCloud() {
         return cloud;
-    }
-
-    @Override
-    public Long getNextSequence() {
-        return seq.incrementAndGet();
     }
 
     @Override
