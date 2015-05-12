@@ -7,6 +7,7 @@ import com.workshare.msnos.core.Message;
 import com.workshare.msnos.core.Message.Payload;
 import com.workshare.msnos.core.MsnosException;
 import com.workshare.msnos.core.payloads.GenericPayload;
+import com.workshare.msnos.soup.Shorteners;
 import com.workshare.msnos.soup.json.Json;
 
 import java.io.File;
@@ -38,7 +39,7 @@ public class SupportServer implements IntegrationActor {
                     final Payload payload = message.getData();
                     if (payload instanceof GenericPayload)
                         try {
-                            processCommand(CommandPayload.create((GenericPayload) payload));
+                            processCommand(CommandPayload.create((GenericPayload) payload), message);
                         } catch (MsnosException e) {
                             log("Unexpected exception while processing a command from the test client! " + e.getMessage());
                         }
@@ -57,17 +58,34 @@ public class SupportServer implements IntegrationActor {
         testAgent = new LocalAgent(UUID.randomUUID());
     }
 
-    protected void processCommand(CommandPayload payload) throws MsnosException {
-        log("Received message: " + Json.toJsonString(payload));
+    protected void processCommand(CommandPayload payload, Message message) throws MsnosException {
+        log("Received message "+Shorteners.shorten(message.getUuid())+": " + Json.toJsonString(payload));
         switch (payload.getCommand()) {
+            case INIT:
+                log("");
+                log("--------------------------------------------");
+                break;
+                
+            case TERM:
+                log("");
+                break;
+                
             case AGENT_JOIN:
-                log("Agent joining the cloud");
-                testAgent.join(testCloud);
+                if (testAgent.getCloud() == null) {
+                    log("Agent joining the cloud");
+                    testAgent.join(testCloud);
+                } else {
+                    log("Agent already in the cloud :)");
+                }
                 break;
 
             case AGENT_LEAVE:
-                log("Agent leaving the cloud...");
-                testAgent.leave();
+                if (testAgent.getCloud() != null) {
+                    log("Agent leaving the cloud...");
+                    testAgent.leave();
+                } else {
+                    log("Agent already out of the cloud :)");
+                }
                 break;
 
             case SELF_KILL:
@@ -79,9 +97,9 @@ public class SupportServer implements IntegrationActor {
     }
 
     private void run() throws InterruptedException {
-        final int total = 10;
+        final int total = 100;
         for (int i = 0; i < total; i++) {
-            log("Intergation test server is alive :) step " + (i + 1) + " out of " + total);
+            log("Integration test server is alive :) step " + (i + 1) + " out of " + total);
             Thread.sleep(5000L);
         }
 

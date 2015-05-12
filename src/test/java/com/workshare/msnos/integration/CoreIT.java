@@ -5,6 +5,7 @@ import com.workshare.msnos.core.Message.Payload;
 import com.workshare.msnos.core.Message.Type;
 import com.workshare.msnos.integration.IntegrationActor.CommandPayload.Command;
 import org.junit.After;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.FixMethodOrder;
 import org.junit.Test;
@@ -32,24 +33,40 @@ public class CoreIT implements IntegrationActor {
         Payload data = CommandPayload.create(command);
         Message message = new MessageBuilder(Type.APP, masterAgent, masterCloud).with(data).make();
         masterCloud.send(message);
+        sleep(500l);
     }
 
-    public static interface Condition {
+    private static interface ConditionValidation {
         public boolean verified();
+        public String failure();
     }
 
-    private final Condition ONE_AGENT_IN_CLOUD = new Condition() {
-        @Override
-        public boolean verified() {
-            return testCloud.getRemoteAgents().size() == 1;
-        }
-    };
-    private final Condition NO_AGENTS_IN_CLOUD = new Condition() {
-        @Override
-        public boolean verified() {
-            return testCloud.getRemoteAgents().size() == 0;
-        }
-    };
+    private static enum Condition implements ConditionValidation {
+        
+        ONE_AGENT_IN_CLOUD {
+            @Override
+            public boolean verified() {
+                return testCloud.getRemoteAgents().size() == 1;
+            }
+
+            @Override
+            public String failure() {
+                return testCloud.getRemoteAgents().size() + " found!";
+            }
+        }, 
+        
+        NO_AGENTS_IN_CLOUD {
+            @Override
+            public boolean verified() {
+                return testCloud.getRemoteAgents().size() == 0;
+            }
+
+            @Override
+            public String failure() {
+                return testCloud.getRemoteAgents().size() + " found!";
+            }
+        };
+    }
 
     @BeforeClass
     public static void bootstrap() throws MsnosException {
@@ -64,45 +81,51 @@ public class CoreIT implements IntegrationActor {
         testAgent.join(testCloud);
     }
 
+    @Before
+    public void setup() throws Exception {
+        sendCommand(INIT);
+    }
+
     @After
     public void teardown() throws Exception {
+        sendCommand(TERM);
         sendCommand(AGENT_LEAVE);
-        waitForCondition(NO_AGENTS_IN_CLOUD);
+        waitForCondition(Condition.NO_AGENTS_IN_CLOUD);
     }
 
     @Test
     public void s01_shouldSeeRemoteJoining() throws Exception {
         sendCommand(AGENT_JOIN);
-        assertCondition(ONE_AGENT_IN_CLOUD);
+        assertCondition(Condition.ONE_AGENT_IN_CLOUD);
     }
 
     @Test
     public void s02_shouldUnseeRemoteLeaving() throws Exception {
         sendCommand(AGENT_JOIN);
-        assertCondition(ONE_AGENT_IN_CLOUD);
+        assertCondition(Condition.ONE_AGENT_IN_CLOUD);
 
         sendCommand(AGENT_LEAVE);
-        assertCondition(NO_AGENTS_IN_CLOUD);
+        assertCondition(Condition.NO_AGENTS_IN_CLOUD);
     }
 
     @Test
     public void s03_shouldUnseeRemoteDying() throws Exception {
         sendCommand(AGENT_JOIN);
-        assertCondition(ONE_AGENT_IN_CLOUD);
+        assertCondition(Condition.ONE_AGENT_IN_CLOUD);
 
         sendCommand(SELF_KILL);
-        assertCondition(NO_AGENTS_IN_CLOUD);
+        assertCondition(Condition.NO_AGENTS_IN_CLOUD);
     }
 
     private void assertCondition(final Condition condition) {
-        assertTrue(waitForCondition(condition, 5000L));
+        assertTrue(condition.name()+": "+condition.failure(), waitForCondition(condition, 5000L));
     }
 
-    private boolean waitForCondition(Condition condition) {
+    private boolean waitForCondition(ConditionValidation condition) {
         return waitForCondition(condition, 5000L);
     }
 
-    private boolean waitForCondition(Condition condition, long timeout) {
+    private boolean waitForCondition(ConditionValidation condition, long timeout) {
         long end = System.currentTimeMillis() + timeout;
         while (System.currentTimeMillis() < end) {
             if (condition.verified())

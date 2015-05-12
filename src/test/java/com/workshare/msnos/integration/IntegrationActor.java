@@ -14,9 +14,11 @@ public interface IntegrationActor {
     public static class CommandPayload extends PayloadAdapter {
 
         public enum Command {
+            INIT,
             AGENT_JOIN,
             AGENT_LEAVE,
-            SELF_KILL
+            SELF_KILL,
+            TERM,
         }
 
         private final Command command;
