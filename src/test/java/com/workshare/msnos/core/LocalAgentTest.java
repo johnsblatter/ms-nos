@@ -8,6 +8,7 @@ import static com.workshare.msnos.core.Message.Type.PRS;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
@@ -63,10 +64,21 @@ public class LocalAgentTest {
     }
 
     @Test(expected = MsnosException.class)
-    public void agentCannotJoinTwice() throws MsnosException {
+    public void shouldNotBeAllowedToJoinTwice() throws MsnosException {
         smith.join(cloud);
     }
 
+    @Test
+    public void shouldMantainCloudReferenceOnJoin() throws MsnosException {
+        assertEquals(cloud, smith.getCloud());
+    }
+
+    @Test
+    public void shouldReleaseCloudReferenceOnLeave() throws MsnosException {
+        smith.leave();
+        assertNull(smith.getCloud());
+    }
+ 
     @Test
     public void agentShouldAttachListenerToCloud() {
         verify(cloud, atLeastOnce()).addListener(any(Cloud.Listener.class));

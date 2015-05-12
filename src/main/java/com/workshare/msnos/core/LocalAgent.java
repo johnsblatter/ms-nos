@@ -52,7 +52,7 @@ public class LocalAgent implements Agent {
     }
 
     @Override
-    public Cloud getCloud() {
+    public synchronized Cloud getCloud() {
         return cloud;
     }
 
@@ -74,7 +74,7 @@ public class LocalAgent implements Agent {
         return ring;
     }
 
-    public LocalAgent join(Cloud cloud) throws MsnosException {
+    public synchronized LocalAgent join(Cloud cloud) throws MsnosException {
         if (this.cloud != null)
             throw new MsnosException("The same agent cannot join different clouds!", Code.JOIN_FAILED);
 
@@ -96,7 +96,7 @@ public class LocalAgent implements Agent {
         return this;
     }
 
-    public void leave() throws MsnosException {
+    public synchronized void leave() throws MsnosException {
         if (this.cloud == null) {
             throw new MsnosException("Cannot leave a cloud I never joined!", MsnosException.Code.INVALID_STATE);
         }
@@ -104,6 +104,7 @@ public class LocalAgent implements Agent {
         log.debug("Leaving cloud {}", cloud);
         cloud.onLeave(this);
         cloud.removeListener(listener);
+        cloud = null;
         log.debug("So long {}", cloud);
     }
 
