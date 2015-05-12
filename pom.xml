@@ -1,14 +1,62 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 	<modelVersion>4.0.0</modelVersion>
-	<groupId>com.workshare</groupId>
-	<artifactId>ms-nos-java</artifactId>
+	<groupId>com.workshare.msnos</groupId>
+	<artifactId>ms-nos-core</artifactId>
 	<packaging>jar</packaging>
 
-	<name>ms-nos-java</name>
+	<name>ms-nos-core</name>
+	<url>http://ms-nos.io</url>
 	<description>The MicroServices Network OS (java edition)</description>
 
-	<version>0.0.1-SNAPSHOT</version>
+	<version>1.0.0-RC-01</version>
+
+	<inceptionYear>2012</inceptionYear>
+	<organization>
+		<name>Workshare Ltd</name>
+		<url>https://www.workshare.com</url>
+	</organization>
+
+	<licenses>
+		<license>
+			<name>The MIT License</name>
+			<url>https://raw.githubusercontent.com/workshare/ms-nos/master/LICENSE</url>
+			<distribution>repo</distribution>
+		</license>
+	</licenses>
+
+	<developers>
+		<developer>
+			<id>bbossola</id>
+			<name>Bruno Bossola</name>
+			<email>bbossola@gmail.com</email>
+			<url>https://github.com/bbossola/</url>
+			<organization>Workshare Ltd</organization>
+			<organizationUrl>https://www.workshare.com</organizationUrl>
+			<timezone>0</timezone>
+			<roles>
+				<role>dev</role>
+			</roles>
+		</developer>
+	</developers>
+
+	<issueManagement>
+		<system>GitHub Issue Tracking</system>
+		<url>https://github.com/workshare/ms-nos/issues</url>
+	</issueManagement>
+
+	<ciManagement>
+		<system>travis</system>
+		<url>https://travis-ci.org/workshare/ms-nos</url>
+	</ciManagement>
+
+	<scm>
+		<url>https://github.com/workshare/ms-nos/tree/master</url>
+		<connection>scm:git:git://github.com/workshare/ms-nos.git</connection>
+		<developerConnection>scm:git:git@github.com:workshare/ms-nos.git</developerConnection>
+		<tag>HEAD</tag>
+	</scm>
+
 
 	<!-- sonatype deployment -->
 	<distributionManagement>
@@ -213,12 +261,6 @@
 
 	<pluginRepositories>
 	</pluginRepositories>
-
-	<scm>
-		<url>https://github.com/bbossola/ms-nos/tree/master</url>
-		<connection>scm:git:git://github.com/bbossola/ms-nos.git</connection>
-		<developerConnection>scm:git:git@github.com:bbossola/ms-nos.git</developerConnection>
-	</scm>
 
 	<properties>
 
