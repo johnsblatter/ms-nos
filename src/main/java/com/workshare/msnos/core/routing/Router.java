@@ -141,7 +141,7 @@ public class Router {
     Receipt sendViaUDP(Message message, int hops, String how)  {
         if (udpGate.name().equals(message.getReceivingGate())) {
             routing.info("{} {} {} {} {} {}", mode.get(), how, udpGate.name(), "UDP-TO-UDP", message);
-            return null;
+            return SingleReceipt.failure(message);
         }
         
         return this.send(message, null, hops, udpGate, how);
