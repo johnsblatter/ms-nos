@@ -19,6 +19,7 @@ public class MessageBuilder {
     private String sig = null;
     private String rnd = null;
     private long when;
+    private String gateName;
 
     public MessageBuilder(Type type, Cloud from, Identifiable to) {
         this(type, from, to.getIden());
@@ -53,6 +54,11 @@ public class MessageBuilder {
         return this;
     }
 
+    public MessageBuilder withGateName(String name) {
+        this.gateName = name;
+        return this;
+    }
+
     public MessageBuilder reliable(boolean reliable) {
         this.reliable = reliable;
         return this;
@@ -75,6 +81,6 @@ public class MessageBuilder {
         if (to == null)
             throw new RuntimeException("Cannot build a message with no destination");
 
-        return new Message(type, from, to, hops, reliable, data, uuid, sig, rnd, when);
+        return new Message(type, from, to, hops, reliable, data, uuid, sig, rnd, when, gateName);
     }
 }

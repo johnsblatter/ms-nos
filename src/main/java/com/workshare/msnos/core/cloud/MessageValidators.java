@@ -66,7 +66,7 @@ public class MessageValidators {
 
         final Validator notToLocal = shouldNotDirectedToLocalAgent();
         final Validator notFromLocal = shouldNotComeFromLocalAgent();
-        final Validator neverSeen = shouldNeverSeenMessage();
+//        final Validator neverSeen = shouldNeverSeenMessage();
         final Validator withValidSignature = shouldHaveValidSignature();
         final Validator notTooOld = shouldNotBeTooOld();
         final Validator notAddressedOutside = shouldNotBeAddressedToAnotherCloud();
@@ -75,13 +75,13 @@ public class MessageValidators {
                 notFromLocal, 
                 notAddressedOutside,
                 notTooOld,
-                neverSeen, 
+                shouldNeverSeenMessage(), 
                 withValidSignature);
 
         this.forwardingValidators = Arrays.asList(
                 notToLocal, 
                 notTooOld,
-                neverSeen, 
+                shouldNeverSeenMessage(), 
                 withValidSignature);
     }
 

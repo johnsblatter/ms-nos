@@ -33,6 +33,10 @@ public class MessagesHelper {
         return new MessageBuilder(Message.Type.PIN, from.getIden(), to.getIden()).make();
     }
 
+    public static Message newPongMessage(Identifiable from, Identifiable to) {
+        return new MessageBuilder(Message.Type.PON, from.getIden(), to.getIden()).make();
+    }
+
     public static Message newAPPMessage(RemoteMicroservice remote, Identifiable to) {
         RemoteAgent from = remote.getAgent();
         return newAPPMesage(from, to);

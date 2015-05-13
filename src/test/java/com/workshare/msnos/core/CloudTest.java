@@ -12,7 +12,7 @@ import static com.workshare.msnos.core.Message.Type.APP;
 import static com.workshare.msnos.core.Message.Type.FLT;
 import static com.workshare.msnos.core.Message.Type.PIN;
 import static com.workshare.msnos.core.Message.Type.PRS;
-import static com.workshare.msnos.core.MessagesHelper.newPingMessage;
+import static com.workshare.msnos.core.MessagesHelper.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
@@ -178,7 +178,7 @@ public class CloudTest {
         RemoteAgent remote = newRemoteAgent(thisCloud);
         simulateAgentJoiningCloud(remote, thisCloud);
 
-        simulateMessageFromNetwork(new MockMessageHelper(Message.Type.PON, remote.getIden(), thisCloud.getIden()).make());
+        simulateMessageFromNetwork(newPongMessage(remote, thisCloud));
 
         assertNoMessagesSent();
     }
@@ -187,7 +187,7 @@ public class CloudTest {
     public void shouldSendDiscoveryWhenUnknownAgentPongs() throws Exception {
         RemoteEntity remote = newRemoteAgent(thisCloud);
 
-        simulateMessageFromNetwork(new MockMessageHelper(Message.Type.PON, remote.getIden(), thisCloud.getIden()).make());
+        simulateMessageFromNetwork(newPongMessage(remote, thisCloud));
 
         assertMessageSent(Message.Type.DSC, thisCloud.getIden(), remote.getIden(), null);
     }
@@ -407,7 +407,7 @@ public class CloudTest {
         Message current = new MessageBuilder(APP, agent, thisCloud).make();
         simulateMessageFromNetwork(current);
 
-        assertEquals(current, getLastMessageSentToCloudListeners());
+        assertEquals(current.getUuid(), getLastMessageSentToCloudListeners().getUuid());
     }
 
     @Test
@@ -544,7 +544,7 @@ public class CloudTest {
     private Message getLastMessageSentToCloudListeners() {
         final int size = receivedMessages.size();
         if (size > 0)
-            return receivedMessages.get(size - 1);
+            return receivedMessages.get(size - 1).fromGate(null);
         else
             return null;
     }

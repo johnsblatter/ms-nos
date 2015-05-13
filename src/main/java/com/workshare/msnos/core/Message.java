@@ -18,9 +18,13 @@ public class Message {
         public boolean process(Message message, Cloud.Internal internal);
     }
 
-    public enum Status {UNKNOWN, PENDING, DELIVERED, FAILED}
+    public enum Status {
+        UNKNOWN, PENDING, DELIVERED, FAILED
+    }
 
-    public enum Type {APP, PRS, DSC, PIN, PON, ACK, ENQ, FLT, QNE, HCK, TRC}
+    public enum Type {
+        APP, PRS, DSC, PIN, PON, ACK, ENQ, FLT, QNE, HCK, TRC
+    }
 
     private final Version version = Version.V1_0;
     private final UUID uuid;
@@ -31,13 +35,14 @@ public class Message {
     private final boolean reliable;
     private final long when;
     private final Payload data;
+    private final String gateName;
 
     private final String sig;
     private final String rnd;
 
     private static final SecureRandom random = new SecureRandom();
 
-    Message(Type type, Iden from, Iden to, int hops, boolean reliable, Payload data, UUID uuid, String sig, String rnd, long when) {
+    Message(Type type, Iden from, Iden to, int hops, boolean reliable, Payload data, UUID uuid, String sig, String rnd, long when, String gate) {
         if (reliable && to.getType() == Iden.Type.CLD) {
             throw new IllegalArgumentException("Cannot create a reliable message to the whole cloud!");
         }
@@ -51,9 +56,11 @@ public class Message {
         this.reliable = reliable;
         this.sig = sig;
         this.rnd = (sig == null ? null : (rnd == null ? new BigInteger(130, random).toString(32) : rnd));
-
+        this.gateName = gate;
+        
         // FIXME refactor this
-        // TODO this can be achieved in a much better way (i.e. type.getPayload(this) here or in the builder)
+        // TODO this can be achieved in a much better way (i.e.
+        // type.getPayload(this) here or in the builder)
         if (data == null) {
             if (type == Type.TRC)
                 this.data = new TracePayload(from);
@@ -110,6 +117,10 @@ public class Message {
         return when;
     }
 
+    public String getReceivingGate() {
+        return gateName;
+    }
+
     @Override
     public String toString() {
         return Json.toJsonString(this);
@@ -138,22 +149,31 @@ public class Message {
     }
 
     public Message data(Payload load) {
-        return new Message(type, from, to, hops, reliable, load, uuid, sig, rnd, when);
+        return new Message(type, from, to, hops, reliable, load, uuid, sig, rnd, when, gateName);
     }
 
     public Message hopped() {
-        return new Message(type, from, to, hops-1, reliable, data, uuid, sig, rnd, when);
+        return new Message(type, from, to, hops - 1, reliable, data, uuid, sig, rnd, when, gateName);
     }
 
     public Message withHops(int hops) {
         if (hops == this.hops)
             return this;
         else
-            return new Message(type, from, to, hops, reliable, data, uuid, sig, rnd, when);
+            return new Message(type, from, to, hops, reliable, data, uuid, sig, rnd, when, gateName);
     }
 
     public Message signed(String keyId, String signature) {
         String sign = keyId + ":" + signature;
-        return new Message(type, from, to, hops, reliable, data, uuid, sign, rnd, when);
+        return new Message(type, from, to, hops, reliable, data, uuid, sign, rnd, when, gateName);
     }
+
+    public Message fromGate(String newGateName) {
+        if (newGateName != null || gateName != null) {
+            return new Message(type, from, to, hops - 1, reliable, data, uuid, sig, rnd, when, newGateName);
+        } else {
+            return this;
+        }
+    }
+
 }

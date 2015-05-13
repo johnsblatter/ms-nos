@@ -139,6 +139,11 @@ public class Router {
     }
     
     Receipt sendViaUDP(Message message, int hops, String how)  {
+        if (udpGate.name().equals(message.getReceivingGate())) {
+            routing.info("{} {} {} {} {} {}", mode.get(), how, udpGate.name(), "UDP-TO-UDP", message);
+            return null;
+        }
+        
         return this.send(message, null, hops, udpGate, how);
     }
 
@@ -156,8 +161,9 @@ public class Router {
         
         Receipt receipt;
         try {
-            receipt = gate.send(cloud, message.withHops(hops), to);
-            routing.info("{} {} {} {} {} {} {}", mode.get(), how, gate.name(), receipt.getStatus(), hops, message);
+            final Message hoppedMessage = message.withHops(hops);
+            receipt = gate.send(cloud, hoppedMessage, to);
+            routing.info("{} {} {} {} {} {} {}", mode.get(), how, gate.name(), receipt.getStatus(), hops, hoppedMessage);
         } catch (IOException e) {
             receipt = SingleReceipt.failure(message);
             routing.info("{} {} {} {} {} {}", mode.get(), how, gate.name(), "GATE-FAILURE", message);

@@ -9,6 +9,9 @@ import static com.workshare.msnos.core.MessagesHelper.newPingMessage;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
@@ -43,7 +46,7 @@ public class RouterBasicTest {
     
     @Test
     public void shouldReturnFailedWhenGatwayBooms() throws Exception {
-        UDPGateway udp = newFaiingUDPGateway();
+        UDPGateway udp = newFaiingMockUDPGateway();
         Router router = new Router(mock(Cloud.class), udp, null, null);
 
         Message message = newPingMessage(newAgentIden());
@@ -62,11 +65,31 @@ public class RouterBasicTest {
         assertEquals(Message.Status.FAILED, receipt.getStatus());
     }
 
-    private UDPGateway newFaiingUDPGateway() throws IOException {
-        UDPGateway gate = mock(UDPGateway.class);
+    @Test
+    public void shouldNotSendViaUDPReturnFailedWhenGatwayBooms() throws Exception {
+        HttpGateway http = newHttpGateway();
+        UDPGateway udp = newMockUDPGateway();
+        WWWGateway www = newWWWGateway();
+        Router router = new Router(mock(Cloud.class), asSet(http, udp, www));
+
+        Message message = newPingMessage(newAgentIden()).fromGate(udp.name());
+        router.sendViaUDP(message, 10, "HOW");
+
+        verify(udp,never()).send(any(Cloud.class), any(Message.class), any(Identifiable.class));
+    }
+
+    private UDPGateway newFaiingMockUDPGateway() throws IOException {
+        UDPGateway gate = newMockUDPGateway();
         when(gate.send(any(Cloud.class), any(Message.class), any(Identifiable.class))).thenThrow(new IOException("boom!"));
         return gate;
     }
+
+    private UDPGateway newMockUDPGateway() {
+        UDPGateway gate = mock(UDPGateway.class);
+        when(gate.name()).thenReturn("UDP");
+        return gate;
+    }
+
 
 
 

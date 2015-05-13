@@ -96,6 +96,17 @@ public class ReceiverTest {
     }
 
     @Test
+    public void shouldStampMessageWithGateName() throws Exception {
+
+        when(gate.name()).thenReturn("YOP");
+        
+        final Message message = newPingMessage(cloud);
+        simulateMessageReceived(message);
+
+        assertEquals("YOP", lastMessageReceived().getReceivingGate());
+    }
+
+    @Test
     public void shouldDiscardMessageFromAnotherCloud() throws Exception {
         Cloud other = createMockCloud();
 
@@ -209,5 +220,12 @@ public class ReceiverTest {
                 final Message message = (Message) invocation.getArguments()[0];
                 return message.signed(signKey, signVal);
             }});
+    }
+    
+    private Message lastMessageReceived() {
+        ArgumentCaptor<Message> received = ArgumentCaptor.forClass(Message.class);
+        verify(router).forward(received.capture());
+        final Message lastReceived = received.getValue();
+        return lastReceived;
     }
 }

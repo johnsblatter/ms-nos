@@ -44,7 +44,8 @@ public class Receiver {
             gate.addListener(this.cloud, new Gateway.Listener() {
                 @Override
                 public void onMessage(Message message) {
-                    process(message, gate.name());
+                    final String gateName = gate.name();
+                    process(message.fromGate(gateName), gateName);
                 }
             });
         }
