@@ -47,15 +47,5 @@ public class IPResolverBySystemPropertyTest {
         
         assertNull(address);
     }
-    
 
-    @Test
-    public void shouldReturnNullWhenPropertyContainsInvalidIP() {
-        System.setProperty(PROPERTY_NAME, "21.22.23.24.99");
-        IPResolverBySystemProperty resolver = new IPResolverBySystemProperty(PROPERTY_NAME);
-        
-        byte[] address = resolver.resolve(context);
-        
-        assertNull(address);
-    }
  }
