@@ -127,7 +127,8 @@ public class WWWGateway implements Gateway {
     }
 
     private String composeUrl(String path) throws MalformedURLException {
-        return new URL(new URL(urlRoot), path).toExternalForm();
+        final String url = new URL(new URL(urlRoot), path).toExternalForm();
+        return url;
     }
 
     @Override

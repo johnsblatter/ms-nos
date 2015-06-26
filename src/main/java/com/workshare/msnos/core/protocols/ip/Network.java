@@ -126,7 +126,8 @@ public class Network {
             return null;
         
         try {
-            return InetAddress.getByName(address).getAddress();
+            final InetAddress byName = InetAddress.getByName(address);
+            return byName.getAddress();
         } catch(UnknownHostException ex) {
             log.debug("Failed to resolve host {} (DNS problem?) let's check if it's a x.y.z.k address", address);
             if (isValidDottedIpv4Address(address)) {

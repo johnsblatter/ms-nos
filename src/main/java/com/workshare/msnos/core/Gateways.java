@@ -27,6 +27,10 @@ import com.workshare.msnos.soup.threading.ExecutorServices;
 import com.workshare.msnos.soup.threading.Multicaster;
 
 public class Gateways {
+    
+    public static final String SYSP_GATE_WWW_DISABLE =  "msnos.core.gateways.www.disable";
+    public static final String SYSP_GATE_UDP_DISABLE  = "msnos.core.gateways.udp.disable";
+    public static final String SYSP_GATE_HTTP_DISABLE = "msnos.core.gateways.http.disable";
 
     private static Logger log = LoggerFactory.getLogger(Gateways.class);
 
@@ -113,14 +117,24 @@ public class Gateways {
     }
 
     private static Gateway buildHttpGateway() {
-        return new HttpGateway(newHttpClient());
+        if (Boolean.getBoolean(SYSP_GATE_HTTP_DISABLE)) {
+            log.warn("HTTP Gateway disabled by system property!");
+            return null;
+        }
+        else
+            return new HttpGateway(newHttpClient());
     }
 
     private static UDPGateway buildUDPGateway() {
+        if (Boolean.getBoolean(SYSP_GATE_UDP_DISABLE)) {
+            log.warn("UDP Gateway disabled by system property!");
+            return null;
+        }
+        
         try {
             final UDPServer server = new UDPServer();
-            final MulticastSocketFactory ockets = new MulticastSocketFactory();
-    		return new UDPGateway(ockets, server, newMulticaster());
+            final MulticastSocketFactory sockets = new MulticastSocketFactory();
+    		return new UDPGateway(sockets, server, newMulticaster());
         } catch (Throwable ex) {
             log.error("Unable to create UDP gateway", ex);
             return null;
@@ -128,6 +142,11 @@ public class Gateways {
     }
 
     private static WWWGateway buildWWWGateway() {
+        if (Boolean.getBoolean(SYSP_GATE_WWW_DISABLE)) {
+            log.warn("WWW Gateway disabled by system property!");
+            return null;
+        }
+        
         if (!System.getProperties().containsKey(WWWGateway.SYSP_ADDRESS)) {
             log.warn("Missing configuration for WWW gateway, please add property "+WWWGateway.SYSP_ADDRESS);
             return null;
