@@ -138,7 +138,7 @@ public class TracePayload implements Message.Payload {
         Iden to = message.getTo();
         final IdentifiablesList<LocalAgent> locals = internal.localAgents();
         if (locals.containsKey(to)) {
-            final Message answer = new MessageBuilder(Message.Type.ACK, to, this.from()).with(this).make();
+            final Message answer = new MessageBuilder(Message.Type.CRT, to, this.from()).with(this).make();
             try {
                 internal.cloud().send(answer);
             } catch (MsnosException ex) {

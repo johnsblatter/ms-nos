@@ -23,7 +23,7 @@ public class Message {
     }
 
     public enum Type {
-        APP, PRS, DSC, PIN, PON, ACK, ENQ, FLT, QNE, HCK, TRC
+        APP, PRS, DSC, PIN, PON, ACK, ENQ, FLT, QNE, HCK, TRC, CRT
     }
 
     private final Version version = Version.V1_0;

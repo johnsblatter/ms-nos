@@ -93,14 +93,14 @@ public class TracePayloadTest {
 
 
     @Test
-    public void shouldProcessSendACKBackWhenMessageDestinedToLocal() throws Exception {
+    public void shouldProcessSendCRTBackWhenMessageDestinedToLocal() throws Exception {
         TracePayload payload = createCrumbedPayload(randomUUID(), randomUUID());
         Message trace = new MessageBuilder(Type.TRC, newAgentIden(), local.getIden()).with(payload).make();
 
         payload.process(trace, internal);
 
         final Message messsage = getLastMessageSent();
-        assertEquals(Message.Type.ACK, messsage.getType());
+        assertEquals(Message.Type.CRT, messsage.getType());
         assertEquals(local.getIden(), messsage.getFrom());
         assertEquals(payload.from(), messsage.getTo());
         assertEquals(payload, messsage.getData());
