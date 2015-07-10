@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="UTF-8">
+    <title>Ms-nos by workshare</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="stylesheets/normalize.css" media="screen">
+    <link href='http://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="stylesheets/github-light.css" media="screen">
+  </head>
+  <body>
+    <section class="page-header">
+      <h1 class="project-name">Ms-nos</h1>
+      <h2 class="project-tagline">A simple network operating system for Microservices (java implementation)</h2>
+      <a href="https://github.com/workshare/ms-nos" class="btn">View on GitHub</a>
+      <a href="https://github.com/workshare/ms-nos/zipball/master" class="btn">Download .zip</a>
+      <a href="https://github.com/workshare/ms-nos/tarball/master" class="btn">Download .tar.gz</a>
+    </section>
+
+    <section class="main-content">
+      <h1>
+<a id="ms-nos" class="anchor" href="#ms-nos" aria-hidden="true"><span class="octicon octicon-link"></span></a>ms-nos</h1>
+
+<p>A <a href="http://msnos.io">simple network operating system</a> for Microservices (java implementation). This is a work in progress, the first public stable release will be available on Apr 15, 2015, however you are welcome to start experimenting right now, everything works (well, almost!): any queries, please open <a href="https://github.com/workshare/ms-nos/issues">an issue</a> </p>
+
+<p><a href="http://maven.apache.org/"><img src="http://maven.apache.org/images/logos/maven-feather.png" alt="Built with Maven"></a>  <a href="https://travis-ci.org/workshare/ms-nos"><img src="https://travis-ci.org/workshare/ms-nos.svg?branch=master" alt="Build Status"></a></p>
+
+ 
+
+<h2>
+<a id="summary" class="anchor" href="#summary" aria-hidden="true"><span class="octicon octicon-link"></span></a>Summary</h2>
+
+<p>MSNOS is a library built in order to mantain and survive a microservice based architecture :) Every microservice will surface spontaneously in a cloud, without the need of any application configuration. An application level healtcheck is available to internal monitor the health on the services in the cloud.
+More on the website at <a href="http://msnos.io">http://msnos.io</a></p>
+
+<h4>
+<a id="what-is-the-context" class="anchor" href="#what-is-the-context" aria-hidden="true"><span class="octicon octicon-link"></span></a>What is the context?</h4>
+
+<ul>
+<li>you use a microservice architecture</li>
+<li>microservice are distributed across the world</li>
+<li>each microservice provide different APIs</li>
+<li>several instances of the same microservices are available</li>
+</ul>
+
+<h4>
+<a id="what-do-we-achieve" class="anchor" href="#what-do-we-achieve" aria-hidden="true"><span class="octicon octicon-link"></span></a>What do we achieve?</h4>
+
+<ul>
+<li>new microservices capable to serve certain APIs are automatically recognized and used by every other microservice</li>
+<li>if any microservice become unhealthy it stops receiving calls</li>
+<li>no single point of failures </li>
+<li>the load is distributed torugh advanced strategies (load, location, availability...)</li>
+<li>add and/or remove of a new microservices is fully transparent</li>
+</ul>
+
+<h4>
+<a id="how-do-i-publish-a-new-microservice" class="anchor" href="#how-do-i-publish-a-new-microservice" aria-hidden="true"><span class="octicon octicon-link"></span></a>How do I publish a new microservice?</h4>
+
+<p>The microservice will "join" a cloud and then publish his own APIs to the cloud: every other microservice will automatically discover them. Sample code:</p>
+
+<pre><code>  // create a cloud and join it
+  cloud = new Microcloud(new Cloud(params.uuid(), params.signature()));
+  self = new Microservice(params.name());
+  self.join(cloud);
+
+  // publish to the cloud myendpoints
+  RestApi[] { apis = new RestApi[] {
+    new RestApi("/hello", port),
+    new RestApi("/wassup", port),
+    new RestApi("/health", port).asHealthCheck(),
+    new RestApi("/msnos", port, Type.MSNOS_HTTP),
+  };
+  self.publish(apis);
+</code></pre>
+
+<h4>
+<a id="how-do-a-microservice-find-the-best-api-to-use" class="anchor" href="#how-do-a-microservice-find-the-best-api-to-use" aria-hidden="true"><span class="octicon octicon-link"></span></a>How do a microservice find the best API to use?</h4>
+
+<p>Each node in an msnos powered system mantains a full list of all available APIs and it's capable to select the best one for your call using strategies based on location, load and availability. Sample code:</p>
+
+<pre><code>  api = cloud.find(self, '/hello')
+</code></pre>
+
+<h4>
+<a id="how-do-i-expose-some-apis-to-the-external-world" class="anchor" href="#how-do-i-expose-some-apis-to-the-external-world" aria-hidden="true"><span class="octicon octicon-link"></span></a>How do I expose some APIs to the external world?</h4>
+
+<p>A <a href="https://github.com/workshare/ms-nos-proxy">fast http non-blocking i/o proxy</a> is available out of the box, and it will automatically expose any public API of the cloud to the external world</p>
+
+<h4>
+<a id="how-does-all-this-work" class="anchor" href="#how-does-all-this-work" aria-hidden="true"><span class="octicon octicon-link"></span></a>How does all this work?</h4>
+
+<p>An internal messaging system is used internally, basedon UDP and HTTP. An <a href="https://github.com/workshare/ms-nos-www">http relay</a> needs to be installed in case your cloud is distribuited across different networks. Advanced microservices can expose an endpoint to accept MSNOS messages directly, as you can see in the <a href="https://github.com/workshare/ms-nos-usvc-client">java example</a> provided, and briefly in this sample code: </p>
+
+<pre><code>  public void handle(HttpExchange exchange) throws IOException {
+    Reader reader = new BufferedReader(...);
+    try {
+      Message message = serializer.fromReader(reader, Message.class);
+      cloud.process(message, Endpoint.Type.HTTP);
+    } finally {
+      reader.close();
+    }
+    exchange.sendResponseHeaders(200, 0);
+    exchange.getResponseBody().close();
+  }
+</code></pre>
+
+<p>As set of pre-build endpoints, in the form of jar dependencies, will be provided for the most common Java implementation (JavaSE, JavaEE, Jetty, Netty) and languages (.NET, Ruby)</p>
+
+<h4>
+<a id="are-there-working-examples" class="anchor" href="#are-there-working-examples" aria-hidden="true"><span class="octicon octicon-link"></span></a>Are there working examples?</h4>
+
+<p>The <a href="https://github.com/workshare/ms-nos-proxy">proxy</a> itself is a working example, but there's a also a <a href="https://github.com/workshare/ms-nos-usvc-client">much simple client</a> that you can checkout and look at. Examples in other languages will be provided as soon as we will upgrade a microservice sin the same technology.</p>
+
+<h4>
+<a id="are-other-languages-supported" class="anchor" href="#are-other-languages-supported" aria-hidden="true"><span class="octicon octicon-link"></span></a>Are other languages supported?</h4>
+
+<p>The protocol is completely language agnostic (heck, it's json!) and we build microservices in a lot of different languages. A Ruby implementation is in the work, a .NET binary will be realeased (as soon as it clears QA) and a Javascript version will be available soon.</p>
+
+<h2>
+<a id="commmon-qa" class="anchor" href="#commmon-qa" aria-hidden="true"><span class="octicon octicon-link"></span></a>Commmon Q&amp;A</h2>
+
+<p>Those are most of the common question we are asked when presenting our solution to the public: it's quite possibile you will find the answer to your question here, but if you don't please feel free to <a href="https://github.com/workshare/ms-nos/issues">open an issue</a></p>
+
+<h4>
+<a id="why-dont-you-simply-use-a-dynamic-dns-to-manage-discovery" class="anchor" href="#why-dont-you-simply-use-a-dynamic-dns-to-manage-discovery" aria-hidden="true"><span class="octicon octicon-link"></span></a>Why don't you simply use a dynamic DNS to manage discovery?</h4>
+
+<p>Well, first of all a DNS entry does not provide us enough granularity, as we want to tall about API endpoints, not machines names. Even when this is acceptable, there are other very good reasons to avoid doing that, such as:
+We consider it a naive approach</p>
+
+<ul>
+<li>the clients will have poll forchanges as there’s no push protocol for DNS</li>
+<li>any DNS suffer from propagation delays, which is also non deterministic</li>
+<li>the routing will be effectively random, as there's no way for a DNS to dynamically assess the status of an API endpoint </li>
+<li>aggressive DNS caching may take place by client libraries or even applications at startup (i.e. Nginx / HAProxy) thus making ineffective anything done at the DNS level </li>
+</ul>
+
+<h4>
+<a id="why-dont-you-use-other-framework" class="anchor" href="#why-dont-you-use-other-framework" aria-hidden="true"><span class="octicon octicon-link"></span></a>Why don't you use ${other-framework}?</h4>
+
+<p>Well, there are different answer for each of them, and such frameworks are becoming more popular by the minute! Anyway, some common issues we found so far:</p>
+
+<ul>
+<li>they do not have native API level granularity (i.e. Consul,  Zookeper)</li>
+<li>they do not have a push model (i.e. Zookeper, dynamic DNS)</li>
+<li>they have a single point of failre and are not fully distributed (Smartstack)</li>
+<li>they are missing basic necessary routing mechanism (i.e. geolocation, session stickiness)</li>
+<li>they are not language agnostic or very difficult to code against (i.e. Zookeper)</li>
+<li>they are proprietary</li>
+</ul>
+
+<h2>
+<a id="license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>License</h2>
+
+<p>Released under the MIT License.  See the <a href="LICENSE">LICENSE</a> file for further details.</p>
+
+      <footer class="site-footer">
+        <span class="site-footer-owner"><a href="https://github.com/workshare/ms-nos">Ms-nos</a> is maintained by <a href="https://github.com/workshare">workshare</a>.</span>
+
+        <span class="site-footer-credits">This page was generated by <a href="https://pages.github.com">GitHub Pages</a> using the <a href="https://github.com/jasonlong/cayman-theme">Cayman theme</a> by <a href="https://twitter.com/jasonlong">Jason Long</a>.</span>
+      </footer>
+
+    </section>
+
+  
+  </body>
+</html>
+
