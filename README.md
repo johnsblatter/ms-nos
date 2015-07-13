@@ -1,7 +1,7 @@
 ms-nos
 ======
 
-A [simple network operating system](http://msnos.io) for Microservices (java implementation). This is a work in progress, the first public stable release will be available on Apr 15, 2015, however you are welcome to start experimenting right now, everything works (well, almost!): any queries, please open [an issue](https://github.com/workshare/ms-nos/issues) 
+A [simple network operating system](http://msnos.io) for Microservices (java implementation). This is a work in progress, even if the first public stable release is available, however you are welcome to start using it right now, everything works. Any queries, please open [an issue](https://github.com/workshare/ms-nos/issues) 
 
 [![Built with Maven](http://maven.apache.org/images/logos/maven-feather.png)](http://maven.apache.org/)  [![Build Status](https://travis-ci.org/workshare/ms-nos.svg?branch=master)](https://travis-ci.org/workshare/ms-nos)
 <!--
@@ -95,6 +95,9 @@ Well, there are different answer for each of them, and such frameworks are becom
 - they are missing basic necessary routing mechanism (i.e. geolocation, session stickiness)
 - they are not language agnostic or very difficult to code against (i.e. Zookeper)
 - they are proprietary
+
+### Where do I find detailed technical documentation
+Please open the [wiki](https://github.com/workshare/ms-nos/wiki) and of course please feel free to checkout or fork the code
 
 ## License
 Released under the MIT License.  See the [LICENSE](LICENSE) file for further details.
