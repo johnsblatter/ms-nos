@@ -1,8 +1,8 @@
 package com.workshare.msnos.core.payloads;
 
-import com.workshare.msnos.core.Cloud.Internal;
 import com.workshare.msnos.core.Message;
 import com.workshare.msnos.core.Message.Payload;
+import com.workshare.msnos.core.cloud.Cloud.Internal;
 
 public class PayloadAdapter implements Payload {
 

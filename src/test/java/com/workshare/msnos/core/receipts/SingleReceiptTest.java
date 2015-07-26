@@ -11,9 +11,9 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.workshare.msnos.core.Gateway;
-import com.workshare.msnos.core.LocalAgent;
 import com.workshare.msnos.core.Message;
 import com.workshare.msnos.core.Message.Status;
+import com.workshare.msnos.core.cloud.LocalAgent;
 import com.workshare.msnos.core.protocols.ip.NullGateway;
 import com.workshare.msnos.core.MessageBuilder;
 import com.workshare.msnos.core.Receipt;

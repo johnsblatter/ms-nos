@@ -8,15 +8,15 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.workshare.msnos.core.Cloud.Internal;
 import com.workshare.msnos.core.Gateway;
 import com.workshare.msnos.core.Iden;
-import com.workshare.msnos.core.LocalAgent;
 import com.workshare.msnos.core.Message;
 import com.workshare.msnos.core.Message.Payload;
 import com.workshare.msnos.core.MessageBuilder;
 import com.workshare.msnos.core.MsnosException;
 import com.workshare.msnos.core.cloud.IdentifiablesList;
+import com.workshare.msnos.core.cloud.LocalAgent;
+import com.workshare.msnos.core.cloud.Cloud.Internal;
 import com.workshare.msnos.soup.json.Json;
 
 public class TracePayload implements Message.Payload {

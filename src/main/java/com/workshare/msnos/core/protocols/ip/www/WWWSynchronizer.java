@@ -6,7 +6,6 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.workshare.msnos.core.Cloud;
 import com.workshare.msnos.core.Gateway.Listener;
 import com.workshare.msnos.core.Iden;
 import com.workshare.msnos.core.Message;
@@ -14,6 +13,7 @@ import com.workshare.msnos.core.Message.Type;
 import com.workshare.msnos.core.MessageBuilder;
 import com.workshare.msnos.core.MsnosException;
 import com.workshare.msnos.core.RemoteAgent;
+import com.workshare.msnos.core.cloud.Cloud;
 import com.workshare.msnos.core.payloads.FltPayload;
 import com.workshare.msnos.core.payloads.Presence;
 import com.workshare.msnos.soup.threading.Multicaster;

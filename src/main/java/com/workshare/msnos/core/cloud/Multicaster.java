@@ -2,7 +2,7 @@ package com.workshare.msnos.core.cloud;
 
 import java.util.concurrent.Executor;
 
-import com.workshare.msnos.core.Cloud.Listener;
+import com.workshare.msnos.core.cloud.Cloud.Listener;
 import com.workshare.msnos.core.Message;
 
 public class Multicaster extends com.workshare.msnos.soup.threading.Multicaster<Listener, Message> {

@@ -1,6 +1,6 @@
 package com.workshare.msnos.core;
 
-import static com.workshare.msnos.core.CoreHelper.newAgentIden;
+import static com.workshare.msnos.core.cloud.CoreHelper.newAgentIden;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;

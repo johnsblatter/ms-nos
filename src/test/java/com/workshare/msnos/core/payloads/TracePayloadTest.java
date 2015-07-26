@@ -1,9 +1,9 @@
 package com.workshare.msnos.core.payloads;
 
-import static com.workshare.msnos.core.CoreHelper.createMockCloud;
-import static com.workshare.msnos.core.CoreHelper.getCloudInternal;
-import static com.workshare.msnos.core.CoreHelper.newAgentIden;
-import static com.workshare.msnos.core.CoreHelper.randomUUID;
+import static com.workshare.msnos.core.cloud.CoreHelper.createMockCloud;
+import static com.workshare.msnos.core.cloud.CoreHelper.getCloudInternal;
+import static com.workshare.msnos.core.cloud.CoreHelper.newAgentIden;
+import static com.workshare.msnos.core.cloud.CoreHelper.randomUUID;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.mockito.Matchers.any;
@@ -20,15 +20,15 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
-import com.workshare.msnos.core.Cloud;
-import com.workshare.msnos.core.Cloud.Internal;
-import com.workshare.msnos.core.LocalAgent;
 import com.workshare.msnos.core.Message;
 import com.workshare.msnos.core.Message.Payload;
 import com.workshare.msnos.core.Message.Type;
 import com.workshare.msnos.core.MessageBuilder;
 import com.workshare.msnos.core.MsnosException;
+import com.workshare.msnos.core.cloud.Cloud;
 import com.workshare.msnos.core.cloud.IdentifiablesList;
+import com.workshare.msnos.core.cloud.LocalAgent;
+import com.workshare.msnos.core.cloud.Cloud.Internal;
 import com.workshare.msnos.core.payloads.TracePayload.Crumb;
 import com.workshare.msnos.core.protocols.ip.NullGateway;
 

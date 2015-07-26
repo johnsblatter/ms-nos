@@ -1,11 +1,11 @@
 package com.workshare.msnos.core.routing;
 
-import static com.workshare.msnos.core.CoreHelper.asSet;
-import static com.workshare.msnos.core.CoreHelper.newAgentIden;
 import static com.workshare.msnos.core.GatewaysHelper.newHttpGateway;
 import static com.workshare.msnos.core.GatewaysHelper.newUDPGateway;
 import static com.workshare.msnos.core.GatewaysHelper.newWWWGateway;
 import static com.workshare.msnos.core.MessagesHelper.newPingMessage;
+import static com.workshare.msnos.core.cloud.CoreHelper.asSet;
+import static com.workshare.msnos.core.cloud.CoreHelper.newAgentIden;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
@@ -19,11 +19,11 @@ import java.util.Set;
 
 import org.junit.Test;
 
-import com.workshare.msnos.core.Cloud;
 import com.workshare.msnos.core.Gateway;
 import com.workshare.msnos.core.Identifiable;
 import com.workshare.msnos.core.Message;
 import com.workshare.msnos.core.Receipt;
+import com.workshare.msnos.core.cloud.Cloud;
 import com.workshare.msnos.core.protocols.ip.http.HttpGateway;
 import com.workshare.msnos.core.protocols.ip.udp.UDPGateway;
 import com.workshare.msnos.core.protocols.ip.www.WWWGateway;

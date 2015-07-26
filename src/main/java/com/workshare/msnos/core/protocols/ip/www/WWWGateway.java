@@ -29,12 +29,12 @@ import org.apache.http.util.EntityUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.workshare.msnos.core.Cloud;
 import com.workshare.msnos.core.Gateway;
 import com.workshare.msnos.core.Identifiable;
 import com.workshare.msnos.core.Message;
 import com.workshare.msnos.core.Message.Status;
 import com.workshare.msnos.core.Receipt;
+import com.workshare.msnos.core.cloud.Cloud;
 import com.workshare.msnos.core.protocols.ip.BaseEndpoint;
 import com.workshare.msnos.core.protocols.ip.Endpoints;
 import com.workshare.msnos.core.protocols.ip.www.WWWSynchronizer.Processor;

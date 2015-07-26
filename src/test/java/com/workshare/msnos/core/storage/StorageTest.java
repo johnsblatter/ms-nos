@@ -1,7 +1,8 @@
 package com.workshare.msnos.core.storage;
 
-import com.workshare.msnos.core.Cloud;
 import com.workshare.msnos.core.Iden;
+import com.workshare.msnos.core.cloud.Cloud;
+
 import org.junit.*;
 
 import java.io.File;

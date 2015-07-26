@@ -3,7 +3,7 @@ package com.workshare.msnos.core.protocols.ip;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import static com.workshare.msnos.core.CoreHelper.*;
+import static com.workshare.msnos.core.cloud.CoreHelper.*;
 
 import java.util.Arrays;
 import java.util.HashSet;
@@ -14,8 +14,8 @@ import org.junit.Test;
 import com.workshare.msnos.core.Iden;
 import com.workshare.msnos.core.RemoteAgent;
 import com.workshare.msnos.core.protocols.ip.Endpoint.Type;
-import com.workshare.msnos.usvc.RemoteMicroservice;
-import com.workshare.msnos.usvc.api.RestApi;
+import com.workshare.msnos.core.services.api.RemoteMicroservice;
+import com.workshare.msnos.core.services.api.RestApi;
 
 public class HttpEndpointTest {
 

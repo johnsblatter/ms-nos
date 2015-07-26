@@ -8,13 +8,13 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.workshare.msnos.core.Cloud;
 import com.workshare.msnos.core.Gateway;
 import com.workshare.msnos.core.Identifiable;
-import com.workshare.msnos.core.LocalAgent;
 import com.workshare.msnos.core.Message;
 import com.workshare.msnos.core.Receipt;
 import com.workshare.msnos.core.RemoteAgent;
+import com.workshare.msnos.core.cloud.Cloud;
+import com.workshare.msnos.core.cloud.LocalAgent;
 import com.workshare.msnos.core.cloud.MessageValidators;
 import com.workshare.msnos.core.cloud.MessageValidators.Result;
 import com.workshare.msnos.core.payloads.TracePayload;

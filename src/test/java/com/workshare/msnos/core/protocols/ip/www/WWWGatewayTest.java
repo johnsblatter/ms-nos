@@ -1,6 +1,6 @@
 package com.workshare.msnos.core.protocols.ip.www;
 
-import static com.workshare.msnos.core.CoreHelper.synchronousGatewayMulticaster;
+import static com.workshare.msnos.core.cloud.CoreHelper.synchronousGatewayMulticaster;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -40,7 +40,6 @@ import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
-import com.workshare.msnos.core.Cloud;
 import com.workshare.msnos.core.Gateway;
 import com.workshare.msnos.core.Gateway.Listener;
 import com.workshare.msnos.core.Iden;
@@ -48,6 +47,7 @@ import com.workshare.msnos.core.Message;
 import com.workshare.msnos.core.Message.Status;
 import com.workshare.msnos.core.MessageBuilder;
 import com.workshare.msnos.core.Receipt;
+import com.workshare.msnos.core.cloud.Cloud;
 import com.workshare.msnos.core.serializers.WireJsonSerializer;
 import com.workshare.msnos.core.serializers.WireSerializer;
 

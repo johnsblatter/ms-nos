@@ -1,11 +1,11 @@
 package com.workshare.msnos.core.protocols.ip.www;
 
-import static com.workshare.msnos.core.CoreHelper.makeImmutableEndpoints;
-import static com.workshare.msnos.core.CoreHelper.newCloudIden;
-import static com.workshare.msnos.core.CoreHelper.randomUUID;
 import static com.workshare.msnos.core.MessagesHelper.newFaultMessage;
 import static com.workshare.msnos.core.MessagesHelper.newPresenceMessage;
 import static com.workshare.msnos.core.MessagesHelper.newQNEMessage;
+import static com.workshare.msnos.core.cloud.CoreHelper.makeImmutableEndpoints;
+import static com.workshare.msnos.core.cloud.CoreHelper.newCloudIden;
+import static com.workshare.msnos.core.cloud.CoreHelper.randomUUID;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.atMost;
@@ -21,15 +21,15 @@ import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
-import com.workshare.msnos.core.Cloud;
-import com.workshare.msnos.core.CoreHelper;
 import com.workshare.msnos.core.Gateway;
 import com.workshare.msnos.core.Gateway.Listener;
-import com.workshare.msnos.core.LocalAgent;
 import com.workshare.msnos.core.Message;
 import com.workshare.msnos.core.MsnosException;
 import com.workshare.msnos.core.RemoteAgent;
 import com.workshare.msnos.core.Ring;
+import com.workshare.msnos.core.cloud.Cloud;
+import com.workshare.msnos.core.cloud.CoreHelper;
+import com.workshare.msnos.core.cloud.LocalAgent;
 import com.workshare.msnos.core.payloads.Presence;
 import com.workshare.msnos.core.protocols.ip.Endpoint;
 import com.workshare.msnos.core.protocols.ip.www.WWWSynchronizer.Processor;

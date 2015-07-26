@@ -7,13 +7,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.workshare.msnos.core.Agent;
-import com.workshare.msnos.core.Cloud;
 import com.workshare.msnos.core.Iden;
-import com.workshare.msnos.core.LocalAgent;
 import com.workshare.msnos.core.Message;
 import com.workshare.msnos.core.Message.Payload;
 import com.workshare.msnos.core.MsnosException;
 import com.workshare.msnos.core.RemoteAgent;
+import com.workshare.msnos.core.cloud.Cloud;
+import com.workshare.msnos.core.cloud.LocalAgent;
 import com.workshare.msnos.core.protocols.ip.Endpoint;
 import com.workshare.msnos.core.protocols.ip.HttpEndpoint;
 import com.workshare.msnos.soup.json.Json;

@@ -1,8 +1,8 @@
 package com.workshare.msnos.core;
 
-import static com.workshare.msnos.core.CoreHelper.asNetwork;
-import static com.workshare.msnos.core.CoreHelper.asPublicNetwork;
-import static com.workshare.msnos.core.CoreHelper.asSet;
+import static com.workshare.msnos.core.cloud.CoreHelper.asNetwork;
+import static com.workshare.msnos.core.cloud.CoreHelper.asPublicNetwork;
+import static com.workshare.msnos.core.cloud.CoreHelper.asSet;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.mockito.Mockito.mock;
@@ -12,12 +12,13 @@ import java.util.UUID;
 
 import org.junit.Test;
 
+import com.workshare.msnos.core.cloud.CoreHelper;
 import com.workshare.msnos.core.geo.Location;
 import com.workshare.msnos.core.protocols.ip.BaseEndpoint;
 import com.workshare.msnos.core.protocols.ip.Endpoint;
 import com.workshare.msnos.core.protocols.ip.Endpoint.Type;
 import com.workshare.msnos.core.protocols.ip.HttpEndpoint;
-import com.workshare.msnos.usvc.IMicroservice;
+import com.workshare.msnos.core.services.api.Microservice;
 
 public class RingTest {
 
@@ -52,13 +53,13 @@ public class RingTest {
 
         Location location = mock(Location.class);
         when(location.getPrecision()).thenReturn(100);
-        IMicroservice uservice = mock(IMicroservice.class);
+        Microservice uservice = mock(Microservice.class);
         when(uservice.getLocation()).thenReturn(location);
         ring.onMicroserviceJoin(uservice);
         
         assertEquals(location, ring.location());
 
-        IMicroservice nowhereman = mock(IMicroservice.class);
+        Microservice nowhereman = mock(Microservice.class);
         when(nowhereman.getLocation()).thenReturn(Location.UNKNOWN);
         ring.onMicroserviceJoin(uservice);
         

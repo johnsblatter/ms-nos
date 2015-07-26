@@ -2,12 +2,12 @@ package com.workshare.msnos.core.protocols.ip;
 
 import java.io.IOException;
 
-import com.workshare.msnos.core.Cloud;
 import com.workshare.msnos.core.Gateway;
 import com.workshare.msnos.core.Identifiable;
 import com.workshare.msnos.core.Message;
 import com.workshare.msnos.core.Message.Status;
 import com.workshare.msnos.core.Receipt;
+import com.workshare.msnos.core.cloud.Cloud;
 import com.workshare.msnos.core.receipts.SingleReceipt;
 
 public class NullGateway implements Gateway {

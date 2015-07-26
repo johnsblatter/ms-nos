@@ -1,6 +1,6 @@
 package com.workshare.msnos.soup.threading;
 
-import static com.workshare.msnos.core.CoreHelper.sleep;
+import static com.workshare.msnos.core.cloud.CoreHelper.sleep;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 

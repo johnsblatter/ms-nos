@@ -1,6 +1,6 @@
 package com.workshare.msnos.core;
 
-import static com.workshare.msnos.core.CoreHelper.synchronousGatewayMulticaster;
+import static com.workshare.msnos.core.cloud.CoreHelper.synchronousGatewayMulticaster;
 import static org.mockito.Mockito.*;
 
 import java.net.MulticastSocket;

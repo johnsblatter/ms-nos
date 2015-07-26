@@ -1,10 +1,10 @@
 package com.workshare.msnos.core;
 
-import static com.workshare.msnos.core.CoreHelper.asSet;
-import static com.workshare.msnos.core.CoreHelper.fakeSystemTime;
 import static com.workshare.msnos.core.Message.Type.PIN;
 import static com.workshare.msnos.core.Message.Type.PON;
 import static com.workshare.msnos.core.Message.Type.PRS;
+import static com.workshare.msnos.core.cloud.CoreHelper.asSet;
+import static com.workshare.msnos.core.cloud.CoreHelper.fakeSystemTime;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -29,6 +29,8 @@ import org.powermock.api.mockito.PowerMockito;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 
+import com.workshare.msnos.core.cloud.Cloud;
+import com.workshare.msnos.core.cloud.LocalAgent;
 import com.workshare.msnos.core.payloads.Presence;
 import com.workshare.msnos.core.protocols.ip.Endpoint;
 import com.workshare.msnos.soup.time.SystemTime;

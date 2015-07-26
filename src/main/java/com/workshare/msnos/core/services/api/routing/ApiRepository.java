@@ -1,0 +1,76 @@
+package com.workshare.msnos.core.services.api.routing;
+
+import com.workshare.msnos.core.services.api.Microservice;
+import com.workshare.msnos.core.services.api.RemoteMicroservice;
+import com.workshare.msnos.core.services.api.RestApi;
+import com.workshare.msnos.soup.threading.ConcurrentBuildingMap;
+
+import java.util.Collection;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.CopyOnWriteArraySet;
+
+public class ApiRepository {
+
+    private final Map<String, ApiList> remoteApis;
+
+    public ApiRepository() {
+        this.remoteApis = new ConcurrentBuildingMap<String, ApiList>(new ConcurrentBuildingMap.Factory<ApiList>() {
+            @Override
+            public ApiList make() {
+                return new ApiList();
+            }
+        });
+    }
+
+    public Map<String, ApiList> getRemoteApis() {
+        return remoteApis;
+    }
+
+    public RestApi searchApiById(long id) {
+        Collection<ApiList> apiListCol = getRemoteApis().values();
+        for (ApiList apiList : apiListCol) {
+            for (RestApi rest : apiList.getApis()) {
+                if (rest.getId() == id) {
+                    return rest;
+                }
+            }
+        }
+        return null;
+    }
+
+    public RestApi searchApi(Microservice from, String path) {
+        ApiList apiList = getRemoteApis().get(path);
+        return apiList == null ? null : apiList.get(from);
+    }
+
+
+    public boolean canServe(String path) {
+        return getRemoteApis().get(path) != null;
+    }
+
+    public void register(RemoteMicroservice remote) {
+        Set<RestApi> apis = new CopyOnWriteArraySet<RestApi>(remote.getApis());
+
+        for (RestApi rest : apis) {
+            final String key = rest.getPath();
+            if (getRemoteApis().containsKey(key)) {
+                getRemoteApis().get(key).add(remote, rest);
+            } else {
+                ApiList apiList = new ApiList();
+                apiList.add(remote, rest);
+                getRemoteApis().put(key, apiList);
+            }
+        }
+    }
+
+    public void unregister(RemoteMicroservice faulty) {
+        for (RestApi rest : faulty.getApis()) {
+            final String key = rest.getPath();
+            if (getRemoteApis().containsKey(key)) {
+                ApiList apiList = getRemoteApis().get(key);
+                apiList.remove(faulty);
+            }
+        }
+    }
+}

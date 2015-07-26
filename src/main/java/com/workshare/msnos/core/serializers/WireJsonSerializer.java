@@ -36,9 +36,9 @@ import com.workshare.msnos.core.protocols.ip.BaseEndpoint;
 import com.workshare.msnos.core.protocols.ip.Endpoint;
 import com.workshare.msnos.core.protocols.ip.HttpEndpoint;
 import com.workshare.msnos.core.protocols.ip.Network;
+import com.workshare.msnos.core.services.api.RestApi;
 import com.workshare.msnos.soup.json.Json;
 import com.workshare.msnos.soup.json.ThreadSafeGson;
-import com.workshare.msnos.usvc.api.RestApi;
 
 public class WireJsonSerializer implements WireSerializer {
 

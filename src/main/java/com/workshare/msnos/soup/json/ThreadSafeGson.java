@@ -11,8 +11,8 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
-import com.workshare.msnos.core.Cloud;
-import com.workshare.msnos.core.LocalAgent;
+import com.workshare.msnos.core.cloud.Cloud;
+import com.workshare.msnos.core.cloud.LocalAgent;
 
 public class ThreadSafeGson {
     private final ThreadLocal<Gson> threadSafeGson = new ThreadLocal<Gson>() {

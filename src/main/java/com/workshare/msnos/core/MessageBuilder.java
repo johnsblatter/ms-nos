@@ -2,6 +2,7 @@ package com.workshare.msnos.core;
 
 import com.workshare.msnos.core.Message.Payload;
 import com.workshare.msnos.core.Message.Type;
+import com.workshare.msnos.core.cloud.Cloud;
 
 import java.util.UUID;
 

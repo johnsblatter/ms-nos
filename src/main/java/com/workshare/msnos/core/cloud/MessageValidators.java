@@ -10,7 +10,6 @@ import net.jodah.expiringmap.ExpiringMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.workshare.msnos.core.Cloud;
 import com.workshare.msnos.core.Iden;
 import com.workshare.msnos.core.Iden.Type;
 import com.workshare.msnos.core.Message;

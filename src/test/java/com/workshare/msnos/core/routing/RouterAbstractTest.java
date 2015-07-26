@@ -1,10 +1,10 @@
 package com.workshare.msnos.core.routing;
 
-import static com.workshare.msnos.core.CoreHelper.asPublicNetwork;
-import static com.workshare.msnos.core.CoreHelper.createMockCloud;
-import static com.workshare.msnos.core.CoreHelper.newAPPMesage;
-import static com.workshare.msnos.core.CoreHelper.newAgentIden;
 import static com.workshare.msnos.core.Message.Type.TRC;
+import static com.workshare.msnos.core.cloud.CoreHelper.asPublicNetwork;
+import static com.workshare.msnos.core.cloud.CoreHelper.createMockCloud;
+import static com.workshare.msnos.core.cloud.CoreHelper.newAPPMesage;
+import static com.workshare.msnos.core.cloud.CoreHelper.newAgentIden;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
@@ -27,15 +27,15 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
-import com.workshare.msnos.core.Cloud;
 import com.workshare.msnos.core.Gateway;
 import com.workshare.msnos.core.Identifiable;
-import com.workshare.msnos.core.LocalAgent;
 import com.workshare.msnos.core.Message;
 import com.workshare.msnos.core.MessageBuilder;
 import com.workshare.msnos.core.Receipt;
 import com.workshare.msnos.core.RemoteAgent;
 import com.workshare.msnos.core.Ring;
+import com.workshare.msnos.core.cloud.Cloud;
+import com.workshare.msnos.core.cloud.LocalAgent;
 import com.workshare.msnos.core.cloud.MessageValidators;
 import com.workshare.msnos.core.payloads.TracePayload;
 import com.workshare.msnos.core.payloads.TracePayload.Crumb;

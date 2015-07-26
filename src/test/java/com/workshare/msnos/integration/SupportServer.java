@@ -1,11 +1,11 @@
 package com.workshare.msnos.integration;
 
-import com.workshare.msnos.core.Cloud;
-import com.workshare.msnos.core.Cloud.Listener;
-import com.workshare.msnos.core.LocalAgent;
 import com.workshare.msnos.core.Message;
 import com.workshare.msnos.core.Message.Payload;
 import com.workshare.msnos.core.MsnosException;
+import com.workshare.msnos.core.cloud.Cloud;
+import com.workshare.msnos.core.cloud.LocalAgent;
+import com.workshare.msnos.core.cloud.Cloud.Listener;
 import com.workshare.msnos.core.payloads.GenericPayload;
 import com.workshare.msnos.soup.Shorteners;
 import com.workshare.msnos.soup.json.Json;

@@ -1,6 +1,6 @@
 package com.workshare.msnos.core.receipts;
 
-import static com.workshare.msnos.core.CoreHelper.sleep;
+import static com.workshare.msnos.core.cloud.CoreHelper.sleep;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -12,9 +12,9 @@ import java.util.concurrent.TimeUnit;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.workshare.msnos.core.LocalAgent;
 import com.workshare.msnos.core.Message;
 import com.workshare.msnos.core.Message.Status;
+import com.workshare.msnos.core.cloud.LocalAgent;
 import com.workshare.msnos.core.MessageBuilder;
 import com.workshare.msnos.core.Receipt;
 

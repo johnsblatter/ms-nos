@@ -13,8 +13,8 @@ import org.slf4j.LoggerFactory;
 import com.workshare.msnos.core.geo.Location;
 import com.workshare.msnos.core.protocols.ip.Endpoint;
 import com.workshare.msnos.core.protocols.ip.Endpoint.Type;
+import com.workshare.msnos.core.services.api.Microservice;
 import com.workshare.msnos.soup.json.Json;
-import com.workshare.msnos.usvc.IMicroservice;
 
 public class Ring {
 
@@ -37,7 +37,7 @@ public class Ring {
         return location;
     }
     
-    public synchronized void onMicroserviceJoin(IMicroservice uservice) {
+    public synchronized void onMicroserviceJoin(Microservice uservice) {
         Location loc = uservice.getLocation();
         if (loc.getPrecision() > location.getPrecision()) {
             location = loc;

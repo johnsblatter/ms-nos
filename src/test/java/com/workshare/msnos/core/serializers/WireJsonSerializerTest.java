@@ -2,7 +2,7 @@ package com.workshare.msnos.core.serializers;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static com.workshare.msnos.core.CoreHelper.*;
+import static com.workshare.msnos.core.cloud.CoreHelper.*;
 
 import java.util.Arrays;
 import java.util.HashSet;
@@ -12,9 +12,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.workshare.msnos.core.Cloud;
 import com.workshare.msnos.core.Gateway;
-import com.workshare.msnos.core.LocalAgent;
 import com.workshare.msnos.core.Message;
 import com.workshare.msnos.core.Message.Payload;
 import com.workshare.msnos.core.Iden;
@@ -22,6 +20,8 @@ import com.workshare.msnos.core.MessageBuilder;
 import com.workshare.msnos.core.RemoteAgent;
 import com.workshare.msnos.core.RemoteEntity;
 import com.workshare.msnos.core.Version;
+import com.workshare.msnos.core.cloud.Cloud;
+import com.workshare.msnos.core.cloud.LocalAgent;
 import com.workshare.msnos.core.payloads.FltPayload;
 import com.workshare.msnos.core.payloads.HealthcheckPayload;
 import com.workshare.msnos.core.payloads.Presence;
@@ -32,8 +32,8 @@ import com.workshare.msnos.core.protocols.ip.HttpEndpoint;
 import com.workshare.msnos.core.protocols.ip.Network;
 import com.workshare.msnos.core.protocols.ip.BaseEndpoint;
 import com.workshare.msnos.core.protocols.ip.NullGateway;
-import com.workshare.msnos.usvc.api.RestApi;
-import com.workshare.msnos.usvc.api.RestApi.Type;
+import com.workshare.msnos.core.services.api.RestApi;
+import com.workshare.msnos.core.services.api.RestApi.Type;
 
 public class WireJsonSerializerTest {
 

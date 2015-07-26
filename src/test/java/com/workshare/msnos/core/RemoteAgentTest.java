@@ -1,10 +1,10 @@
 package com.workshare.msnos.core;
 
-import static com.workshare.msnos.core.CoreHelper.asPublicNetwork;
-import static com.workshare.msnos.core.CoreHelper.asSet;
-import static com.workshare.msnos.core.CoreHelper.fakeSystemTime;
-import static com.workshare.msnos.core.CoreHelper.newAgentIden;
-import static com.workshare.msnos.core.CoreHelper.randomUUID;
+import static com.workshare.msnos.core.cloud.CoreHelper.asPublicNetwork;
+import static com.workshare.msnos.core.cloud.CoreHelper.asSet;
+import static com.workshare.msnos.core.cloud.CoreHelper.fakeSystemTime;
+import static com.workshare.msnos.core.cloud.CoreHelper.newAgentIden;
+import static com.workshare.msnos.core.cloud.CoreHelper.randomUUID;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 
@@ -15,6 +15,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.workshare.msnos.core.cloud.Cloud;
 import com.workshare.msnos.core.protocols.ip.BaseEndpoint;
 import com.workshare.msnos.core.protocols.ip.Endpoint;
 import com.workshare.msnos.core.protocols.ip.HttpEndpoint;

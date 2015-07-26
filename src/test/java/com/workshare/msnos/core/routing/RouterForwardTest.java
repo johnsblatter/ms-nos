@@ -1,6 +1,6 @@
 package com.workshare.msnos.core.routing;
 
-import static com.workshare.msnos.core.CoreHelper.newAPPMesage;
+import static com.workshare.msnos.core.cloud.CoreHelper.newAPPMesage;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 

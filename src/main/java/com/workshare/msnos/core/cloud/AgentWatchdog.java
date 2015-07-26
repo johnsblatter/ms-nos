@@ -1,6 +1,5 @@
 package com.workshare.msnos.core.cloud;
 
-import com.workshare.msnos.core.Cloud;
 import com.workshare.msnos.core.Message;
 import com.workshare.msnos.core.MessageBuilder;
 import com.workshare.msnos.core.RemoteEntity;

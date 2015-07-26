@@ -1,7 +1,7 @@
 package com.workshare.msnos.core.payloads;
 
 import com.workshare.msnos.core.Message.Payload;
-import com.workshare.msnos.usvc.api.RestApi;
+import com.workshare.msnos.core.services.api.RestApi;
 
 import org.junit.Test;
 

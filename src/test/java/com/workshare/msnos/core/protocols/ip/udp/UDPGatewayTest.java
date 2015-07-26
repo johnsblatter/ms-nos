@@ -1,7 +1,7 @@
 package com.workshare.msnos.core.protocols.ip.udp;
 
-import static com.workshare.msnos.core.CoreHelper.fakeSystemTime;
-import static com.workshare.msnos.core.CoreHelper.synchronousGatewayMulticaster;
+import static com.workshare.msnos.core.cloud.CoreHelper.fakeSystemTime;
+import static com.workshare.msnos.core.cloud.CoreHelper.synchronousGatewayMulticaster;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -31,14 +31,14 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
-import com.workshare.msnos.core.Cloud;
-import com.workshare.msnos.core.Cloud.Internal;
 import com.workshare.msnos.core.Gateway.Listener;
 import com.workshare.msnos.core.Iden;
 import com.workshare.msnos.core.Message;
 import com.workshare.msnos.core.Message.Status;
 import com.workshare.msnos.core.MessageBuilder;
 import com.workshare.msnos.core.Receipt;
+import com.workshare.msnos.core.cloud.Cloud;
+import com.workshare.msnos.core.cloud.Cloud.Internal;
 import com.workshare.msnos.core.protocols.ip.MulticastSocketFactory;
 import com.workshare.msnos.core.serializers.WireJsonSerializer;
 

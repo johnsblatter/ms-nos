@@ -2,6 +2,7 @@ package com.workshare.msnos.core;
 
 import java.util.Set;
 
+import com.workshare.msnos.core.cloud.Cloud;
 import com.workshare.msnos.core.protocols.ip.Endpoint;
 
 /**
@@ -13,8 +14,10 @@ import com.workshare.msnos.core.protocols.ip.Endpoint;
  */
 public interface Agent extends Identifiable {
     
-    /* (non-Javadoc)
-     * @see com.workshare.msnos.core.Identifiable#getIden()
+    /**
+     * Returns the unique identifier of this agent
+     * 
+     * @return  the unique identifier
      */
     Iden getIden();
 
@@ -38,11 +41,6 @@ public interface Agent extends Identifiable {
      * @return  last time seen
      */
     long getAccessTime();
-
-    /**
-     * Allows to "touch" an agent, resetting his access time to now
-     */
-    void touch();
 
     /**
      * Returns the ring this agent is connected to

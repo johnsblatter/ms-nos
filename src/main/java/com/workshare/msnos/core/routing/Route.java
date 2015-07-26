@@ -5,9 +5,9 @@ import java.io.IOException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.workshare.msnos.core.Cloud;
 import com.workshare.msnos.core.Message;
 import com.workshare.msnos.core.Receipt;
+import com.workshare.msnos.core.cloud.Cloud;
 
 abstract class Route {
     protected static final Logger routing = LoggerFactory.getLogger("routing");

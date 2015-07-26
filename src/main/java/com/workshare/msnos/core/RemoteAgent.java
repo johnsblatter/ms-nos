@@ -9,6 +9,7 @@ import java.util.UUID;
 
 import javax.annotation.concurrent.GuardedBy;
 
+import com.workshare.msnos.core.cloud.Cloud;
 import com.workshare.msnos.core.protocols.ip.Endpoint;
 import com.workshare.msnos.core.protocols.ip.Endpoint.Type;
 import com.workshare.msnos.soup.json.Json;

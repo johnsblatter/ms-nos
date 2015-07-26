@@ -2,6 +2,7 @@ package com.workshare.msnos.core;
 
 import java.io.IOException;
 
+import com.workshare.msnos.core.cloud.Cloud;
 import com.workshare.msnos.core.protocols.ip.Endpoints;
 
 public interface Gateway {

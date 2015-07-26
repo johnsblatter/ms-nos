@@ -1,5 +1,6 @@
 package com.workshare.msnos.core;
 
+import com.workshare.msnos.core.cloud.Cloud;
 import com.workshare.msnos.soup.time.SystemTime;
 
 import java.util.concurrent.atomic.AtomicLong;

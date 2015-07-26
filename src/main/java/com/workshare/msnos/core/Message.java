@@ -4,6 +4,7 @@ import java.math.BigInteger;
 import java.security.SecureRandom;
 import java.util.UUID;
 
+import com.workshare.msnos.core.cloud.Cloud;
 import com.workshare.msnos.core.payloads.NullPayload;
 import com.workshare.msnos.core.payloads.PongPayload;
 import com.workshare.msnos.core.payloads.TracePayload;

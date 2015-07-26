@@ -2,12 +2,13 @@ package com.workshare.msnos.core;
 
 import static com.workshare.msnos.core.Message.Type.HCK;
 
+import com.workshare.msnos.core.cloud.Cloud;
 import com.workshare.msnos.core.payloads.FltPayload;
 import com.workshare.msnos.core.payloads.HealthcheckPayload;
 import com.workshare.msnos.core.payloads.Presence;
 import com.workshare.msnos.core.payloads.QnePayload;
-import com.workshare.msnos.usvc.RemoteMicroservice;
-import com.workshare.msnos.usvc.api.RestApi;
+import com.workshare.msnos.core.services.api.RemoteMicroservice;
+import com.workshare.msnos.core.services.api.RestApi;
 
 public class MessagesHelper {
 

@@ -1,7 +1,7 @@
 package com.workshare.msnos.core.cloud;
 
-import static com.workshare.msnos.core.CoreHelper.createMockAgent;
-import static com.workshare.msnos.core.CoreHelper.newAgentIden;
+import static com.workshare.msnos.core.cloud.CoreHelper.createMockAgent;
+import static com.workshare.msnos.core.cloud.CoreHelper.newAgentIden;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
