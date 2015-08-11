@@ -1,9 +1,14 @@
 package com.workshare.msnos.integration;
 
-import com.workshare.msnos.core.*;
-import com.workshare.msnos.core.Message.Payload;
-import com.workshare.msnos.core.Message.Type;
-import com.workshare.msnos.integration.IntegrationActor.CommandPayload.Command;
+import static com.workshare.msnos.integration.IntegrationActor.CommandPayload.Command.AGENT_JOIN;
+import static com.workshare.msnos.integration.IntegrationActor.CommandPayload.Command.AGENT_LEAVE;
+import static com.workshare.msnos.integration.IntegrationActor.CommandPayload.Command.INIT;
+import static com.workshare.msnos.integration.IntegrationActor.CommandPayload.Command.SELF_KILL;
+import static com.workshare.msnos.integration.IntegrationActor.CommandPayload.Command.TERM;
+import static org.junit.Assert.assertTrue;
+
+import java.util.UUID;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -11,10 +16,14 @@ import org.junit.FixMethodOrder;
 import org.junit.Test;
 import org.junit.runners.MethodSorters;
 
-import java.util.UUID;
-
-import static com.workshare.msnos.integration.IntegrationActor.CommandPayload.Command.*;
-import static org.junit.Assert.assertTrue;
+import com.workshare.msnos.core.Message;
+import com.workshare.msnos.core.Message.Payload;
+import com.workshare.msnos.core.Message.Type;
+import com.workshare.msnos.core.MessageBuilder;
+import com.workshare.msnos.core.MsnosException;
+import com.workshare.msnos.core.cloud.Cloud;
+import com.workshare.msnos.core.cloud.LocalAgent;
+import com.workshare.msnos.integration.IntegrationActor.CommandPayload.Command;
 
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class CoreIT implements IntegrationActor {

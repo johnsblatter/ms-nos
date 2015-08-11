@@ -1,7 +1,8 @@
-package com.workshare.msnos.core.storage;
+package com.workshare.msnos.core.services.storage;
 
 import com.workshare.msnos.core.Iden;
 import com.workshare.msnos.core.cloud.Cloud;
+import com.workshare.msnos.core.services.storage.Storage;
 
 import org.junit.*;
 

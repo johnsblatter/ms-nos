@@ -1,4 +1,4 @@
-package com.workshare.msnos.core.storage;
+package com.workshare.msnos.core.services.storage;
 
 import org.mapdb.DB;
 import org.mapdb.DBMaker;

@@ -304,6 +304,8 @@ public class MicroserviceTest {
 
     private Message simulateMessageFromCloud(final Message message) {
         ArgumentCaptor<Cloud.Listener> cloudListener = ArgumentCaptor.forClass(Cloud.Listener.class);
+        verify(cloud, atLeastOnce()).addSynchronousListener(cloudListener.capture());
+        cloudListener.getValue().onMessage(message);
         verify(cloud, atLeastOnce()).addListener(cloudListener.capture());
         cloudListener.getValue().onMessage(message);
         return message;
