@@ -45,4 +45,9 @@ public class ExecutorServices {
     public static ScheduledExecutorService newSingleThreadScheduledExecutor() {
         return Executors.newSingleThreadScheduledExecutor(DAEMON_THREAD_FACTORY);
     }
+
+
+    public static ExecutorService newCachedDaemonThreadPool() {
+        return Executors.newCachedThreadPool(DAEMON_THREAD_FACTORY);
+    }
 }
