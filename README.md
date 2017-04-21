@@ -7,6 +7,7 @@ A [simple network operating system](http://msnos.io) for Microservices (java imp
 <!--
 [![Coverage Status](https://coveralls.io/repos/bbossola/ms-nos/badge.png)](https://coveralls.io/r/workshare/ms-nos)
 --> 
+[![security status](http://qa.meterian.com/badge/gh/johnsblatter/ms-nos/security)](http://qa.meterian.com/report/gh/johnsblatter/ms-nos)
 
 ## Summary
 MSNOS is a library built in order to mantain and survive a microservice based architecture :) Every microservice will surface spontaneously in a cloud, without the need of any application configuration. An application level healtcheck is available to internal monitor the health on the services in the cloud.
